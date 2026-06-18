@@ -6,9 +6,10 @@ import { useRouter } from 'next/navigation';
 import {
   Printer, ChevronLeft, Sparkles, RefreshCw,
   Check, ArrowRight, Package, ChevronRight,
+  ChevronDown, Plus, Trash2, PenLine,
 } from 'lucide-react';
-import { MenuItem } from '@/types/menu';
-import { generateMenuSVG, TEMPLATES, TEMPLATE_STYLES, TemplateStyle } from '@/lib/print/menu-design';
+import { MenuItem, MenuCategory } from '@/types/menu';
+import { generateMenuSVG, TEMPLATES, TEMPLATE_STYLES, TemplateStyle, Template } from '@/lib/print/menu-design';
 import { clsx } from 'clsx';
 
 // ── Pricing ──────────────────────────────────────────────────────────────────
@@ -19,8 +20,107 @@ const QUANTITIES = [
   { label: '대량', value: 500, suffix: '장', desc: '대형 행사·장기 보관', price: 135_000 },
 ];
 
+// ── Editable types ────────────────────────────────────────────────────────────
+interface EditItem {
+  id: string;
+  nameKo: string;
+  price: number;
+  description: string;
+  category: MenuCategory;
+  available: boolean;
+}
+
+interface ColorEdit {
+  headerBg: string;
+  accent: string;
+  bg: string;
+}
+
+const CAT_OPTIONS: { value: MenuCategory; label: string }[] = [
+  { value: 'appetizer', label: '전채 요리' },
+  { value: 'main', label: '메인 요리' },
+  { value: 'dessert', label: '디저트' },
+  { value: 'beverage', label: '음료' },
+  { value: 'set', label: '세트 메뉴' },
+];
+
 // ── Step type ─────────────────────────────────────────────────────────────────
-type Step = 'generating' | 'preview' | 'quantity' | 'done';
+type Step = 'generating' | 'preview' | 'editor' | 'quantity' | 'done';
+
+// ── ItemRow ───────────────────────────────────────────────────────────────────
+function ItemRow({
+  item,
+  onChange,
+  onDelete,
+}: {
+  item: EditItem;
+  onChange: (updated: EditItem) => void;
+  onDelete: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className={clsx('border rounded-xl overflow-hidden transition-opacity', !item.available && 'opacity-50')}>
+      <div className="flex items-center gap-1.5 px-2 py-1.5">
+        <button
+          onClick={() => onChange({ ...item, available: !item.available })}
+          className={clsx(
+            'shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors',
+            item.available ? 'border-amber-400 bg-amber-400' : 'border-stone-300 bg-white'
+          )}
+          title={item.available ? '숨기기' : '표시'}
+        >
+          {item.available && <Check size={9} className="text-white" />}
+        </button>
+        <input
+          value={item.nameKo}
+          onChange={e => onChange({ ...item, nameKo: e.target.value })}
+          placeholder="메뉴 이름"
+          className="flex-1 min-w-0 text-sm font-medium bg-transparent border-b border-transparent focus:border-amber-300 focus:outline-none py-0.5 transition-colors"
+        />
+        <input
+          value={item.price || ''}
+          onChange={e => onChange({ ...item, price: Math.max(0, Number(e.target.value) || 0) })}
+          type="number"
+          min={0}
+          placeholder="0"
+          className="w-20 text-right text-sm bg-transparent border-b border-transparent focus:border-amber-300 focus:outline-none py-0.5 transition-colors"
+        />
+        <span className="text-[11px] text-stone-400 shrink-0">원</span>
+        <button onClick={() => setOpen(o => !o)} className="shrink-0 text-stone-400 hover:text-stone-600 transition-colors">
+          <ChevronDown size={14} className={clsx('transition-transform', open && 'rotate-180')} />
+        </button>
+      </div>
+      {open && (
+        <div className="border-t border-stone-100 px-2 py-2 bg-stone-50 flex flex-col gap-2">
+          <input
+            value={item.description}
+            onChange={e => onChange({ ...item, description: e.target.value })}
+            placeholder="메뉴 설명 (선택)"
+            className="w-full text-xs bg-white border border-stone-200 rounded-lg px-2 py-1.5 focus:border-amber-300 focus:outline-none"
+          />
+          <div className="flex items-center gap-2">
+            <select
+              value={item.category}
+              onChange={e => onChange({ ...item, category: e.target.value as MenuCategory })}
+              className="flex-1 text-xs bg-white border border-stone-200 rounded-lg px-2 py-1.5 focus:border-amber-300 focus:outline-none"
+            >
+              {CAT_OPTIONS.map(c => (
+                <option key={c.value} value={c.value}>{c.label}</option>
+              ))}
+            </select>
+            <button
+              onClick={onDelete}
+              className="flex items-center gap-1 px-2 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-500 text-xs font-medium transition-colors"
+            >
+              <Trash2 size={11} />
+              삭제
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 // ── Loading bar ───────────────────────────────────────────────────────────────
 function GeneratingStep() {
@@ -64,6 +164,194 @@ function GeneratingStep() {
   );
 }
 
+// ── Editor step ───────────────────────────────────────────────────────────────
+function EditorStep({
+  items,
+  restaurantName,
+  style,
+  colorEdit,
+  onItemsChange,
+  onNameChange,
+  onColorChange,
+  onBack,
+  onConfirm,
+}: {
+  items: EditItem[];
+  restaurantName: string;
+  style: TemplateStyle;
+  colorEdit: ColorEdit;
+  onItemsChange: (items: EditItem[]) => void;
+  onNameChange: (name: string) => void;
+  onColorChange: (c: ColorEdit) => void;
+  onBack: () => void;
+  onConfirm: () => void;
+}) {
+  const [tab, setTab] = useState<'menu' | 'style'>('menu');
+
+  const svgItems: MenuItem[] = items.map(i => ({
+    id: i.id,
+    name: i.nameKo,
+    nameKo: i.nameKo,
+    description: i.description,
+    price: i.price,
+    category: i.category,
+    tags: [],
+    allergens: [],
+    available: i.available,
+  }));
+
+  const overrides: Partial<Template> = {
+    headerBg: colorEdit.headerBg,
+    accent: colorEdit.accent,
+    catLabel: colorEdit.accent,
+    bg: colorEdit.bg,
+  };
+
+  const rawSvg = generateMenuSVG(svgItems, restaurantName, style, overrides);
+  const previewSvg = rawSvg
+    .replace('width="480"', 'width="100%"')
+    .replace('height="700"', '');
+
+  function addItem() {
+    onItemsChange([...items, {
+      id: `new-${Date.now()}`,
+      nameKo: '',
+      price: 0,
+      description: '',
+      category: 'main' as MenuCategory,
+      available: true,
+    }]);
+  }
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-[300px_1fr] gap-6">
+      {/* Controls */}
+      <div className="flex flex-col gap-4">
+        {/* Tab bar */}
+        <div className="flex rounded-xl border border-stone-200 bg-stone-50 p-1 gap-1">
+          {(['menu', 'style'] as const).map(t => (
+            <button
+              key={t}
+              onClick={() => setTab(t)}
+              className={clsx(
+                'flex-1 py-1.5 text-xs font-semibold rounded-lg transition-colors',
+                tab === t ? 'bg-white text-amber-700 shadow-sm' : 'text-stone-500 hover:text-stone-700'
+              )}
+            >
+              {t === 'menu' ? '메뉴 항목' : '디자인 설정'}
+            </button>
+          ))}
+        </div>
+
+        {tab === 'menu' && (
+          <div className="flex flex-col gap-3">
+            <div>
+              <p className="text-[11px] font-semibold text-stone-400 uppercase tracking-wider mb-1.5">식당 이름</p>
+              <input
+                value={restaurantName}
+                onChange={e => onNameChange(e.target.value)}
+                placeholder="식당 이름"
+                className="w-full text-sm font-bold bg-white border border-stone-200 rounded-xl px-3 py-2 focus:border-amber-400 focus:outline-none"
+              />
+            </div>
+            <div>
+              <p className="text-[11px] font-semibold text-stone-400 uppercase tracking-wider mb-1.5">
+                메뉴 항목 ({items.filter(i => i.available).length}/{items.length} 표시)
+              </p>
+              <div className="flex flex-col gap-2 max-h-80 overflow-y-auto pr-0.5">
+                {items.map(item => (
+                  <ItemRow
+                    key={item.id}
+                    item={item}
+                    onChange={updated => onItemsChange(items.map(i => i.id === item.id ? updated : i))}
+                    onDelete={() => onItemsChange(items.filter(i => i.id !== item.id))}
+                  />
+                ))}
+              </div>
+            </div>
+            <button
+              onClick={addItem}
+              className="flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 border-dashed border-stone-300 hover:border-amber-400 hover:bg-amber-50 text-stone-500 hover:text-amber-600 text-sm font-medium transition-colors"
+            >
+              <Plus size={14} />
+              메뉴 항목 추가
+            </button>
+          </div>
+        )}
+
+        {tab === 'style' && (
+          <div className="flex flex-col gap-3">
+            <p className="text-[11px] font-semibold text-stone-400 uppercase tracking-wider">색상 설정</p>
+            {([
+              { key: 'headerBg' as const, label: '헤더 배경색', desc: '상단·하단 바 색상' },
+              { key: 'accent' as const, label: '강조색', desc: '카테고리·포인트 색상' },
+              { key: 'bg' as const, label: '배경색', desc: '메뉴 본문 배경색' },
+            ]).map(({ key, label, desc }) => (
+              <div key={key} className="flex items-center gap-3 p-3 bg-stone-50 rounded-xl border border-stone-100">
+                <div className="relative w-10 h-10 rounded-xl overflow-hidden border border-stone-200 cursor-pointer shrink-0">
+                  <div className="absolute inset-0 rounded-xl" style={{ background: colorEdit[key] }} />
+                  <input
+                    type="color"
+                    value={colorEdit[key]}
+                    onChange={e => onColorChange({ ...colorEdit, [key]: e.target.value })}
+                    className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+                  />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold text-stone-700">{label}</p>
+                  <p className="text-[10px] text-stone-400">{desc}</p>
+                  <p className="text-[10px] font-mono text-stone-500 mt-0.5">{colorEdit[key]}</p>
+                </div>
+              </div>
+            ))}
+            <button
+              onClick={() => onColorChange({
+                headerBg: TEMPLATES[style].headerBg,
+                accent: TEMPLATES[style].accent,
+                bg: TEMPLATES[style].bg,
+              })}
+              className="flex items-center justify-center gap-2 py-2 rounded-xl border border-stone-200 text-stone-500 hover:bg-stone-50 text-xs transition-colors"
+            >
+              <RefreshCw size={11} />
+              템플릿 기본값으로 초기화
+            </button>
+          </div>
+        )}
+
+        {/* Footer */}
+        <div className="flex gap-3 pt-3 border-t border-stone-100">
+          <button
+            onClick={onBack}
+            className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-stone-200 text-stone-600 text-sm hover:bg-stone-50"
+          >
+            <ChevronLeft size={16} />
+            이전
+          </button>
+          <button
+            onClick={onConfirm}
+            className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-sm transition-colors shadow-sm"
+          >
+            편집 완료
+            <ArrowRight size={15} />
+          </button>
+        </div>
+      </div>
+
+      {/* Live preview */}
+      <div className="md:sticky md:top-20 h-fit">
+        <div className="bg-stone-50 border border-stone-200 rounded-2xl p-3 overflow-hidden">
+          <p className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider mb-2 text-center">실시간 미리보기</p>
+          <div
+            className="w-full rounded-lg overflow-hidden shadow-sm"
+            dangerouslySetInnerHTML={{ __html: previewSvg }}
+          />
+        </div>
+        <p className="text-[10px] text-stone-400 text-center mt-2">변경 즉시 반영됩니다</p>
+      </div>
+    </div>
+  );
+}
+
 // ── Preview step ──────────────────────────────────────────────────────────────
 function PreviewStep({
   svg,
@@ -72,6 +360,7 @@ function PreviewStep({
   restaurantName,
   onStyleChange,
   onConfirm,
+  onEdit,
 }: {
   svg: string;
   style: TemplateStyle;
@@ -79,6 +368,7 @@ function PreviewStep({
   restaurantName: string;
   onStyleChange: (s: TemplateStyle) => void;
   onConfirm: () => void;
+  onEdit: () => void;
 }) {
   return (
     <div className="flex flex-col gap-6">
@@ -140,20 +430,29 @@ function PreviewStep({
       </div>
 
       {/* Action buttons */}
-      <div className="flex gap-3">
+      <div className="flex flex-col gap-2">
+        <div className="flex gap-3">
+          <button
+            onClick={() => onStyleChange(TEMPLATE_STYLES[(TEMPLATE_STYLES.indexOf(style) + 1) % TEMPLATE_STYLES.length])}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-stone-200 text-stone-600 text-sm hover:bg-stone-50 transition-colors"
+          >
+            <RefreshCw size={14} />
+            다른 스타일
+          </button>
+          <button
+            onClick={onConfirm}
+            className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-sm transition-colors shadow-sm"
+          >
+            이대로 진행하기
+            <ArrowRight size={15} />
+          </button>
+        </div>
         <button
-          onClick={() => onStyleChange(TEMPLATE_STYLES[(TEMPLATE_STYLES.indexOf(style) + 1) % TEMPLATE_STYLES.length])}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-stone-200 text-stone-600 text-sm hover:bg-stone-50 transition-colors"
+          onClick={onEdit}
+          className="flex items-center justify-center gap-2 py-2.5 rounded-xl border border-stone-300 hover:border-amber-400 hover:bg-amber-50 text-stone-600 hover:text-amber-700 text-sm font-medium transition-colors"
         >
-          <RefreshCw size={14} />
-          다른 스타일
-        </button>
-        <button
-          onClick={onConfirm}
-          className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-sm transition-colors shadow-sm"
-        >
-          이대로 진행하기
-          <ArrowRight size={15} />
+          <PenLine size={14} />
+          직접 편집하기
         </button>
       </div>
     </div>
@@ -304,24 +603,49 @@ export default function MenuPrintPage() {
   const [step, setStep] = useState<Step>('generating');
   const [style, setStyle] = useState<TemplateStyle>('classic');
   const [items, setItems] = useState<MenuItem[]>([]);
+  const [editItems, setEditItems] = useState<EditItem[]>([]);
+  const [editName, setEditName] = useState(RESTAURANT_NAME);
+  const [colorEdit, setColorEdit] = useState<ColorEdit>({
+    headerBg: TEMPLATES.classic.headerBg,
+    accent: TEMPLATES.classic.accent,
+    bg: TEMPLATES.classic.bg,
+  });
+  const [wasEdited, setWasEdited] = useState(false);
   const [ordering, setOrdering] = useState(false);
   const [orderId, setOrderId] = useState('');
 
   const svg = generateMenuSVG(items, RESTAURANT_NAME, style);
 
-  // Fetch menu + auto-advance from 'generating'
   useEffect(() => {
     const timer = setTimeout(async () => {
       try {
         const res = await fetch('/api/menu');
         const data = await res.json() as { items: MenuItem[] };
         setItems(data.items ?? []);
+        setEditItems((data.items ?? []).map(i => ({
+          id: i.id,
+          nameKo: i.nameKo,
+          price: i.price,
+          description: i.description,
+          category: i.category,
+          available: i.available,
+        })));
       } catch {
-        // fallback: empty
+        // fallback
       }
       setStep('preview');
     }, 2200);
     return () => clearTimeout(timer);
+  }, []);
+
+  const handleStyleChange = useCallback((s: TemplateStyle) => {
+    setStyle(s);
+    setColorEdit({ headerBg: TEMPLATES[s].headerBg, accent: TEMPLATES[s].accent, bg: TEMPLATES[s].bg });
+  }, []);
+
+  const handleEnterEditor = useCallback(() => {
+    setWasEdited(true);
+    setStep('editor');
   }, []);
 
   const handleOrder = useCallback(async (qty: number, price: number) => {
@@ -346,7 +670,9 @@ export default function MenuPrintPage() {
           },
           totalPrice: price,
           fileUploaded: true,
-          memo: `AI 자동 생성 디자인 · ${TEMPLATES[style].name} 스타일`,
+          memo: wasEdited
+            ? `사용자 편집 디자인 · ${TEMPLATES[style].name} 스타일`
+            : `AI 자동 생성 디자인 · ${TEMPLATES[style].name} 스타일`,
         }),
       });
       const data = await res.json() as { order: { id: string } };
@@ -357,16 +683,19 @@ export default function MenuPrintPage() {
       setStep('done');
     }
     setOrdering(false);
-  }, [style]);
+  }, [style, wasEdited]);
 
   const STEP_LABELS = ['디자인 생성', '미리보기', '수량 선택'];
-  const stepIndex = step === 'generating' ? 0 : step === 'preview' ? 1 : step === 'quantity' ? 2 : 3;
+  const stepIndex = step === 'generating' ? 0
+    : step === 'preview' || step === 'editor' ? 1
+    : step === 'quantity' ? 2
+    : 3;
 
   return (
     <div className="min-h-screen bg-stone-50">
       {/* Header */}
       <header className="bg-white border-b border-stone-100 sticky top-0 z-10">
-        <div className="max-w-2xl mx-auto px-4 h-14 flex items-center gap-3">
+        <div className="max-w-5xl mx-auto px-4 h-14 flex items-center gap-3">
           <Link href="/admin" className="w-8 h-8 rounded-full hover:bg-stone-100 flex items-center justify-center transition-colors">
             <ChevronLeft size={18} />
           </Link>
@@ -376,7 +705,9 @@ export default function MenuPrintPage() {
             </div>
             <span className="font-bold text-stone-800">메뉴판 인쇄하기</span>
           </div>
-          {/* Step indicators */}
+          {step === 'editor' && (
+            <span className="ml-1 px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 text-[10px] font-bold">슈퍼에디터</span>
+          )}
           {step !== 'done' && (
             <div className="ml-auto flex items-center gap-2">
               {STEP_LABELS.map((label, i) => (
@@ -398,8 +729,8 @@ export default function MenuPrintPage() {
         </div>
       </header>
 
-      {/* Content */}
-      <main className="max-w-2xl mx-auto px-4 py-8">
+      {/* Content — wider container for editor */}
+      <main className={clsx('mx-auto px-4 py-8', step === 'editor' ? 'max-w-5xl' : 'max-w-2xl')}>
         {step === 'generating' && <GeneratingStep />}
 
         {step === 'preview' && (
@@ -408,14 +739,29 @@ export default function MenuPrintPage() {
             style={style}
             items={items}
             restaurantName={RESTAURANT_NAME}
-            onStyleChange={setStyle}
+            onStyleChange={handleStyleChange}
+            onConfirm={() => setStep('quantity')}
+            onEdit={handleEnterEditor}
+          />
+        )}
+
+        {step === 'editor' && (
+          <EditorStep
+            items={editItems}
+            restaurantName={editName}
+            style={style}
+            colorEdit={colorEdit}
+            onItemsChange={setEditItems}
+            onNameChange={setEditName}
+            onColorChange={setColorEdit}
+            onBack={() => setStep('preview')}
             onConfirm={() => setStep('quantity')}
           />
         )}
 
         {step === 'quantity' && (
           <QuantityStep
-            onBack={() => setStep('preview')}
+            onBack={() => setStep(wasEdited ? 'editor' : 'preview')}
             onOrder={handleOrder}
             ordering={ordering}
           />

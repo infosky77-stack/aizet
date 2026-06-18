@@ -73,9 +73,10 @@ function trunc(s: string, n: number): string {
 export function generateMenuSVG(
   items: MenuItem[],
   restaurantName: string,
-  style: TemplateStyle = 'classic'
+  style: TemplateStyle = 'classic',
+  overrides?: Partial<Template>
 ): string {
-  const t = TEMPLATES[style];
+  const t = { ...TEMPLATES[style], ...overrides };
   const W = 480;
   const H = 700;
 
