@@ -20,6 +20,13 @@ import {
   Sticker,
   Box,
   Folder,
+  Scale,
+  Palette,
+  HeartPulse,
+  Building2,
+  GraduationCap,
+  Briefcase,
+  Zap,
 } from 'lucide-react';
 import { PRINT_PRODUCTS } from '@/lib/db/print';
 import { PrintCategory } from '@/types/print';
@@ -44,6 +51,250 @@ const CATEGORY_LABELS: Record<PrintCategory, string> = {
   package: '패키지',
 };
 
+// ── 직업별 명함 추천 데이터 ─────────────────────────────────────────────────────
+interface ProfessionCard {
+  id: string;
+  name: string;
+  industry: string;
+  icon: React.ElementType;
+  accentColor: string;
+  iconBg: string;
+  cardBg: string;
+  frontLines: string[];
+  backLines: string[];
+  paper: string;
+  coating: string;
+  tip: string;
+}
+
+const PROFESSION_CARDS: ProfessionCard[] = [
+  {
+    id: 'lawyer',
+    name: '변호사 · 법무사',
+    industry: '법률',
+    icon: Scale,
+    accentColor: 'text-blue-700',
+    iconBg: 'bg-blue-50',
+    cardBg: 'from-blue-900 to-blue-700',
+    frontLines: ['변호사  홍길동', '민사 · 형사 · 기업법무', '법무법인 ○○○', 'T. 02-000-0000'],
+    backLines: ['초기 법률상담 무료', '평일 09:00–18:00', 'contact@lawfirm.kr'],
+    paper: '두꺼운 아트지 350g',
+    coating: '무광 코팅 (매트)',
+    tip: '신뢰감을 주는 다크 컬러 + 무광 코팅이 법률 전문가에 잘 어울립니다.',
+  },
+  {
+    id: 'accountant',
+    name: '세무사 · 회계사',
+    industry: '세무·회계',
+    icon: Calculator,
+    accentColor: 'text-emerald-700',
+    iconBg: 'bg-emerald-50',
+    cardBg: 'from-emerald-800 to-teal-700',
+    frontLines: ['세무사  김세무', '법인세 · 소득세 · 부가세', '○○세무회계사무소', 'T. 031-000-0000'],
+    backLines: ['무료 세무상담 진행 중', '창업 · 법인 전문', 'tax@office.kr'],
+    paper: '스노우 화이트 250g',
+    coating: '유광 코팅',
+    tip: '깔끔한 화이트 배경에 포인트 컬러 로고로 전문성을 강조하세요.',
+  },
+  {
+    id: 'designer',
+    name: '디자이너 · 크리에이터',
+    industry: '디자인',
+    icon: Palette,
+    accentColor: 'text-violet-700',
+    iconBg: 'bg-violet-50',
+    cardBg: 'from-violet-700 to-pink-600',
+    frontLines: ['디자이너  이아름', 'Brand · UX · Illustration', 'Studio AIZET', 'hello@studio.kr'],
+    backLines: ['포트폴리오: behance.net/aizet', 'Instagram: @studio.aizet'],
+    paper: '모조지 (크라프트)',
+    coating: 'UV 스팟 코팅',
+    tip: '개성 있는 질감의 모조지 + UV 스팟 코팅으로 첫인상을 차별화하세요.',
+  },
+  {
+    id: 'doctor',
+    name: '의사 · 한의사',
+    industry: '의료',
+    icon: HeartPulse,
+    accentColor: 'text-red-700',
+    iconBg: 'bg-red-50',
+    cardBg: 'from-slate-700 to-blue-800',
+    frontLines: ['원장  박건강 (의학박사)', '내과 · 가정의학과', '○○의원', 'T. 02-000-0000'],
+    backLines: ['진료시간 평일 09:00–18:00', '토 09:00–13:00 / 일·공휴일 휴진', 'www.clinic.kr'],
+    paper: '두꺼운 아트지 350g',
+    coating: '무광 코팅 (매트)',
+    tip: '차분한 네이비/그레이 계열로 안정감을 주되 로고와 직함을 크게 강조하세요.',
+  },
+  {
+    id: 'architect',
+    name: '건축사 · 인테리어',
+    industry: '건축·인테리어',
+    icon: Building2,
+    accentColor: 'text-stone-700',
+    iconBg: 'bg-stone-100',
+    cardBg: 'from-stone-800 to-stone-600',
+    frontLines: ['건축사  최설계', 'Architecture · Interior', '○○건축사사무소', 'T. 02-000-0000'],
+    backLines: ['주거 · 상업 · 리모델링', '포트폴리오 → QR 코드', 'design@arch.kr'],
+    paper: '두꺼운 아트지 350g',
+    coating: '무광 코팅 + 후면 QR',
+    tip: '후면에 QR 코드로 포트폴리오를 연결하면 공간 설계 역량을 즉시 보여줄 수 있습니다.',
+  },
+  {
+    id: 'educator',
+    name: '교수 · 강사 · 컨설턴트',
+    industry: '교육·컨설팅',
+    icon: GraduationCap,
+    accentColor: 'text-amber-700',
+    iconBg: 'bg-amber-50',
+    cardBg: 'from-amber-700 to-orange-600',
+    frontLines: ['컨설턴트  정전문', 'MBA · 경영전략 · 강의', '○○컨설팅그룹', 'T. 010-0000-0000'],
+    backLines: ['강연·워크숍 문의 환영', '저서: ○○○ 외 3권', 'consult@pro.kr'],
+    paper: '스노우 화이트 250g',
+    coating: '유광 코팅',
+    tip: '강연 분야와 저서를 뒷면에 담아 전문성을 한눈에 전달하세요.',
+  },
+];
+
+// ── 미니 명함 미리보기 ───────────────────────────────────────────────────────────
+function MiniCardMockup({ card }: { card: ProfessionCard }) {
+  return (
+    <div className="flex gap-1.5">
+      {/* Front */}
+      <div className={clsx(
+        'flex-1 rounded-lg p-2.5 bg-gradient-to-br text-white',
+        card.cardBg
+      )} style={{ aspectRatio: '1.75/1', minHeight: 72 }}>
+        <div className="flex flex-col gap-0.5 h-full justify-center">
+          {card.frontLines.map((line, i) => (
+            <p key={i} className={clsx(
+              'leading-tight',
+              i === 0 ? 'text-[8px] font-bold' : 'text-[6px] opacity-75'
+            )}>
+              {line}
+            </p>
+          ))}
+        </div>
+      </div>
+      {/* Back */}
+      <div className="flex-1 rounded-lg p-2.5 bg-stone-100 border border-stone-200"
+        style={{ aspectRatio: '1.75/1', minHeight: 72 }}>
+        <div className="flex flex-col gap-0.5 h-full justify-center">
+          {card.backLines.map((line, i) => (
+            <p key={i} className="text-[6px] text-stone-500 leading-tight">{line}</p>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── 직업별 명함 추천 섹션 ─────────────────────────────────────────────────────────
+function ProfessionRecommendSection({ onQuote }: { onQuote: (prof: ProfessionCard) => void }) {
+  const [selected, setSelected] = useState<string | null>(null);
+
+  return (
+    <div className="mt-8">
+      {/* Section header */}
+      <div className="flex items-start gap-3 mb-5">
+        <div className="w-8 h-8 rounded-xl bg-blue-600 flex items-center justify-center shrink-0 mt-0.5">
+          <Briefcase size={15} className="text-white" />
+        </div>
+        <div>
+          <h2 className="font-bold text-stone-800 text-base flex items-center gap-2">
+            직업별 명함 추천
+            <span className="text-[10px] font-semibold bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full flex items-center gap-1">
+              <Zap size={9} />
+              업종 연동
+            </span>
+          </h2>
+          <p className="text-xs text-stone-500 mt-0.5">
+            AIZET에 등록된 업종별 맞춤 문구·디자인 옵션을 자동으로 제안합니다
+          </p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {PROFESSION_CARDS.map(card => {
+          const Icon = card.icon;
+          const isSelected = selected === card.id;
+          return (
+            <div
+              key={card.id}
+              onClick={() => setSelected(isSelected ? null : card.id)}
+              className={clsx(
+                'rounded-2xl border-2 cursor-pointer transition-all overflow-hidden',
+                isSelected ? 'border-blue-500 shadow-md' : 'border-stone-100 hover:border-blue-200 shadow-sm'
+              )}
+            >
+              {/* Card header */}
+              <div className="bg-white p-4">
+                <div className="flex items-center gap-2.5 mb-3">
+                  <div className={clsx('w-8 h-8 rounded-xl flex items-center justify-center shrink-0', card.iconBg)}>
+                    <Icon size={15} className={card.accentColor} />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-stone-800 leading-tight">{card.name}</p>
+                    <p className="text-[10px] text-stone-400">{card.industry}</p>
+                  </div>
+                </div>
+
+                {/* Mini card preview */}
+                <MiniCardMockup card={card} />
+              </div>
+
+              {/* Expanded details */}
+              {isSelected && (
+                <div className="border-t border-stone-100 bg-stone-50 px-4 py-3 flex flex-col gap-2">
+                  <div className="flex gap-3">
+                    <div className="flex-1">
+                      <p className="text-[9px] font-bold text-stone-400 uppercase tracking-wider mb-1">추천 용지</p>
+                      <p className="text-xs text-stone-700 font-medium">{card.paper}</p>
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-[9px] font-bold text-stone-400 uppercase tracking-wider mb-1">추천 코팅</p>
+                      <p className="text-xs text-stone-700 font-medium">{card.coating}</p>
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-stone-500 bg-blue-50 rounded-lg px-2.5 py-2 border border-blue-100">
+                    💡 {card.tip}
+                  </p>
+                </div>
+              )}
+
+              {/* CTA */}
+              <div className="bg-white border-t border-stone-100 px-4 py-3 flex items-center justify-between">
+                <p className="text-[10px] text-stone-400">
+                  {isSelected ? '옵션 확인됨' : '클릭해서 상세 보기'}
+                </p>
+                <button
+                  onClick={(e) => { e.stopPropagation(); onQuote(card); }}
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-bold transition-colors"
+                >
+                  이 스타일로 견적
+                  <ChevronRight size={10} />
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Cross-industry connection banner */}
+      <div className="mt-6 rounded-2xl bg-gradient-to-r from-indigo-50 to-blue-50 border border-blue-100 p-4 flex items-start gap-3">
+        <div className="w-8 h-8 rounded-xl bg-blue-600 flex items-center justify-center shrink-0">
+          <Zap size={14} className="text-white" />
+        </div>
+        <div>
+          <p className="text-sm font-bold text-blue-900">AIZET 업종 연동 인쇄</p>
+          <p className="text-xs text-blue-700 mt-0.5 leading-relaxed">
+            법률·의료·교육 등 AIZET에 등록된 업종 정보가 인쇄 서비스와 연동됩니다.
+            업체명·연락처가 자동으로 채워지며 업종에 맞는 디자인 가이드를 제안합니다.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function PrintCatalogPage() {
   const router = useRouter();
   const [selectedCategory, setSelectedCategory] = useState<PrintCategory | 'all'>('all');
@@ -51,6 +302,10 @@ export default function PrintCatalogPage() {
   const filtered = selectedCategory === 'all'
     ? PRINT_PRODUCTS
     : PRINT_PRODUCTS.filter((p) => p.category === selectedCategory);
+
+  function handleProfessionQuote(card: ProfessionCard) {
+    router.push(`/print/quote?category=business-card&size=${encodeURIComponent('90×50mm')}&profession=${card.id}`);
+  }
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -211,6 +466,7 @@ export default function PrintCatalogPage() {
       <main className="max-w-5xl mx-auto w-full px-4 py-4 pb-16">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map((product) => (
+
             <div
               key={product.id}
               className="bg-white rounded-2xl border border-stone-100 shadow-sm hover:shadow-md hover:border-blue-200 transition-all group"
@@ -271,6 +527,11 @@ export default function PrintCatalogPage() {
             </div>
           ))}
         </div>
+
+        {/* 직업별 명함 추천 — 명함 카테고리 선택 시 표시 */}
+        {selectedCategory === 'business-card' && (
+          <ProfessionRecommendSection onQuote={handleProfessionQuote} />
+        )}
       </main>
     </div>
   );
