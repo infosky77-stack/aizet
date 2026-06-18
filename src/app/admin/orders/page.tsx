@@ -2,12 +2,15 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { Order, OrderStatus } from '@/types/order';
+import { Robot } from '@/types/robot';
 import { OrderCard } from '@/components/admin/OrderCard';
 import { OrderStatusBadge } from '@/components/admin/OrderStatusBadge';
 import { clsx } from 'clsx';
 
-const STATUS_TABS: { value: 'all' | OrderStatus; label: string }[] = [
+const STATUS_TABS: { value: 'all' | 'dine-in' | 'delivery' | OrderStatus; label: string }[] = [
   { value: 'all',       label: '전체'   },
+  { value: 'dine-in',  label: '매장'   },
+  { value: 'delivery', label: '배달'   },
   { value: 'pending',   label: '대기'   },
   { value: 'confirmed', label: '접수'   },
   { value: 'preparing', label: '조리 중' },
@@ -18,7 +21,8 @@ const STATUS_TABS: { value: 'all' | OrderStatus; label: string }[] = [
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
-  const [tab, setTab] = useState<'all' | OrderStatus>('all');
+  const [robots, setRobots] = useState<Robot[]>([]);
+  const [tab, setTab] = useState<typeof STATUS_TABS[0]['value']>('all');
 
   const fetchOrders = useCallback(async () => {
     const res = await fetch('/api/orders');
@@ -26,11 +30,18 @@ export default function OrdersPage() {
     setOrders(o);
   }, []);
 
+  const fetchRobots = useCallback(async () => {
+    const res = await fetch('/api/robots');
+    const { robots: r } = await res.json();
+    setRobots(r);
+  }, []);
+
   useEffect(() => {
     fetchOrders();
-    const id = setInterval(fetchOrders, 5000);
+    fetchRobots();
+    const id = setInterval(() => { fetchOrders(); fetchRobots(); }, 5000);
     return () => clearInterval(id);
-  }, [fetchOrders]);
+  }, [fetchOrders, fetchRobots]);
 
   async function handleStatusChange(id: string, status: OrderStatus) {
     await fetch(`/api/orders/${id}`, {
@@ -41,8 +52,38 @@ export default function OrdersPage() {
     fetchOrders();
   }
 
-  const filtered = tab === 'all' ? orders : orders.filter((o) => o.status === tab);
-  const countByStatus = (s: OrderStatus) => orders.filter((o) => o.status === s).length;
+  async function handleDispatchRobot(orderId: string, tableNumber: number, robotId: string) {
+    await fetch(`/api/robots/${robotId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ orderId, tableNumber }),
+    });
+    fetchOrders();
+    fetchRobots();
+  }
+
+  async function handleConfirmPayment(orderId: string) {
+    await fetch(`/api/orders/${orderId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ paymentStatus: 'paid' }),
+    });
+    fetchOrders();
+  }
+
+  const filtered = orders.filter((o) => {
+    if (tab === 'all') return true;
+    if (tab === 'dine-in') return o.orderType === 'dine-in';
+    if (tab === 'delivery') return o.orderType === 'delivery';
+    return o.status === tab;
+  });
+
+  const countByTab = (value: typeof tab) => {
+    if (value === 'all') return orders.length;
+    if (value === 'dine-in') return orders.filter((o) => o.orderType === 'dine-in').length;
+    if (value === 'delivery') return orders.filter((o) => o.orderType === 'delivery').length;
+    return orders.filter((o) => o.status === value).length;
+  };
 
   return (
     <div className="p-6 flex flex-col gap-6 max-w-5xl">
@@ -54,7 +95,7 @@ export default function OrdersPage() {
       {/* Status tabs */}
       <div className="flex gap-2 flex-wrap">
         {STATUS_TABS.map(({ value, label }) => {
-          const count = value === 'all' ? orders.length : countByStatus(value as OrderStatus);
+          const count = countByTab(value);
           return (
             <button
               key={value}
@@ -91,7 +132,10 @@ export default function OrdersPage() {
             <OrderCard
               key={order.id}
               order={order}
+              robots={robots}
               onStatusChange={handleStatusChange}
+              onDispatchRobot={handleDispatchRobot}
+              onConfirmPayment={handleConfirmPayment}
             />
           ))}
         </div>

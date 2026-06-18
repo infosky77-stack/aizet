@@ -1,8 +1,10 @@
 'use client';
 
 import { useCartStore } from '@/store/cart';
-import { X, Plus, Minus, ShoppingBag } from 'lucide-react';
+import { X, Plus, Minus, ShoppingBag, MapPin, Truck } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+
+const DELIVERY_FEE = 3000;
 
 interface Props {
   open: boolean;
@@ -10,17 +12,31 @@ interface Props {
 }
 
 export function CartDrawer({ open, onClose }: Props) {
-  const { items, tableNumber, updateQuantity, clearCart, total } = useCartStore();
+  const { items, tableNumber, deliveryAddress, orderType, updateQuantity, clearCart, total, setLastOrderId } = useCartStore();
   const router = useRouter();
 
-  function handleOrder() {
-    onClose();
-    router.push('/order-confirm');
+  async function handleOrder() {
+    const payload =
+      orderType === 'dine-in'
+        ? { orderType: 'dine-in', tableNumber, items: items.map((i) => ({ menuItemId: i.menuItem.id, name: i.menuItem.nameKo, price: i.menuItem.price, quantity: i.quantity })) }
+        : { orderType: 'delivery', deliveryAddress, items: items.map((i) => ({ menuItemId: i.menuItem.id, name: i.menuItem.nameKo, price: i.menuItem.price, quantity: i.quantity })) };
+
+    const res = await fetch('/api/orders', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const { order } = await res.json();
+    if (order?.id) {
+      setLastOrderId(order.id);
+      clearCart();
+      onClose();
+      router.push(`/payment?orderId=${order.id}`);
+    }
   }
 
   return (
     <>
-      {/* Backdrop */}
       {open && (
         <div
           className="fixed inset-0 bg-black/40 z-40 transition-opacity"
@@ -28,7 +44,6 @@ export function CartDrawer({ open, onClose }: Props) {
         />
       )}
 
-      {/* Drawer */}
       <div
         className={`fixed right-0 top-0 h-full w-full max-w-sm bg-white z-50 flex flex-col shadow-2xl transition-transform duration-300 ${
           open ? 'translate-x-0' : 'translate-x-full'
@@ -38,7 +53,14 @@ export function CartDrawer({ open, onClose }: Props) {
         <div className="flex items-center justify-between p-4 border-b border-stone-100">
           <div>
             <h2 className="font-bold text-lg">장바구니</h2>
-            <p className="text-xs text-stone-400">테이블 {tableNumber}번</p>
+            {orderType === 'dine-in' ? (
+              <p className="text-xs text-stone-400">테이블 {tableNumber}번</p>
+            ) : (
+              <p className="text-xs text-stone-400 flex items-center gap-1">
+                <MapPin size={11} />
+                <span className="truncate max-w-[180px]">{deliveryAddress}</span>
+              </p>
+            )}
           </div>
           <button
             onClick={onClose}
@@ -87,9 +109,17 @@ export function CartDrawer({ open, onClose }: Props) {
         {/* Footer */}
         {items.length > 0 && (
           <div className="p-4 border-t border-stone-100 flex flex-col gap-3">
+            {orderType === 'delivery' && (
+              <div className="flex justify-between items-center text-sm text-stone-400">
+                <span className="flex items-center gap-1"><Truck size={12} />배달료</span>
+                <span>{DELIVERY_FEE.toLocaleString()}원</span>
+              </div>
+            )}
             <div className="flex justify-between items-center">
               <span className="font-medium text-stone-600">합계</span>
-              <span className="text-xl font-bold text-amber-700">{total().toLocaleString()}원</span>
+              <span className="text-xl font-bold text-amber-700">
+                {(total() + (orderType === 'delivery' ? DELIVERY_FEE : 0)).toLocaleString()}원
+              </span>
             </div>
             <button
               onClick={handleOrder}

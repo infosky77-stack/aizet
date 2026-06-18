@@ -2,14 +2,17 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, ClipboardList, UtensilsCrossed, CalendarClock, ArrowLeft } from 'lucide-react';
+import { LayoutDashboard, ClipboardList, UtensilsCrossed, CalendarClock, Bot, ArrowLeft, CreditCard, Printer } from 'lucide-react';
 import { clsx } from 'clsx';
 
 const NAV = [
   { href: '/admin', label: '대시보드', icon: LayoutDashboard, exact: true },
   { href: '/admin/orders', label: '주문 관리', icon: ClipboardList },
+  { href: '/admin/payments', label: '결제 관리', icon: CreditCard },
+  { href: '/admin/robots', label: '서빙 로봇', icon: Bot },
   { href: '/admin/menu', label: '메뉴 관리', icon: UtensilsCrossed },
   { href: '/admin/reservations', label: '예약 관리', icon: CalendarClock },
+  { href: '/admin/menu-print', label: '메뉴판 인쇄', icon: Printer },
 ];
 
 export function Sidebar() {

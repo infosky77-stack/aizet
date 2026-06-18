@@ -8,11 +8,11 @@ import { CategoryFilter } from '@/components/menu/CategoryFilter';
 import { CartDrawer } from '@/components/menu/CartDrawer';
 import { AiRecommendBanner } from '@/components/menu/AiRecommendBanner';
 import { MenuItem, MenuCategory } from '@/types/menu';
-import { ShoppingCart, UtensilsCrossed, MessageSquare, CalendarClock } from 'lucide-react';
+import { ShoppingCart, UtensilsCrossed, MessageSquare, CalendarClock, Truck } from 'lucide-react';
 
 export default function MenuPage() {
   const router = useRouter();
-  const { tableNumber, items } = useCartStore();
+  const { tableNumber, orderType, deliveryAddress, items } = useCartStore();
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [category, setCategory] = useState<'all' | MenuCategory>('all');
   const [cartOpen, setCartOpen] = useState(false);
@@ -21,14 +21,16 @@ export default function MenuPage() {
   const cartTotal = useCartStore((s) => s.total);
 
   useEffect(() => {
-    if (!tableNumber) {
-      router.replace('/');
+    const isDineIn = orderType === 'dine-in' && !!tableNumber;
+    const isDelivery = orderType === 'delivery' && !!deliveryAddress;
+    if (!isDineIn && !isDelivery) {
+      router.replace('/demo');
       return;
     }
     fetch('/api/menu')
       .then((r) => r.json())
       .then((data) => setMenuItems(data.items ?? []));
-  }, [tableNumber, router]);
+  }, [tableNumber, deliveryAddress, orderType, router]);
 
   const filtered = useMemo(
     () => category === 'all' ? menuItems : menuItems.filter((i) => i.category === category),
@@ -43,7 +45,14 @@ export default function MenuPage() {
           <div className="flex items-center gap-2">
             <UtensilsCrossed size={20} className="text-amber-600" />
             <span className="font-bold text-amber-800 tracking-tight">AIZET</span>
-            <span className="text-xs text-stone-400 ml-1">테이블 {tableNumber}번</span>
+            {orderType === 'delivery' ? (
+              <span className="text-xs text-stone-400 ml-1 flex items-center gap-1">
+                <Truck size={11} />
+                배달
+              </span>
+            ) : (
+              <span className="text-xs text-stone-400 ml-1">테이블 {tableNumber}번</span>
+            )}
           </div>
           <div className="flex items-center gap-2">
             <button

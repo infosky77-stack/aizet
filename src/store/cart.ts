@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { MenuItem } from '@/types/menu';
+import { OrderType } from '@/types/order';
 
 export interface CartItem {
   menuItem: MenuItem;
@@ -8,9 +9,15 @@ export interface CartItem {
 }
 
 interface CartStore {
+  orderType: OrderType;
   tableNumber: number | null;
+  deliveryAddress: string;
   items: CartItem[];
+  lastOrderId: string | null;
+  setOrderType: (t: OrderType) => void;
   setTable: (n: number) => void;
+  setDeliveryAddress: (addr: string) => void;
+  setLastOrderId: (id: string) => void;
   addItem: (item: MenuItem) => void;
   removeItem: (id: string) => void;
   updateQuantity: (id: string, qty: number) => void;
@@ -19,9 +26,15 @@ interface CartStore {
 }
 
 export const useCartStore = create<CartStore>((set, get) => ({
+  orderType: 'dine-in',
   tableNumber: null,
+  deliveryAddress: '',
   items: [],
+  lastOrderId: null,
+  setOrderType: (orderType) => set({ orderType }),
   setTable: (n) => set({ tableNumber: n }),
+  setDeliveryAddress: (deliveryAddress) => set({ deliveryAddress }),
+  setLastOrderId: (id) => set({ lastOrderId: id }),
   addItem: (menuItem) => {
     const existing = get().items.find((i) => i.menuItem.id === menuItem.id);
     if (existing) {
