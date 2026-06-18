@@ -135,6 +135,17 @@ const INDUSTRIES_LIST: IndustryItem[] = [
     features: ['상품 카탈로그', '실시간 견적 계산기', '파일 업로드·검수', 'AI 인쇄 상담', '제작 단계 추적', '관리자 대시보드'],
   },
   {
+    icon: <BookOpen size={22} />,
+    name: '한국어 교육',
+    color: 'bg-indigo-100 text-indigo-700',
+    sub: '레벨테스트·학습·AI 회화',
+    gradient: 'from-indigo-600 to-violet-700',
+    mockupTitle: '한국어 배우기',
+    mockupSub: '영어·중국어·일본어·베트남어 지원',
+    cta: '학습 시작',
+    features: ['AI 레벨 진단', '4개국어 학습 콘텐츠', 'AI 회화 챗봇', '발음·문법 피드백', '학습자 진도 대시보드', '관리자 통계'],
+  },
+  {
     icon: <Globe size={22} />,
     name: '그 외 100+ 업종',
     color: 'bg-stone-100 text-stone-600',
@@ -890,6 +901,53 @@ function DemoPreview() {
                 { label: 'AI 인쇄 상담', color: 'bg-indigo-500' },
                 { label: '파일 업로드', color: 'bg-violet-500' },
                 { label: '제작 현황 추적', color: 'bg-cyan-500' },
+              ].map(({ label, color }) => (
+                <div key={label} className="flex items-center gap-2.5">
+                  <div className={`w-2 h-2 rounded-full ${color}`} />
+                  <span className="text-xs text-stone-600">{label}</span>
+                  <Check size={11} className="ml-auto text-emerald-500" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Korean learning demo */}
+        <div className="bg-gradient-to-r from-indigo-600 to-violet-700 rounded-3xl p-8 md:p-12 flex flex-col md:flex-row items-center gap-8 overflow-hidden relative">
+          <div className="absolute -right-16 -top-16 w-64 h-64 bg-white/5 rounded-full" />
+          <div className="flex-1 relative">
+            <p className="text-indigo-200 text-xs font-semibold uppercase tracking-widest mb-2">한국어 교육 데모</p>
+            <h3 className="text-white text-2xl font-bold mb-3 leading-tight">
+              외국인을 위한 한국어 학습<br />플랫폼을 체험해 보세요
+            </h3>
+            <p className="text-indigo-100 text-sm leading-relaxed mb-6 max-w-md">
+              AI 레벨 진단·4개국어 학습·AI 회화 챗봇·진도 대시보드까지 — 완전한 한국어 교육 데모입니다.
+            </p>
+            <Link
+              href="/korean"
+              className="inline-flex items-center gap-2 bg-white text-indigo-700 font-bold text-sm px-6 py-3 rounded-xl hover:bg-indigo-50 transition-colors shadow-lg"
+            >
+              <BookOpen size={15} />
+              한국어 학습 데모 체험하기
+              <ArrowRight size={14} />
+            </Link>
+          </div>
+          <div className="relative w-full md:w-52 shrink-0">
+            <div className="bg-white rounded-2xl shadow-2xl p-4 flex flex-col gap-2.5">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 bg-indigo-100 rounded-lg flex items-center justify-center">
+                  <BookOpen size={13} className="text-indigo-600" />
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-stone-800">한국어 배우기</p>
+                  <p className="text-[10px] text-stone-400">🇺🇸 🇨🇳 🇯🇵 🇻🇳 지원</p>
+                </div>
+              </div>
+              {[
+                { label: 'AI 레벨 진단', color: 'bg-violet-500' },
+                { label: '단계별 학습 콘텐츠', color: 'bg-indigo-500' },
+                { label: 'AI 회화 챗봇', color: 'bg-blue-500' },
+                { label: '진도 대시보드', color: 'bg-sky-500' },
               ].map(({ label, color }) => (
                 <div key={label} className="flex items-center gap-2.5">
                   <div className={`w-2 h-2 rounded-full ${color}`} />

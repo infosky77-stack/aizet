@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, ClipboardList, UtensilsCrossed, CalendarClock, Bot, ArrowLeft, CreditCard, Printer } from 'lucide-react';
+import { LayoutDashboard, ClipboardList, UtensilsCrossed, CalendarClock, Bot, ArrowLeft, CreditCard, Printer, BookOpen } from 'lucide-react';
 import { clsx } from 'clsx';
 
 const NAV = [
@@ -13,6 +13,7 @@ const NAV = [
   { href: '/admin/menu', label: '메뉴 관리', icon: UtensilsCrossed },
   { href: '/admin/reservations', label: '예약 관리', icon: CalendarClock },
   { href: '/admin/menu-print', label: '메뉴판 인쇄', icon: Printer },
+  { href: '/admin/korean', label: '한국어 학습', icon: BookOpen },
 ];
 
 export function Sidebar() {
