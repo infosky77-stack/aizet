@@ -30,6 +30,11 @@ import {
   Copy,
   LayoutDashboard,
   Printer,
+  Server,
+  Cpu,
+  BatteryFull,
+  Thermometer,
+  Shield,
 } from 'lucide-react';
 
 /* ─── Industry types & data ───────────────────────────── */
@@ -1077,6 +1082,98 @@ function Testimonials() {
   );
 }
 
+/* ─── SR-05 Section ───────────────────────────────────── */
+function SR05Section() {
+  const configs = [
+    { nodes: 5,   label: '스타터',      price: '1,450만원' },
+    { nodes: 10,  label: '스탠다드',    price: '2,600만원', popular: true },
+    { nodes: 50,  label: '프로',        price: '1.15억원' },
+    { nodes: 200, label: '엔터프라이즈', price: '협의' },
+  ];
+  const features = [
+    { icon: <Zap size={16} />,         text: 'GPU 대비 1/8 전력' },
+    { icon: <Thermometer size={16} />, text: '항온항습 내장 섀시' },
+    { icon: <BatteryFull size={16} />, text: 'UPS 자체 배터리' },
+    { icon: <Shield size={16} />,      text: '진동차단 MIL-STD-810H' },
+    { icon: <Cpu size={16} />,         text: '리벨리온 국산 NPU' },
+    { icon: <Server size={16} />,      text: 'AZOS 자율 클러스터 관리' },
+  ];
+  return (
+    <section className="py-20 px-4 bg-slate-950 overflow-hidden relative">
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_20%_50%,rgba(6,182,212,0.07),transparent_55%)] pointer-events-none" />
+      <div className="max-w-6xl mx-auto relative flex flex-col lg:flex-row items-center gap-12">
+        {/* Text */}
+        <div className="flex-1 flex flex-col gap-6">
+          <div className="flex flex-wrap gap-2">
+            <span className="inline-flex items-center gap-1.5 bg-cyan-600/20 border border-cyan-500/30 text-cyan-400 text-xs font-semibold px-3 py-1.5 rounded-full">
+              <Cpu size={11} /> 갤럭시 S26 Ultra × 리벨리온 NPU
+            </span>
+            <span className="bg-emerald-600/20 border border-emerald-500/30 text-emerald-400 text-xs font-semibold px-3 py-1.5 rounded-full">
+              신제품 · 2026 Q4 출시
+            </span>
+          </div>
+          <div>
+            <p className="text-xs font-semibold text-cyan-400 uppercase tracking-widest mb-2">Hardware · New Product</p>
+            <h2 className="text-3xl sm:text-4xl font-bold text-white leading-tight mb-3">
+              AIZET<span className="text-cyan-400">-SR-05</span><br />
+              스마트폰이 <span className="text-cyan-400">서버</span>가 됩니다
+            </h2>
+            <p className="text-slate-400 text-sm leading-relaxed max-w-lg">
+              갤럭시 S26 울트라를 분산 노드로 묶고 리벨리온 국산 NPU로 가속한 초저전력 AI 추론 클러스터. GPU 서버실·별도 항온항습실 없이 사무공간에 바로 설치.
+            </p>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+            {features.map(f => (
+              <div key={f.text} className="flex items-center gap-2 text-sm text-slate-300">
+                <span className="text-cyan-400 shrink-0">{f.icon}</span>
+                {f.text}
+              </div>
+            ))}
+          </div>
+          <Link
+            href="/products/sr05"
+            className="self-start inline-flex items-center gap-2 bg-cyan-600 hover:bg-cyan-700 text-white font-semibold text-sm px-6 py-3 rounded-xl transition-colors shadow-lg shadow-cyan-900/40"
+          >
+            <Server size={15} />
+            SR-05 제품 상세 보기
+            <ArrowRight size={14} />
+          </Link>
+        </div>
+
+        {/* Config cards */}
+        <div className="flex-1 w-full max-w-lg grid grid-cols-2 gap-3">
+          {configs.map(cfg => (
+            <div
+              key={cfg.nodes}
+              className={`relative rounded-2xl p-5 border flex flex-col gap-2 ${cfg.popular ? 'border-cyan-500 bg-cyan-950/40' : 'border-slate-700 bg-slate-900'}`}
+            >
+              {cfg.popular && (
+                <span className="absolute -top-2.5 left-4 bg-cyan-600 text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full">인기</span>
+              )}
+              <div className="text-xs font-semibold text-slate-400">{cfg.label}</div>
+              <div className="text-xl font-black text-white">{cfg.nodes}<span className="text-sm font-semibold text-slate-400 ml-1">노드</span></div>
+              <div className={`text-sm font-bold ${cfg.popular ? 'text-cyan-400' : 'text-slate-300'}`}>{cfg.price}</div>
+              {/* Mini node visual */}
+              <div className="flex gap-0.5 mt-1 flex-wrap">
+                {Array.from({ length: Math.min(cfg.nodes, 8) }).map((_, i) => (
+                  <div key={i} className={`w-2 h-3.5 rounded-sm ${cfg.popular ? 'bg-cyan-700' : 'bg-slate-700'}`} />
+                ))}
+                {cfg.nodes > 8 && <span className="text-[10px] text-slate-500 self-end">+{cfg.nodes - 8}</span>}
+              </div>
+            </div>
+          ))}
+          <div className="col-span-2 bg-slate-900 rounded-xl border border-slate-700 px-4 py-3 flex items-center justify-between">
+            <div className="text-xs text-slate-400">AZOS 코어 · 자율 클러스터 관리 포함</div>
+            <Link href="/products/sr05#order" className="text-xs text-cyan-400 font-semibold hover:text-cyan-300 transition-colors flex items-center gap-1">
+              사전예약 <ChevronRight size={12} />
+            </Link>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 /* ─── Pricing ─────────────────────────────────────────── */
 function Pricing() {
   const plans = [
@@ -1248,6 +1345,7 @@ export default function LandingPage() {
       <DemoPreview />
       <PromptLibraryCTA />
       <Testimonials />
+      <SR05Section />
       <Pricing />
       <FinalCTA />
       <Footer />
