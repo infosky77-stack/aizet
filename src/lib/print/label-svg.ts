@@ -91,53 +91,88 @@ const LABEL_FIELD_LABELS: Record<string, Record<LabelCountry, string>> = {
   weight: { US: 'Net Weight', EU: 'Weight', JP: '重量', CN: '重量', KR: '중량', AU: 'Net Weight' },
 };
 
-export function generateLabelSVG(data: LabelData): string {
+export interface LabelOverrides {
+  headerBg?: string;
+  accentColor?: string;
+  bodyText?: string;
+  labelText?: string;
+  productNameSize?: number;
+  productNameY?: number;
+  col1X?: number;
+  col2X?: number;
+  barcodeX?: number;
+  barcodeY?: number;
+  warningText?: string;
+}
+
+export function getDefaultOverrides(country: LabelCountry): Required<LabelOverrides> {
+  const cfg = COUNTRY_CONFIG[country];
+  return {
+    headerBg: cfg.primaryColor,
+    accentColor: cfg.accentColor,
+    bodyText: '#111111',
+    labelText: '#666666',
+    productNameSize: 16,
+    productNameY: 72,
+    col1X: 16,
+    col2X: 160,
+    barcodeX: 20,
+    barcodeY: 202,
+    warningText: cfg.warningText ?? '',
+  };
+}
+
+export function generateLabelSVG(data: LabelData, overrides?: LabelOverrides): string {
   const cfg = COUNTRY_CONFIG[data.country];
   const barcodeValue = `${data.modelNumber}${data.quantity}`;
-
   const fl = (key: string) => LABEL_FIELD_LABELS[key]?.[data.country] ?? key;
 
+  const d = getDefaultOverrides(data.country);
+  const hBg    = overrides?.headerBg        ?? d.headerBg;
+  const hAc    = overrides?.accentColor     ?? d.accentColor;
+  const bodyC  = overrides?.bodyText        ?? d.bodyText;
+  const labelC = overrides?.labelText       ?? d.labelText;
+  const pnSize = overrides?.productNameSize ?? d.productNameSize;
+  const pnY    = overrides?.productNameY    ?? d.productNameY;
+  const c1x    = overrides?.col1X           ?? d.col1X;
+  const c2x    = overrides?.col2X           ?? d.col2X;
+  const bcX    = overrides?.barcodeX        ?? d.barcodeX;
+  const bcY    = overrides?.barcodeY        ?? d.barcodeY;
+  const warn   = overrides?.warningText     ?? d.warningText;
+
   return `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="280" viewBox="0 0 400 280" font-family="Arial, sans-serif">
-  <!-- Background -->
   <rect width="400" height="280" fill="#FFFFFF" rx="4"/>
   <rect width="400" height="280" fill="none" rx="4" stroke="#CCCCCC" stroke-width="1"/>
 
-  <!-- Header bar -->
-  <rect x="0" y="0" width="400" height="44" fill="${cfg.primaryColor}" rx="4"/>
-  <rect x="0" y="30" width="400" height="14" fill="${cfg.primaryColor}"/>
-  <text x="16" y="28" fill="${cfg.accentColor}" font-size="18" font-weight="bold">${cfg.name.toUpperCase()}</text>
-  ${cfg.certMark ? `<text x="370" y="28" fill="${cfg.accentColor}" font-size="14" font-weight="bold" text-anchor="end">${cfg.certMark}</text>` : ''}
+  <rect x="0" y="0" width="400" height="44" fill="${hBg}" rx="4"/>
+  <rect x="0" y="30" width="400" height="14" fill="${hBg}"/>
+  <text x="${c1x}" y="28" fill="${hAc}" font-size="18" font-weight="bold">${cfg.name.toUpperCase()}</text>
+  ${cfg.certMark ? `<text x="370" y="28" fill="${hAc}" font-size="14" font-weight="bold" text-anchor="end">${cfg.certMark}</text>` : ''}
 
-  <!-- Product name -->
-  <text x="16" y="72" fill="#111111" font-size="16" font-weight="bold">${data.productName}</text>
+  <text x="${c1x}" y="${pnY}" fill="${bodyC}" font-size="${pnSize}" font-weight="bold">${data.productName}</text>
 
-  <!-- Fields left column -->
-  <text x="16" y="98" fill="#666666" font-size="9">${fl('model')}</text>
-  <text x="16" y="112" fill="#111111" font-size="11" font-weight="bold">${data.modelNumber}</text>
+  <text x="${c1x}" y="98" fill="${labelC}" font-size="9">${fl('model')}</text>
+  <text x="${c1x}" y="112" fill="${bodyC}" font-size="11" font-weight="bold">${data.modelNumber}</text>
 
-  <text x="16" y="132" fill="#666666" font-size="9">${fl('qty')}</text>
-  <text x="16" y="146" fill="#111111" font-size="11" font-weight="bold">${data.quantity.toLocaleString()} PCS</text>
+  <text x="${c1x}" y="132" fill="${labelC}" font-size="9">${fl('qty')}</text>
+  <text x="${c1x}" y="146" fill="${bodyC}" font-size="11" font-weight="bold">${data.quantity.toLocaleString()} PCS</text>
 
-  <text x="16" y="166" fill="#666666" font-size="9">${fl('origin')}</text>
-  <text x="16" y="180" fill="#111111" font-size="11" font-weight="bold">${data.origin}</text>
+  <text x="${c1x}" y="166" fill="${labelC}" font-size="9">${fl('origin')}</text>
+  <text x="${c1x}" y="180" fill="${bodyC}" font-size="11" font-weight="bold">${data.origin}</text>
 
-  <!-- Fields right column -->
-  <text x="160" y="98" fill="#666666" font-size="9">${fl('dims')} (L×W×H)</text>
-  <text x="160" y="112" fill="#111111" font-size="11" font-weight="bold">${data.boxL}×${data.boxW}×${data.boxH} cm</text>
+  <text x="${c2x}" y="98" fill="${labelC}" font-size="9">${fl('dims')} (L×W×H)</text>
+  <text x="${c2x}" y="112" fill="${bodyC}" font-size="11" font-weight="bold">${data.boxL}×${data.boxW}×${data.boxH} cm</text>
 
-  <text x="160" y="132" fill="#666666" font-size="9">${fl('weight')}</text>
-  <text x="160" y="146" fill="#111111" font-size="11" font-weight="bold">${data.weight} kg</text>
+  <text x="${c2x}" y="132" fill="${labelC}" font-size="9">${fl('weight')}</text>
+  <text x="${c2x}" y="146" fill="${bodyC}" font-size="11" font-weight="bold">${data.weight} kg</text>
 
-  <!-- Divider -->
-  <line x1="16" y1="195" x2="384" y2="195" stroke="#EEEEEE" stroke-width="1"/>
+  <line x1="${c1x}" y1="195" x2="384" y2="195" stroke="#EEEEEE" stroke-width="1"/>
 
-  <!-- Barcode -->
-  <g transform="translate(20, 202)">
+  <g transform="translate(${bcX}, ${bcY})">
     ${genBarcode(barcodeValue)}
   </g>
-  <text x="20" y="275" fill="#333333" font-size="8" letter-spacing="3">${barcodeValue.toUpperCase().substring(0, 20)}</text>
+  <text x="${bcX}" y="275" fill="#333333" font-size="8" letter-spacing="3">${barcodeValue.toUpperCase().substring(0, 20)}</text>
 
-  <!-- Warning text -->
-  <text x="200" y="260" fill="#888888" font-size="7" text-anchor="middle">${cfg.warningText ?? ''}</text>
+  <text x="200" y="260" fill="#888888" font-size="7" text-anchor="middle">${warn}</text>
 </svg>`;
 }

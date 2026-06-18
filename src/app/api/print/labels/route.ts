@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: '필수 항목 누락' }, { status: 400 });
   }
 
-  const svgContent = generateLabelSVG(data);
+  const svgContent: string = body.svgContent ?? generateLabelSVG(data);
   const label = saveLabel({
     clientId: body.clientId,
     product: body.product,
