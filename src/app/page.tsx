@@ -49,6 +49,7 @@ interface IndustryItem {
   mockupSub: string;
   cta: string;
   features: string[];
+  href?: string;
 }
 
 const INDUSTRIES_LIST: IndustryItem[] = [
@@ -161,6 +162,7 @@ const INDUSTRIES_LIST: IndustryItem[] = [
     mockupSub: '무설탕 건강기능성 캔디 브랜드',
     cta: '쇼핑하기',
     features: ['제품 카탈로그', '영양 정보 상세페이지', '장바구니·결제', 'AI 상담 챗봇', '효능별 필터', '관리자 대시보드'],
+    href: '/hancandy',
   },
   {
     icon: <Globe size={22} />,
@@ -599,22 +601,30 @@ function Industries() {
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-          {INDUSTRIES_LIST.map((ind) => (
-            <button
-              key={ind.name}
-              onClick={() => setSelected(ind)}
-              className="group bg-white border border-stone-100 rounded-2xl p-5 hover:shadow-md hover:border-amber-200 transition-all cursor-pointer flex flex-col gap-3 text-left"
-            >
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${ind.color}`}>
-                {ind.icon}
-              </div>
-              <div>
-                <p className="font-semibold text-stone-800 text-sm">{ind.name}</p>
-                <p className="text-xs text-stone-400 mt-0.5">{ind.sub}</p>
-              </div>
-              <ChevronRight size={14} className="text-stone-300 group-hover:text-amber-500 transition-colors" />
-            </button>
-          ))}
+          {INDUSTRIES_LIST.map((ind) => {
+            const cardClass = "group bg-white border border-stone-100 rounded-2xl p-5 hover:shadow-md hover:border-amber-200 transition-all cursor-pointer flex flex-col gap-3 text-left";
+            const inner = (
+              <>
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${ind.color}`}>
+                  {ind.icon}
+                </div>
+                <div>
+                  <p className="font-semibold text-stone-800 text-sm">{ind.name}</p>
+                  <p className="text-xs text-stone-400 mt-0.5">{ind.sub}</p>
+                </div>
+                <ChevronRight size={14} className="text-stone-300 group-hover:text-amber-500 transition-colors" />
+              </>
+            );
+            return ind.href ? (
+              <Link key={ind.name} href={ind.href} className={cardClass}>
+                {inner}
+              </Link>
+            ) : (
+              <button key={ind.name} onClick={() => setSelected(ind)} className={cardClass}>
+                {inner}
+              </button>
+            );
+          })}
         </div>
       </div>
 
