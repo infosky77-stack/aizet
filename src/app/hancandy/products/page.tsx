@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { ShoppingCart, ChevronRight, Filter } from 'lucide-react';
-import { CANDY_PRODUCTS, CATEGORY_LABELS, CandyProduct } from '@/lib/hancandy/products';
+import { ShoppingCart, ChevronRight } from 'lucide-react';
+import { CANDY_PRODUCTS, CATEGORY_LABELS, THEME_COLORS, CandyProduct } from '@/lib/hancandy/products';
 import { useCandyCart } from '@/store/candyCart';
 
 export default function ProductsPage() {
@@ -26,12 +26,11 @@ export default function ProductsPage() {
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-black text-gray-900 mb-1">제품 카탈로그</h1>
-        <p className="text-gray-500 text-sm">효능별로 맞는 한캔디를 골라보세요 · 모든 제품 당류 0g</p>
+        <p className="text-gray-500 text-sm">상황에 맞는 호(號)를 골라보세요 · 전 제품 당류 0g · 무설탕</p>
       </div>
 
       {/* Category filter */}
       <div className="flex items-center gap-2 mb-8 flex-wrap">
-        <Filter size={14} className="text-gray-400 shrink-0" />
         {Object.entries(CATEGORY_LABELS).map(([key, { label, icon }]) => (
           <button
             key={key}
@@ -49,94 +48,107 @@ export default function ProductsPage() {
       </div>
 
       {/* Product grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6">
-        {filtered.map(p => (
-          <div key={p.id} className={`rounded-2xl border-2 overflow-hidden bg-white hover:shadow-xl transition-all group ${p.bgColor.replace('bg-', 'border-').split(' ')[0]}`}>
-            {/* Top color band */}
-            <div className={`${p.bgColor} px-6 pt-6 pb-4`}>
-              <div className="flex items-start justify-between mb-4">
-                <span className="text-5xl">{p.image}</span>
-                <div className="flex flex-col items-end gap-1.5">
-                  {p.badge && (
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-green-600 text-white">
-                      {p.badge}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {filtered.map(p => {
+          const tc = THEME_COLORS[p.themeKey];
+          return (
+            <div key={p.id} className={`rounded-2xl border-2 overflow-hidden bg-white hover:shadow-xl transition-all group ${tc.border}`}>
+              {/* 상단 색상 밴드 */}
+              <div className={`${p.headerBg} px-6 pt-6 pb-5`}>
+                <div className="flex items-start justify-between mb-3">
+                  <span className="text-5xl">{p.image}</span>
+                  <div className="flex flex-col items-end gap-1">
+                    {p.badge && (
+                      <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full ${tc.badge}`}>
+                        {p.badge}
+                      </span>
+                    )}
+                    <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-white/60 text-gray-600">
+                      당류 0g
                     </span>
-                  )}
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${CATEGORY_LABELS[p.category]?.color ?? ''}`}>
-                    {CATEGORY_LABELS[p.category]?.icon} {CATEGORY_LABELS[p.category]?.label}
-                  </span>
-                </div>
-              </div>
-              <div>
-                <h2 className="font-black text-gray-900 text-xl">{p.name}</h2>
-                <p className="text-sm text-gray-500 mt-0.5">{p.flavor} · {p.weight}</p>
-              </div>
-            </div>
-
-            {/* Body */}
-            <div className="px-6 py-5">
-              <p className="text-sm text-gray-600 leading-relaxed mb-4">{p.description}</p>
-
-              {/* Benefit tags */}
-              <div className="flex flex-wrap gap-1.5 mb-5">
-                {p.benefitTags.map(t => (
-                  <span key={t} className="text-xs font-semibold bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full">
-                    #{t}
-                  </span>
-                ))}
-              </div>
-
-              {/* Nutrition quick view */}
-              <div className="grid grid-cols-4 gap-2 bg-gray-50 rounded-xl p-3 mb-5 text-center text-xs">
-                {[
-                  { label: '열량', value: `${p.nutrition.calories}kcal` },
-                  { label: '당류', value: `${p.nutrition.sugar}g`, green: true },
-                  { label: '탄수화물', value: `${p.nutrition.carbs}g` },
-                  { label: '자일리톨', value: `${p.nutrition.xylitol ?? '-'}g` },
-                ].map(n => (
-                  <div key={n.label}>
-                    <div className={`font-black text-sm ${n.green ? 'text-green-600' : 'text-gray-800'}`}>{n.value}</div>
-                    <div className="text-[10px] text-gray-400 mt-0.5">{n.label}</div>
                   </div>
-                ))}
+                </div>
+                <div className={`text-2xl font-black ${tc.text}`}>{p.number}호</div>
+                <h2 className="font-black text-gray-900 text-xl leading-snug">{p.nameEn}</h2>
+                <p className={`text-xs mt-1 ${tc.text} opacity-80`}>{p.slogan}</p>
               </div>
 
-              {/* Price + actions */}
-              <div className="flex items-center justify-between">
-                <div>
-                  <span className="text-xl font-black text-gray-900">{p.price.toLocaleString()}원</span>
-                  {p.originalPrice && (
-                    <span className="text-sm text-gray-400 line-through ml-2">{p.originalPrice.toLocaleString()}원</span>
-                  )}
+              {/* Body */}
+              <div className="px-6 py-5">
+                <p className="text-sm text-gray-600 leading-relaxed mb-4">{p.description}</p>
+
+                {/* 핵심성분 */}
+                <div className="mb-4">
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">핵심성분</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {p.keyIngredients.map(ing => (
+                      <span key={ing.name} className={`text-xs font-semibold px-2.5 py-1 rounded-full ${tc.badge}`}>
+                        {ing.priority && <span className="opacity-60 text-[10px] mr-0.5">{ing.priority}</span>}
+                        {ing.name}
+                      </span>
+                    ))}
+                  </div>
                 </div>
-                <div className="flex gap-2">
-                  <Link
-                    href={`/hancandy/products/${p.id}`}
-                    className="flex items-center gap-1 text-xs font-semibold text-green-700 hover:underline"
-                  >
-                    상세보기 <ChevronRight size={12} />
-                  </Link>
-                  <button
-                    onClick={() => handleAdd(p)}
-                    className={`flex items-center gap-1.5 text-xs font-bold px-4 py-2 rounded-xl transition-all ${
-                      added === p.id
-                        ? 'bg-green-100 text-green-700'
-                        : 'bg-green-600 hover:bg-green-700 text-white shadow-sm'
-                    }`}
-                  >
-                    <ShoppingCart size={13} />
-                    {added === p.id ? '담았어요!' : '장바구니'}
-                  </button>
+
+                {/* 이런 상황에 */}
+                <div className="mb-5 bg-gray-50 rounded-xl p-3">
+                  <p className="text-[10px] font-bold text-gray-400 mb-2 uppercase tracking-wider">이런 때</p>
+                  <div className="flex flex-wrap gap-1">
+                    {p.scenarios.slice(0, 3).map(s => (
+                      <span key={s.situation} className="text-[11px] text-gray-600 bg-white border border-gray-200 px-2 py-0.5 rounded-full">
+                        {s.icon} {s.situation}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Price + actions */}
+                <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+                  <div>
+                    <span className="text-xl font-black text-gray-900">{p.price.toLocaleString()}원</span>
+                    <div className="text-[10px] text-gray-400 mt-0.5">{p.weight}</div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Link
+                      href={`/hancandy/products/${p.id}`}
+                      className={`flex items-center gap-1 text-xs font-semibold ${tc.text} hover:underline`}
+                    >
+                      상세보기 <ChevronRight size={12} />
+                    </Link>
+                    <button
+                      onClick={() => handleAdd(p)}
+                      className={`flex items-center gap-1.5 text-xs font-bold px-4 py-2 rounded-xl transition-all text-white ${
+                        added === p.id ? 'bg-gray-400' : tc.button
+                      }`}
+                    >
+                      <ShoppingCart size={13} />
+                      {added === p.id ? '담았어요!' : '장바구니'}
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {filtered.length === 0 && (
         <div className="text-center py-16 text-gray-400">해당 카테고리 제품이 없습니다.</div>
       )}
+
+      {/* AI 추천 배너 */}
+      <div className="mt-10 bg-gradient-to-r from-green-500 to-emerald-600 rounded-2xl p-6 text-white flex items-center justify-between gap-4 flex-wrap">
+        <div>
+          <p className="font-bold text-lg mb-1">어떤 호가 나에게 맞을까요?</p>
+          <p className="text-sm opacity-80">증상·상황을 말하면 AI가 맞는 호를 추천해 드립니다.</p>
+        </div>
+        <Link
+          href="/hancandy/chat"
+          className="shrink-0 bg-white text-green-700 font-bold text-sm px-5 py-2.5 rounded-xl hover:bg-green-50 transition-colors"
+        >
+          🤖 AI 추천받기 →
+        </Link>
+      </div>
     </div>
   );
 }

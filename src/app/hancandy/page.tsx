@@ -1,23 +1,22 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowRight, Leaf, Heart, Zap, Moon, Sparkles, Shield, CheckCircle } from 'lucide-react';
-import { CANDY_PRODUCTS } from '@/lib/hancandy/products';
+import { ArrowRight, Leaf, Shield, CheckCircle, Droplets, Flame, Wind } from 'lucide-react';
+import { CANDY_PRODUCTS, THEME_COLORS } from '@/lib/hancandy/products';
 import { useCandyCart } from '@/store/candyCart';
 
-const BENEFITS = [
-  { icon: Shield, title: '무설탕 보장', desc: '자일리톨·스테비아로 충치 걱정 없이', color: 'text-green-600 bg-green-100' },
-  { icon: Leaf, title: '천연 원료', desc: '국내산·해외 엄선 천연 기능성 원료', color: 'text-emerald-600 bg-emerald-100' },
-  { icon: Heart, title: '건강기능성', desc: '각 제품별 특화 기능성 성분 함유', color: 'text-rose-500 bg-rose-100' },
-  { icon: Sparkles, title: '무색소·무방부제', desc: '인공 첨가물 없이 깨끗하게', color: 'text-amber-600 bg-amber-100' },
+const BRAND_PILLARS = [
+  { icon: Shield, title: '무설탕·무자극', desc: '자일리톨·스테비아 감미, 인공 산미 없이 점막을 보호합니다', color: 'text-green-600 bg-green-100' },
+  { icon: Leaf, title: '한약 기반 원료', desc: '맥문동·금은화 등 전통 본초 원료를 현대적으로 재해석', color: 'text-emerald-600 bg-emerald-100' },
+  { icon: Droplets, title: '3호 체계', desc: '구강→위장→소화, 상황에 맞는 호(號)를 골라 드세요', color: 'text-blue-600 bg-blue-100' },
+  { icon: Flame, title: '무색소·무방부제', desc: '인공 첨가물 없이, 자연 그대로의 기능성 케어', color: 'text-amber-600 bg-amber-100' },
 ];
 
-const EFFECTS = [
-  { icon: Shield, label: '면역 강화', color: 'bg-yellow-100 text-yellow-700' },
-  { icon: Zap, label: '에너지 충전', color: 'bg-violet-100 text-violet-700' },
-  { icon: Moon, label: '스트레스 완화', color: 'bg-emerald-100 text-emerald-700' },
-  { icon: Sparkles, label: '피부 미용', color: 'bg-orange-100 text-orange-700' },
-];
+const NUMBER_MAP = {
+  1: { icon: '💧', label: '구강·수분', theme: 'green' as const },
+  2: { icon: '🛡️', label: '보호·진정', theme: 'blue' as const },
+  3: { icon: '✨', label: '순환·배출', theme: 'yellow' as const },
+};
 
 export default function HancandyHome() {
   const addItem = useCandyCart(s => s.addItem);
@@ -30,17 +29,19 @@ export default function HancandyHome() {
           <Leaf size={12} />
           AIZET × HanCandy 브랜드 데모
         </div>
-        <h1 className="text-4xl md:text-6xl font-black text-gray-900 leading-tight mb-5">
-          달콤함은 그대로,<br />
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-500 to-emerald-600">
-            설탕은 빼고.
+        <h1 className="text-4xl md:text-5xl font-black text-gray-900 leading-tight mb-4">
+          몸이 원하는 한약,<br />
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-500 via-blue-500 to-amber-500">
+            캔디 하나에 담았습니다.
           </span>
         </h1>
-        <p className="text-lg text-gray-500 max-w-xl mx-auto mb-8 leading-relaxed">
-          한캔디(HanCandy)는 무설탕 건강기능성 캔디 브랜드입니다.<br />
-          자일리톨과 천연 기능성 원료로 건강과 맛을 동시에.
+        <p className="text-base text-gray-500 max-w-2xl mx-auto mb-3 leading-relaxed">
+          한캔디는 맥문동·금은화 등 전통 본초 원료로 만든 무설탕 기능성 캔디입니다.<br />
+          <strong className="text-gray-700">1호 그린(구강수분) · 2호 블루(점막보호) · 3호 옐로우(소화순환)</strong> —<br />
+          상황에 맞는 호(號)를 골라 드세요.
         </p>
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-8">
+        <p className="text-xs text-gray-400 mb-8">당류 0g · 무색소 · 무방부제 · 무자극 설계</p>
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-10">
           <Link
             href="/hancandy/products"
             className="inline-flex items-center gap-2 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold px-7 py-3.5 rounded-2xl shadow-lg shadow-green-200 transition-all"
@@ -51,24 +52,32 @@ export default function HancandyHome() {
             href="/hancandy/chat"
             className="inline-flex items-center gap-2 border-2 border-green-200 text-green-700 hover:bg-green-50 font-semibold px-6 py-3 rounded-2xl transition-colors"
           >
-            AI 상담받기 ✨
+            🤖 어떤 호가 맞을까요?
           </Link>
         </div>
 
-        {/* Effect badges */}
-        <div className="flex flex-wrap justify-center gap-2">
-          {EFFECTS.map(e => (
-            <span key={e.label} className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full ${e.color}`}>
-              <e.icon size={12} />
-              {e.label}
-            </span>
-          ))}
+        {/* 3호 빠른 이동 */}
+        <div className="flex justify-center gap-3 flex-wrap">
+          {CANDY_PRODUCTS.map(p => {
+            const tc = THEME_COLORS[p.themeKey];
+            return (
+              <Link
+                key={p.id}
+                href={`/hancandy/products/${p.id}`}
+                className={`flex items-center gap-2 text-sm font-bold px-4 py-2 rounded-2xl border-2 ${tc.bgLight} ${tc.border} ${tc.text} hover:shadow-md transition-all`}
+              >
+                <span className="text-lg">{p.image}</span>
+                {p.name}
+                <span className="text-xs font-normal opacity-70">{p.concept}</span>
+              </Link>
+            );
+          })}
         </div>
       </section>
 
-      {/* Benefits */}
+      {/* Brand pillars */}
       <section className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-14">
-        {BENEFITS.map(b => (
+        {BRAND_PILLARS.map(b => (
           <div key={b.title} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 text-center hover:shadow-md transition-shadow">
             <div className={`w-10 h-10 rounded-xl flex items-center justify-center mx-auto mb-3 ${b.color}`}>
               <b.icon size={20} />
@@ -79,66 +88,127 @@ export default function HancandyHome() {
         ))}
       </section>
 
-      {/* Product preview */}
+      {/* 3제품 카드 */}
       <section className="mb-14">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h2 className="text-2xl font-black text-gray-900">인기 제품</h2>
-            <p className="text-sm text-gray-400 mt-0.5">효능별로 골라 드세요</p>
+            <h2 className="text-2xl font-black text-gray-900">3호 라인업</h2>
+            <p className="text-sm text-gray-400 mt-0.5">상황별로 맞는 호를 골라 드세요</p>
           </div>
           <Link href="/hancandy/products" className="text-sm text-green-600 hover:text-green-700 font-semibold flex items-center gap-1">
             전체 보기 <ArrowRight size={14} />
           </Link>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {CANDY_PRODUCTS.map(p => (
-            <div key={p.id} className={`rounded-2xl border-2 p-5 flex flex-col gap-3 hover:shadow-lg transition-all group ${p.bgColor}`}>
-              <div className="flex items-start justify-between">
-                <span className="text-4xl">{p.image}</span>
-                {p.badge && (
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-green-600 text-white">
-                    {p.badge}
-                  </span>
-                )}
-              </div>
-              <div>
-                <div className="font-black text-gray-900 text-sm">{p.name}</div>
-                <div className="text-xs text-gray-500 mt-0.5">{p.flavor}</div>
-              </div>
-              <div className="flex flex-wrap gap-1">
-                {p.benefitTags.map(t => (
-                  <span key={t} className="text-[10px] font-semibold bg-white/70 text-gray-600 px-2 py-0.5 rounded-full border border-white/80">
-                    {t}
-                  </span>
-                ))}
-              </div>
-              <div className="flex items-center justify-between mt-auto pt-2 border-t border-white/50">
-                <div>
-                  <span className="font-black text-gray-900">{p.price.toLocaleString()}원</span>
-                  {p.originalPrice && (
-                    <span className="text-xs text-gray-400 line-through ml-1.5">{p.originalPrice.toLocaleString()}</span>
-                  )}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          {CANDY_PRODUCTS.map(p => {
+            const tc = THEME_COLORS[p.themeKey];
+            return (
+              <div key={p.id} className={`rounded-2xl border-2 overflow-hidden bg-white hover:shadow-xl transition-all group ${tc.border}`}>
+                {/* 상단 색상 밴드 */}
+                <div className={`${p.headerBg} px-6 pt-6 pb-5`}>
+                  <div className="flex items-start justify-between mb-3">
+                    <span className="text-5xl">{p.image}</span>
+                    <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full ${tc.badge}`}>
+                      {p.badge}
+                    </span>
+                  </div>
+                  <div className={`text-3xl font-black ${tc.text} mb-0.5`}>
+                    {p.number}호
+                  </div>
+                  <div className="font-black text-gray-900 text-lg">{p.nameEn}</div>
+                  <div className={`text-xs mt-1 ${tc.text} opacity-80`}>{p.slogan}</div>
                 </div>
-                <button
-                  onClick={() => addItem(p)}
-                  className="text-xs font-bold bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-xl transition-colors"
-                >
-                  담기
-                </button>
+
+                {/* 본문 */}
+                <div className="px-6 py-5">
+                  <p className="text-sm text-gray-600 leading-relaxed mb-4">{p.description}</p>
+
+                  {/* 핵심성분 미리보기 */}
+                  <div className="mb-4">
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">핵심성분</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {p.keyIngredients.map(ing => (
+                        <span key={ing.name} className={`text-xs font-semibold px-2.5 py-1 rounded-full ${tc.badge}`}>
+                          {ing.priority && <span className="opacity-60 mr-1">{ing.priority}</span>}
+                          {ing.name}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* 대표 활용 상황 */}
+                  <div className="mb-5">
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">이런 때</p>
+                    <p className="text-xs text-gray-500">{p.scenarios.slice(0, 2).map(s => s.situation).join(' · ')}</p>
+                  </div>
+
+                  {/* 가격 + 버튼 */}
+                  <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+                    <div>
+                      <span className="text-lg font-black text-gray-900">{p.price.toLocaleString()}원</span>
+                      <div className="text-[10px] text-gray-400 mt-0.5">{p.weight}</div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Link
+                        href={`/hancandy/products/${p.id}`}
+                        className={`text-xs font-semibold px-3 py-2 rounded-xl border-2 ${tc.border} ${tc.text} hover:${tc.bgLight} transition-colors`}
+                      >
+                        상세보기
+                      </Link>
+                      <button
+                        onClick={() => addItem(p)}
+                        className={`text-xs font-bold px-3 py-2 rounded-xl text-white ${tc.button} transition-colors`}
+                      >
+                        담기
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </div>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* 상황별 추천 가이드 */}
+      <section className="bg-white rounded-3xl border border-gray-100 shadow-sm p-8 mb-14">
+        <h2 className="text-xl font-black text-gray-900 mb-2 text-center">어떤 상황에 어떤 호?</h2>
+        <p className="text-sm text-gray-400 text-center mb-7">AI 상담으로 더 정확한 추천을 받을 수 있습니다.</p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {[
+            {
+              no: '1호 그린', color: THEME_COLORS.green, situations: ['중요 미팅·발표 전', '등산·러닝 중', '장거리 운전', '구강이 메마를 때'],
+            },
+            {
+              no: '2호 블루', color: THEME_COLORS.blue, situations: ['기상 직후 공복', '매운 음식·커피 후', '속이 쓰릴 때', '식후 위장 케어'],
+            },
+            {
+              no: '3호 옐로우', color: THEME_COLORS.yellow, situations: ['기름진 식사 후', '더부룩·가스 불편', '소화 안 되는 날', '장시간 앉아있을 때'],
+            },
+          ].map(g => (
+            <div key={g.no} className={`rounded-2xl p-5 ${g.color.bgLight} border ${g.color.border}`}>
+              <div className={`font-black text-base ${g.color.text} mb-4`}>{g.no}</div>
+              <ul className="space-y-2">
+                {g.situations.map(s => (
+                  <li key={s} className="flex items-center gap-2 text-sm text-gray-700">
+                    <CheckCircle size={13} className={g.color.text} />
+                    {s}
+                  </li>
+                ))}
+              </ul>
             </div>
           ))}
         </div>
       </section>
 
       {/* Why HanCandy */}
-      <section className="bg-gradient-to-r from-green-600 to-emerald-600 rounded-3xl p-8 md:p-12 text-white mb-14">
-        <h2 className="text-2xl md:text-3xl font-black mb-6 text-center">왜 한캔디인가요?</h2>
+      <section className="bg-gradient-to-r from-green-600 via-blue-600 to-amber-500 rounded-3xl p-8 md:p-12 text-white mb-14">
+        <h2 className="text-2xl md:text-3xl font-black mb-6 text-center">한캔디가 다른 이유</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {[
-            { num: '0g', label: '당류 제로', desc: '모든 제품 당류 0g 보장. 혈당 걱정 없이 즐기세요.' },
-            { num: '4종', label: '효능별 라인업', desc: '면역·에너지·수면·미용 – 당신에게 맞는 캔디 선택.' },
-            { num: '100%', label: '자일리톨 감미', desc: '충치 예방 효과까지 있는 자일리톨 100% 사용.' },
+            { num: '0g', label: '당류 제로', desc: '모든 제품 당류 0g. 자일리톨·스테비아로 달콤하게.' },
+            { num: '3호', label: '상황별 체계', desc: '구강·위장·소화 — 내 상황에 맞는 호(號)를 선택.' },
+            { num: '本草', label: '전통 본초 기반', desc: '맥문동·금은화 등 검증된 한약 원료를 현대적으로.' },
           ].map(s => (
             <div key={s.num} className="text-center">
               <div className="text-4xl font-black mb-1">{s.num}</div>
@@ -154,12 +224,12 @@ export default function HancandyHome() {
         <div className="w-14 h-14 bg-green-100 text-green-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
           <span className="text-2xl">🤖</span>
         </div>
-        <h2 className="text-xl font-black text-gray-900 mb-2">어떤 캔디가 맞을까요?</h2>
+        <h2 className="text-xl font-black text-gray-900 mb-2">어떤 호가 나에게 맞을까요?</h2>
         <p className="text-gray-500 text-sm mb-5 max-w-md mx-auto">
-          건강 목표, 라이프스타일, 알레르기 정보를 알려주시면 AI가 맞춤 캔디를 추천해 드립니다.
+          지금 어떤 상황인지 말씀해 주시면 AI가 1·2·3호 중 맞는 호를 추천해 드립니다.
         </p>
         <div className="flex flex-wrap justify-center gap-2 mb-5">
-          {['"피부가 좋아지고 싶어요"', '"잠이 안 와요"', '"운동 전 에너지가 필요해요"'].map(ex => (
+          {['"미팅 전에 목이 말라요"', '"식후에 속이 더부룩해요"', '"기름진 거 먹고 답답해요"'].map(ex => (
             <span key={ex} className="text-xs bg-green-50 text-green-700 border border-green-200 px-3 py-1.5 rounded-full font-medium">
               {ex}
             </span>
@@ -176,7 +246,7 @@ export default function HancandyHome() {
       {/* Disclaimer */}
       <div className="mt-8 flex items-start gap-2 bg-gray-50 rounded-xl p-4 text-xs text-gray-400">
         <CheckCircle size={14} className="shrink-0 mt-0.5 text-gray-300" />
-        <p>본 페이지는 AIZET의 쇼핑몰 플랫폼 데모입니다. 표시된 제품 및 가격은 가상 데이터이며 실제 판매가 이루어지지 않습니다. 주식회사 아이젯(aizet.co.kr) / HanCandy(hancandy.co.kr)는 현재 법인 설립 준비 중입니다.</p>
+        <p>본 페이지는 AIZET의 쇼핑몰 플랫폼 데모입니다. 표시된 제품 및 가격은 기획안 기반 데이터이며 실제 판매가 이루어지지 않습니다. 본 제품은 의약품이 아니며 질병의 예방·치료를 목적으로 하지 않습니다. 주식회사 아이젯(aizet.co.kr) / HanCandy(hancandy.co.kr)</p>
       </div>
     </div>
   );
