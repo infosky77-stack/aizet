@@ -1,13 +1,13 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import {
   ChevronLeft, Tag, Download, RefreshCw, CheckCircle,
-  PenLine, Save, RotateCcw,
+  PenLine, Save, RotateCcw, Building2, FolderOpen,
 } from 'lucide-react';
 import { clsx } from 'clsx';
-import { LabelCountry, LabelData } from '@/types/print-files';
+import { LabelCountry, LabelData, Client } from '@/types/print-files';
 import { generateLabelSVG, getDefaultOverrides, LabelOverrides } from '@/lib/print/label-svg';
 
 const COUNTRIES: { code: LabelCountry; name: string; flag: string; cert?: string }[] = [
@@ -120,6 +120,15 @@ export default function LabelsPage() {
   const [overrides, setOverrides] = useState<LabelOverrides>({});
   const [saving, setSaving] = useState(false);
   const [editSaved, setEditSaved] = useState<string | null>(null);
+  const [clients, setClients] = useState<Client[]>([]);
+  const [saveClientId, setSaveClientId] = useState('');
+  const [clientSaved, setClientSaved] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch('/api/print/clients')
+      .then(r => r.json())
+      .then(d => setClients(d.clients ?? []));
+  }, []);
 
   const set = (key: keyof FormData) => (value: string) => setForm(p => ({ ...p, [key]: value }));
 
@@ -186,6 +195,7 @@ export default function LabelsPage() {
   const handleSave = async () => {
     const svg = generateLabelSVG(liveData, overrides);
     setSaving(true);
+    setClientSaved(null);
     try {
       const res = await fetch('/api/print/labels', {
         method: 'POST',
@@ -194,11 +204,41 @@ export default function LabelsPage() {
           data: liveData,
           svgContent: svg,
           product: form.productName,
+          clientId: saveClientId || undefined,
         }),
       });
-      const { label } = await res.json();
+      const { label, clientFile } = await res.json();
       setEditSaved(label.id);
       setLabelId(label.id);
+      if (clientFile) {
+        const c = clients.find(c => c.id === saveClientId);
+        setClientSaved(c?.company ?? saveClientId);
+      }
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSaveToClientFromForm = async () => {
+    if (!saveClientId || !svgContent) return;
+    setSaving(true);
+    setClientSaved(null);
+    try {
+      const res = await fetch('/api/print/labels', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          data: liveData,
+          svgContent,
+          product: form.productName,
+          clientId: saveClientId,
+        }),
+      });
+      const { clientFile } = await res.json();
+      if (clientFile) {
+        const c = clients.find(c => c.id === saveClientId);
+        setClientSaved(c?.company ?? saveClientId);
+      }
     } finally {
       setSaving(false);
     }
@@ -289,7 +329,41 @@ export default function LabelsPage() {
             {labelId && (
               <div className="flex items-center gap-2 text-sm text-emerald-700 bg-emerald-50 rounded-xl px-4 py-2.5">
                 <CheckCircle size={14} />
-                저장 완료 (ID: {labelId})
+                라벨 생성 완료 (ID: {labelId})
+              </div>
+            )}
+
+            {/* 거래처 파일 저장 (폼 모드) */}
+            {svgContent && (
+              <div className="bg-white rounded-2xl border border-stone-100 p-4 flex flex-col gap-3">
+                <div className="flex items-center gap-1.5">
+                  <FolderOpen size={13} className="text-blue-500" />
+                  <p className="text-xs font-bold text-stone-700">거래처 파일 관리에 저장</p>
+                </div>
+                <select
+                  value={saveClientId}
+                  onChange={e => { setSaveClientId(e.target.value); setClientSaved(null); }}
+                  className="w-full px-3 py-2 rounded-xl border border-stone-200 text-sm focus:border-blue-400 focus:outline-none"
+                >
+                  <option value="">거래처 선택...</option>
+                  {clients.map(c => (
+                    <option key={c.id} value={c.id}>{c.company} ({c.countryCode})</option>
+                  ))}
+                </select>
+                <button
+                  onClick={handleSaveToClientFromForm}
+                  disabled={!saveClientId || saving}
+                  className="flex items-center justify-center gap-1.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:bg-stone-200 disabled:text-stone-400 text-white text-sm font-semibold transition-colors"
+                >
+                  {saving ? <RefreshCw size={13} className="animate-spin" /> : <Building2 size={13} />}
+                  파일 관리에 저장
+                </button>
+                {clientSaved && (
+                  <div className="flex items-center gap-2 text-xs text-emerald-700 bg-emerald-50 rounded-xl px-3 py-2">
+                    <CheckCircle size={12} />
+                    {clientSaved} 폴더에 저장됨
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -436,6 +510,24 @@ export default function LabelsPage() {
 
             {/* Footer actions */}
             <div className="flex flex-col gap-2">
+              {/* Client selector for file save */}
+              <div>
+                <label className="text-xs font-semibold text-stone-600 mb-1.5 block flex items-center gap-1">
+                  <FolderOpen size={11} className="text-blue-500" />
+                  저장할 거래처
+                </label>
+                <select
+                  value={saveClientId}
+                  onChange={e => { setSaveClientId(e.target.value); setClientSaved(null); setEditSaved(null); }}
+                  className="w-full px-3 py-2 rounded-xl border border-stone-200 text-sm focus:border-blue-400 focus:outline-none"
+                >
+                  <option value="">거래처 선택 (없으면 일반 저장)</option>
+                  {clients.map(c => (
+                    <option key={c.id} value={c.id}>{c.company} ({c.countryCode})</option>
+                  ))}
+                </select>
+              </div>
+
               <div className="flex gap-2">
                 <button
                   onClick={handleDownload}
@@ -450,13 +542,19 @@ export default function LabelsPage() {
                   className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:bg-stone-300 text-white text-sm font-semibold transition-colors"
                 >
                   {saving ? <RefreshCw size={14} className="animate-spin" /> : <Save size={14} />}
-                  거래처 폴더에 저장
+                  {saveClientId ? '거래처 폴더에 저장' : '라벨 저장'}
                 </button>
               </div>
-              {editSaved && (
+              {editSaved && !clientSaved && (
                 <div className="flex items-center gap-2 text-sm text-emerald-700 bg-emerald-50 rounded-xl px-4 py-2.5">
                   <CheckCircle size={14} />
                   저장 완료 · {form.productName} 폴더 (ID: {editSaved})
+                </div>
+              )}
+              {clientSaved && (
+                <div className="flex items-center gap-2 text-sm text-emerald-700 bg-emerald-50 rounded-xl px-4 py-2.5">
+                  <CheckCircle size={14} />
+                  {clientSaved} 파일 관리에 저장됨
                 </div>
               )}
             </div>

@@ -761,7 +761,16 @@ export default function FilesPage() {
                   {Object.entries(filesByProduct).map(([product, pFiles]) => {
                     const isOpen = openFolder === product;
                     const latest = pFiles.find(f => f.isLatest);
-                    const shown = search ? pFiles.filter(f => f.filename.toLowerCase().includes(search.toLowerCase())) : pFiles;
+                    const q = search.toLowerCase();
+                    const productMatches = !search || product.toLowerCase().includes(q);
+                    const shown = !search
+                      ? pFiles
+                      : productMatches
+                        ? pFiles
+                        : pFiles.filter(f =>
+                            f.filename.toLowerCase().includes(q) ||
+                            (f.tags ?? []).some(t => t.toLowerCase().includes(q))
+                          );
                     if (search && shown.length === 0) return null;
 
                     return (

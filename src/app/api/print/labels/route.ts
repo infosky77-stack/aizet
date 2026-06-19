@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getLabels, saveLabel } from '@/lib/db/print-files';
+import { getLabels, saveLabel, getClient, getFilesByClient, addClientFile } from '@/lib/db/print-files';
 import { generateLabelSVG } from '@/lib/print/label-svg';
 import { LabelData } from '@/types/print-files';
 
@@ -22,5 +22,27 @@ export async function POST(req: NextRequest) {
     data,
     svgContent,
   });
-  return NextResponse.json({ label }, { status: 201 });
+
+  // 거래처 ID와 제품명이 있으면 ClientFile로도 저장 → /print/files에 표시
+  let clientFile = null;
+  if (body.clientId && body.product) {
+    const client = getClient(body.clientId);
+    if (client) {
+      const existing = getFilesByClient(body.clientId).filter(f => f.product === body.product);
+      const nextVersion = existing.length > 0 ? Math.max(...existing.map(f => f.version)) + 1 : 1;
+      const filename = `label-${data.productName}-${data.country}-v${nextVersion}.svg`;
+      clientFile = addClientFile({
+        clientId: body.clientId,
+        product: body.product,
+        filename,
+        fileType: '.svg',
+        version: nextVersion,
+        isLatest: true,
+        sizeBytes: svgContent.length,
+        tags: ['수출라벨', data.country],
+      });
+    }
+  }
+
+  return NextResponse.json({ label, clientFile }, { status: 201 });
 }
