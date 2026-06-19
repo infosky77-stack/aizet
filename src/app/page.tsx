@@ -37,6 +37,12 @@ import {
   Shield,
   Leaf,
   Scale,
+  Lock,
+  Link2,
+  KeyRound,
+  Image,
+  Video,
+  Cloud,
 } from 'lucide-react';
 
 /* ─── Industry types & data ───────────────────────────── */
@@ -306,6 +312,10 @@ function Navbar() {
           <a href="#industries" className="hover:text-stone-900 transition-colors">업종</a>
           <a href="#pricing" className="hover:text-stone-900 transition-colors">요금제</a>
           <a href="#demo" className="hover:text-stone-900 transition-colors">데모</a>
+          <Link href="/myspace" className="flex items-center gap-1.5 hover:text-violet-600 transition-colors">
+            <Shield size={14} />
+            나만의 공간
+          </Link>
           <Link href="/prompts" className="flex items-center gap-1.5 hover:text-amber-600 transition-colors">
             <BookOpen size={14} />
             프롬프트
@@ -351,6 +361,14 @@ function Navbar() {
               {item}
             </a>
           ))}
+          <Link
+            href="/myspace"
+            onClick={() => setOpen(false)}
+            className="flex items-center gap-2 text-sm font-medium text-violet-600 py-2"
+          >
+            <Shield size={14} />
+            나만의 공간 (MySpace)
+          </Link>
           <Link
             href="/prompts"
             onClick={() => setOpen(false)}
@@ -1083,6 +1101,143 @@ function DemoPreview() {
   );
 }
 
+/* ─── MySpace Section ────────────────────────────────────── */
+function MySpaceSection() {
+  const features = [
+    { icon: <Lock size={14} />, label: '완전 비공개', desc: '나만 볼 수 있는 나만의 보관함', color: 'bg-stone-100 text-stone-700' },
+    { icon: <Link2 size={14} />, label: '링크로만 공유', desc: '선택한 사람에게만 링크 전달', color: 'bg-blue-100 text-blue-700' },
+    { icon: <KeyRound size={14} />, label: '암호 보호', desc: '비밀번호 설정으로 이중 보호', color: 'bg-amber-100 text-amber-700' },
+    { icon: <Cloud size={14} />, label: '구글 드라이브 연동', desc: '원본 화질 그대로 저장', color: 'bg-emerald-100 text-emerald-700' },
+    { icon: <Wand2 size={14} />, label: 'AI 프롬프트 제공', desc: 'Midjourney·Runway 프롬프트 연동', color: 'bg-violet-100 text-violet-700' },
+    { icon: <Shield size={14} />, label: '댓글·평가 없음', desc: '순수 저장·공유 목적으로만', color: 'bg-rose-100 text-rose-700' },
+  ];
+
+  return (
+    <section className="py-20 px-4 bg-gradient-to-b from-white to-violet-50/40">
+      <div className="max-w-6xl mx-auto">
+        <div className="flex flex-col lg:flex-row items-center gap-14">
+          {/* Text */}
+          <div className="flex-1 flex flex-col gap-6">
+            <div className="flex flex-wrap gap-2">
+              <span className="inline-flex items-center gap-1.5 bg-violet-100 text-violet-700 text-xs font-semibold px-3 py-1.5 rounded-full border border-violet-200">
+                <Shield size={11} />
+                무료 기능 · MySpace
+              </span>
+              <span className="inline-flex items-center gap-1.5 bg-emerald-100 text-emerald-700 text-xs font-semibold px-3 py-1.5 rounded-full border border-emerald-200">
+                <Check size={11} />
+                회원가입만 하면 바로 사용
+              </span>
+            </div>
+
+            <h2 className="text-3xl sm:text-4xl font-bold text-stone-900 leading-tight">
+              유튜브·SNS가 부담스러울 때,
+              <br />
+              <span className="text-violet-600">나만의 조용한 공간</span>
+            </h2>
+
+            <p className="text-stone-500 text-base leading-relaxed max-w-lg">
+              알고리즘 노출 없이, 댓글 없이, 좋아요 없이. 동영상과 이미지를 내가 원하는 사람에게만
+              공유하는 <strong className="text-stone-700">프라이버시 중심 개인 미디어 공간</strong>입니다.
+              구글 드라이브와 연동해 원본 화질 그대로 보관하세요.
+            </p>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {features.map(({ icon, label, desc, color }) => (
+                <div key={label} className={`flex items-start gap-2 rounded-xl px-3 py-2.5 border border-transparent ${color.replace('text-', 'border-').replace('bg-', 'bg-').split(' ')[0]}`}>
+                  <span className={`mt-0.5 flex-shrink-0 ${color.split(' ')[1]}`}>{icon}</span>
+                  <div>
+                    <p className="text-xs font-semibold text-stone-800">{label}</p>
+                    <p className="text-[11px] text-stone-500 mt-0.5 leading-snug">{desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Link
+                href="/myspace"
+                className="inline-flex items-center justify-center gap-2 bg-violet-600 hover:bg-violet-700 text-white font-semibold text-sm px-6 py-3.5 rounded-xl transition-colors shadow-lg shadow-violet-200"
+              >
+                <Shield size={15} />
+                나만의 공간 체험하기
+                <ArrowRight size={14} />
+              </Link>
+              <Link
+                href="/signup"
+                className="inline-flex items-center justify-center gap-2 border border-stone-200 text-stone-700 hover:border-violet-300 hover:text-violet-700 font-semibold text-sm px-6 py-3.5 rounded-xl transition-colors"
+              >
+                무료로 시작
+              </Link>
+            </div>
+          </div>
+
+          {/* Mockup */}
+          <div className="flex-1 w-full max-w-md">
+            <div className="relative">
+              <div className="absolute -inset-4 bg-violet-400/10 rounded-3xl blur-2xl" />
+              <div className="relative bg-white rounded-2xl shadow-2xl border border-stone-200 overflow-hidden">
+                {/* Profile area */}
+                <div className="h-16 bg-gradient-to-r from-violet-500 via-purple-500 to-indigo-600" />
+                <div className="px-5 pb-5">
+                  <div className="flex items-end justify-between -mt-6 mb-4">
+                    <div className="w-12 h-12 bg-white rounded-xl shadow-md border-2 border-white flex items-center justify-center text-2xl">🌿</div>
+                    <span className="text-[10px] bg-violet-100 text-violet-700 px-2 py-1 rounded-full font-semibold flex items-center gap-1">
+                      <Shield size={9} />
+                      나만의 공간
+                    </span>
+                  </div>
+                  <p className="font-bold text-stone-900 text-sm">나의 조용한 공간</p>
+                  <p className="text-xs text-stone-400 mt-0.5">조용히 기록합니다 🌿</p>
+
+                  {/* Privacy notice */}
+                  <div className="mt-3 bg-violet-50 rounded-lg px-3 py-2 flex items-center gap-2">
+                    <Shield size={11} className="text-violet-500" />
+                    <p className="text-[10px] text-violet-700 font-medium">댓글·좋아요·노출 없음</p>
+                  </div>
+
+                  {/* Media items */}
+                  <div className="mt-3 grid grid-cols-2 gap-2">
+                    {[
+                      { emoji: '🌊', title: '제주 여행', privacy: 'link', color: 'from-violet-400 to-purple-600' },
+                      { emoji: '🎬', title: '가족 파티', privacy: 'private', color: 'from-rose-400 to-pink-600' },
+                      { emoji: '📸', title: '일상 기록', privacy: 'password', color: 'from-amber-400 to-orange-600' },
+                      { emoji: '🌸', title: '봄 산책', privacy: 'link', color: 'from-teal-400 to-emerald-600' },
+                    ].map(({ emoji, title, privacy, color }) => (
+                      <div key={title} className="rounded-xl overflow-hidden border border-stone-100">
+                        <div className={`h-14 bg-gradient-to-br ${color} flex items-center justify-center text-2xl`}>{emoji}</div>
+                        <div className="px-2 py-1.5">
+                          <p className="text-[10px] font-semibold text-stone-700 truncate">{title}</p>
+                          <div className="flex items-center gap-1 mt-0.5">
+                            {privacy === 'private' && <Lock size={8} className="text-stone-400" />}
+                            {privacy === 'link' && <Link2 size={8} className="text-blue-400" />}
+                            {privacy === 'password' && <KeyRound size={8} className="text-amber-500" />}
+                            <span className="text-[9px] text-stone-400">
+                              {privacy === 'private' ? '비공개' : privacy === 'link' ? '링크공유' : '암호보호'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="absolute -right-3 top-20 bg-white rounded-xl shadow-lg border border-stone-100 px-3 py-2 flex items-center gap-2">
+                <Shield size={12} className="text-violet-500" />
+                <span className="text-xs font-semibold text-stone-700">알고리즘 노출 없음</span>
+              </div>
+              <div className="absolute -left-3 bottom-12 bg-white rounded-xl shadow-lg border border-stone-100 px-3 py-2 flex items-center gap-2">
+                <Cloud size={12} className="text-blue-500" />
+                <span className="text-xs font-semibold text-stone-700">Drive 연동 저장</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 /* ─── Prompt Library CTA ─────────────────────────────────── */
 function PromptLibraryCTA() {
   const samples = [
@@ -1297,8 +1452,8 @@ function Pricing() {
       price: '무료',
       period: '',
       desc: '처음 시작하는 소규모 업체',
-      color: 'border-stone-200',
-      features: ['AI 홈페이지 생성', '기본 예약 시스템', '메뉴·서비스 관리', '월 100건 예약'],
+      color: 'border-violet-300',
+      features: ['AI 홈페이지 생성', '기본 예약 시스템', '메뉴·서비스 관리', '월 100건 예약', '🔒 MySpace (개인 미디어 공간)', '구글 드라이브 연동 저장'],
       cta: '무료로 시작',
       ctaStyle: 'border border-stone-300 text-stone-700 hover:border-stone-500',
     },
@@ -1458,6 +1613,7 @@ export default function LandingPage() {
       <Features />
       <DashboardCTA />
       <DemoPreview />
+      <MySpaceSection />
       <PromptLibraryCTA />
       <Testimonials />
       <SR05Section />
