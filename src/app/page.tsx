@@ -35,6 +35,7 @@ import {
   BatteryFull,
   Thermometer,
   Shield,
+  Leaf,
 } from 'lucide-react';
 
 /* ─── Industry types & data ───────────────────────────── */
@@ -149,6 +150,17 @@ const INDUSTRIES_LIST: IndustryItem[] = [
     mockupSub: '영어·중국어·일본어·베트남어 지원',
     cta: '학습 시작',
     features: ['AI 레벨 진단', '4개국어 학습 콘텐츠', 'AI 회화 챗봇', '발음·문법 피드백', '학습자 진도 대시보드', '관리자 통계'],
+  },
+  {
+    icon: <Leaf size={22} />,
+    name: '건강식품 쇼핑몰',
+    color: 'bg-green-100 text-green-700',
+    sub: '제품 카탈로그·AI 상담·결제',
+    gradient: 'from-green-600 to-emerald-700',
+    mockupTitle: 'HanCandy 한캔디',
+    mockupSub: '무설탕 건강기능성 캔디 브랜드',
+    cta: '쇼핑하기',
+    features: ['제품 카탈로그', '영양 정보 상세페이지', '장바구니·결제', 'AI 상담 챗봇', '효능별 필터', '관리자 대시보드'],
   },
   {
     icon: <Globe size={22} />,
@@ -953,6 +965,53 @@ function DemoPreview() {
                 { label: '단계별 학습 콘텐츠', color: 'bg-indigo-500' },
                 { label: 'AI 회화 챗봇', color: 'bg-blue-500' },
                 { label: '진도 대시보드', color: 'bg-sky-500' },
+              ].map(({ label, color }) => (
+                <div key={label} className="flex items-center gap-2.5">
+                  <div className={`w-2 h-2 rounded-full ${color}`} />
+                  <span className="text-xs text-stone-600">{label}</span>
+                  <Check size={11} className="ml-auto text-emerald-500" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* HanCandy demo */}
+        <div className="bg-gradient-to-r from-green-600 to-emerald-700 rounded-3xl p-8 md:p-12 flex flex-col md:flex-row items-center gap-8 overflow-hidden relative">
+          <div className="absolute -right-16 -top-16 w-64 h-64 bg-white/5 rounded-full" />
+          <div className="flex-1 relative">
+            <p className="text-green-200 text-xs font-semibold uppercase tracking-widest mb-2">건강 식품 쇼핑몰 데모</p>
+            <h3 className="text-white text-2xl font-bold mb-3 leading-tight">
+              무설탕 건강 캔디 브랜드<br />한캔디를 체험해 보세요
+            </h3>
+            <p className="text-green-100 text-sm leading-relaxed mb-6 max-w-md">
+              제품 카탈로그·장바구니·결제·AI 상담 챗봇·관리자 대시보드까지 — 완전한 건강식품 쇼핑몰 데모입니다.
+            </p>
+            <Link
+              href="/hancandy"
+              className="inline-flex items-center gap-2 bg-white text-green-700 font-bold text-sm px-6 py-3 rounded-xl hover:bg-green-50 transition-colors shadow-lg"
+            >
+              <Leaf size={15} />
+              한캔디 쇼핑몰 데모 체험하기
+              <ArrowRight size={14} />
+            </Link>
+          </div>
+          <div className="relative w-full md:w-52 shrink-0">
+            <div className="bg-white rounded-2xl shadow-2xl p-4 flex flex-col gap-2.5">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 bg-green-100 rounded-lg flex items-center justify-center">
+                  <Leaf size={13} className="text-green-600" />
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-stone-800">HanCandy 한캔디</p>
+                  <p className="text-[10px] text-stone-400">무설탕 건강기능성 캔디</p>
+                </div>
+              </div>
+              {[
+                { label: '제품 카탈로그', color: 'bg-green-500' },
+                { label: '장바구니·결제', color: 'bg-emerald-500' },
+                { label: 'AI 캔디 상담', color: 'bg-teal-500' },
+                { label: '관리자 대시보드', color: 'bg-cyan-500' },
               ].map(({ label, color }) => (
                 <div key={label} className="flex items-center gap-2.5">
                   <div className={`w-2 h-2 rounded-full ${color}`} />
