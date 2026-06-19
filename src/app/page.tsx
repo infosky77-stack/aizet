@@ -63,6 +63,7 @@ const INDUSTRIES_LIST: IndustryItem[] = [
     mockupSub: '서울 마포구 · 매일 11:00–22:00',
     cta: '지금 주문',
     features: ['AI 메뉴 추천', '테이블 QR 주문', '서빙 로봇 연동', '간편 결제', '예약 관리', '실시간 매출'],
+    href: '/demo',
   },
   {
     icon: <Scissors size={22} />,
@@ -74,6 +75,7 @@ const INDUSTRIES_LIST: IndustryItem[] = [
     mockupSub: '강남구 논현동 · 10:00–20:00',
     cta: '예약하기',
     features: ['실시간 예약', '스타일 포트폴리오', '리마인더 알림', '리뷰 관리', '직원별 일정', 'SNS 연동'],
+    href: '/signup',
   },
   {
     icon: <HeartPulse size={22} />,
@@ -85,6 +87,7 @@ const INDUSTRIES_LIST: IndustryItem[] = [
     mockupSub: '종로구 · 평일 09:00–18:00',
     cta: '진료 예약',
     features: ['진료 예약', '의료진 소개', '비급여 안내', '오시는 길', '온라인 상담', '진료 과목'],
+    href: '/signup',
   },
   {
     icon: <Building2 size={22} />,
@@ -96,6 +99,7 @@ const INDUSTRIES_LIST: IndustryItem[] = [
     mockupSub: '서초구 · 평일 09:00–18:00',
     cta: '상담 예약',
     features: ['온라인 상담 예약', '서비스 안내', '사례 소개', '자료 다운로드', '뉴스레터', '카카오 상담'],
+    href: '/signup',
   },
   {
     icon: <Dumbbell size={22} />,
@@ -107,6 +111,7 @@ const INDUSTRIES_LIST: IndustryItem[] = [
     mockupSub: '해운대구 · 06:00–22:00',
     cta: '등록하기',
     features: ['수업 일정 관리', '회원권 결제', '트레이너 소개', '출석 체크', '온라인 예약', '프로그램 안내'],
+    href: '/signup',
   },
   {
     icon: <Package size={22} />,
@@ -118,6 +123,7 @@ const INDUSTRIES_LIST: IndustryItem[] = [
     mockupSub: '강원도 춘천시 · 체크인 15:00',
     cta: '객실 예약',
     features: ['실시간 객실 예약', '가격 달력', '주변 관광지', '패키지 상품', '후기 시스템', '결제 연동'],
+    href: '/signup',
   },
   {
     icon: <ShoppingBag size={22} />,
@@ -129,6 +135,7 @@ const INDUSTRIES_LIST: IndustryItem[] = [
     mockupSub: '홍대입구 · 패션·잡화 편집샵',
     cta: '쇼핑하기',
     features: ['상품 진열 관리', '장바구니·결제', '배송 추적', '회원 할인', '재고 관리', '쿠폰 발급'],
+    href: '/signup',
   },
   {
     icon: <Printer size={22} />,
@@ -140,6 +147,7 @@ const INDUSTRIES_LIST: IndustryItem[] = [
     mockupSub: '명함·전단·책자·배너·스티커·패키지',
     cta: '견적 받기',
     features: ['상품 카탈로그', '실시간 견적 계산기', '파일 업로드·검수', 'AI 인쇄 상담', '제작 단계 추적', '관리자 대시보드'],
+    href: '/print',
   },
   {
     icon: <BookOpen size={22} />,
@@ -151,6 +159,7 @@ const INDUSTRIES_LIST: IndustryItem[] = [
     mockupSub: '영어·중국어·일본어·베트남어 지원',
     cta: '학습 시작',
     features: ['AI 레벨 진단', '4개국어 학습 콘텐츠', 'AI 회화 챗봇', '발음·문법 피드백', '학습자 진도 대시보드', '관리자 통계'],
+    href: '/korean',
   },
   {
     icon: <Leaf size={22} />,
@@ -174,6 +183,7 @@ const INDUSTRIES_LIST: IndustryItem[] = [
     mockupSub: 'AI가 업종에 맞게 자동 구성',
     cta: '알아보기',
     features: ['AI 맞춤 구성', '업종별 특화 기능', '자유로운 커스텀', '전담 온보딩', '24/7 지원', '무제한 수정'],
+    href: '/signup',
   },
 ];
 
@@ -586,8 +596,6 @@ function HowItWorks() {
 
 /* ─── Industries ──────────────────────────────────────── */
 function Industries() {
-  const [selected, setSelected] = useState<IndustryItem | null>(null);
-
   return (
     <section id="industries" className="py-20 px-4 bg-white">
       <div className="max-w-6xl mx-auto">
@@ -596,39 +604,29 @@ function Industries() {
           <h2 className="text-3xl font-bold text-stone-900">어떤 업종이든 바로 시작</h2>
           <p className="text-stone-500 mt-3 max-w-md mx-auto">
             각 업종에 특화된 기능과 디자인이 자동으로 적용됩니다.{' '}
-            <span className="text-amber-600 font-medium">카드를 클릭하면 미리보기를 확인할 수 있어요.</span>
+            <span className="text-amber-600 font-medium">카드를 클릭해 데모를 체험해 보세요.</span>
           </p>
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-          {INDUSTRIES_LIST.map((ind) => {
-            const cardClass = "group bg-white border border-stone-100 rounded-2xl p-5 hover:shadow-md hover:border-amber-200 transition-all cursor-pointer flex flex-col gap-3 text-left";
-            const inner = (
-              <>
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${ind.color}`}>
-                  {ind.icon}
-                </div>
-                <div>
-                  <p className="font-semibold text-stone-800 text-sm">{ind.name}</p>
-                  <p className="text-xs text-stone-400 mt-0.5">{ind.sub}</p>
-                </div>
-                <ChevronRight size={14} className="text-stone-300 group-hover:text-amber-500 transition-colors" />
-              </>
-            );
-            return ind.href ? (
-              <Link key={ind.name} href={ind.href} className={cardClass}>
-                {inner}
-              </Link>
-            ) : (
-              <button key={ind.name} onClick={() => setSelected(ind)} className={cardClass}>
-                {inner}
-              </button>
-            );
-          })}
+          {INDUSTRIES_LIST.map((ind) => (
+            <Link
+              key={ind.name}
+              href={ind.href!}
+              className="group bg-white border border-stone-100 rounded-2xl p-5 hover:shadow-md hover:border-amber-200 transition-all flex flex-col gap-3"
+            >
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${ind.color}`}>
+                {ind.icon}
+              </div>
+              <div>
+                <p className="font-semibold text-stone-800 text-sm">{ind.name}</p>
+                <p className="text-xs text-stone-400 mt-0.5">{ind.sub}</p>
+              </div>
+              <ChevronRight size={14} className="text-stone-300 group-hover:text-amber-500 transition-colors" />
+            </Link>
+          ))}
         </div>
       </div>
-
-      {selected && <IndustryModal industry={selected} onClose={() => setSelected(null)} />}
     </section>
   );
 }
