@@ -36,6 +36,7 @@ import {
   Thermometer,
   Shield,
   Leaf,
+  Scale,
 } from 'lucide-react';
 
 /* ─── Industry types & data ───────────────────────────── */
@@ -95,11 +96,11 @@ const INDUSTRIES_LIST: IndustryItem[] = [
     color: 'bg-blue-100 text-blue-700',
     sub: '상담 예약·서비스 안내',
     gradient: 'from-blue-600 to-blue-900',
-    mockupTitle: '김민준 법무사 사무소',
-    mockupSub: '서초구 · 평일 09:00–18:00',
+    mockupTitle: '세무법인 아이젯',
+    mockupSub: 'AI 세무 상담 · 신고 기한 · 계산기',
     cta: '상담 예약',
-    features: ['온라인 상담 예약', '서비스 안내', '사례 소개', '자료 다운로드', '뉴스레터', '카카오 상담'],
-    href: '/signup',
+    features: ['신고 기한 캘린더', '소득세·부가세 계산기', 'AI 세무 상담 챗봇', '상담 예약', '고객 관리 대시보드', '가산세 알림'],
+    href: '/tax',
   },
   {
     icon: <Dumbbell size={22} />,
@@ -973,6 +974,53 @@ function DemoPreview() {
                 { label: '단계별 학습 콘텐츠', color: 'bg-indigo-500' },
                 { label: 'AI 회화 챗봇', color: 'bg-blue-500' },
                 { label: '진도 대시보드', color: 'bg-sky-500' },
+              ].map(({ label, color }) => (
+                <div key={label} className="flex items-center gap-2.5">
+                  <div className={`w-2 h-2 rounded-full ${color}`} />
+                  <span className="text-xs text-stone-600">{label}</span>
+                  <Check size={11} className="ml-auto text-emerald-500" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Tax demo */}
+        <div className="bg-gradient-to-r from-slate-700 to-blue-900 rounded-3xl p-8 md:p-12 flex flex-col md:flex-row items-center gap-8 overflow-hidden relative">
+          <div className="absolute -right-16 -top-16 w-64 h-64 bg-white/5 rounded-full" />
+          <div className="flex-1 relative">
+            <p className="text-slate-300 text-xs font-semibold uppercase tracking-widest mb-2">세무사 사무소 데모</p>
+            <h3 className="text-white text-2xl font-bold mb-3 leading-tight">
+              AI 세무 상담부터 신고 기한까지<br />세무법인 플랫폼을 체험해 보세요
+            </h3>
+            <p className="text-slate-300 text-sm leading-relaxed mb-6 max-w-md">
+              신고 캘린더·세금 계산기·AI 상담 챗봇·상담 예약·관리자 대시보드까지 — 완전한 세무법인 데모입니다.
+            </p>
+            <Link
+              href="/tax"
+              className="inline-flex items-center gap-2 bg-white text-slate-800 font-bold text-sm px-6 py-3 rounded-xl hover:bg-slate-100 transition-colors shadow-lg"
+            >
+              <Scale size={15} />
+              세무법인 데모 체험하기
+              <ArrowRight size={14} />
+            </Link>
+          </div>
+          <div className="relative w-full md:w-52 shrink-0">
+            <div className="bg-white rounded-2xl shadow-2xl p-4 flex flex-col gap-2.5">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 bg-slate-100 rounded-lg flex items-center justify-center">
+                  <Scale size={13} className="text-slate-700" />
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-stone-800">세무법인 아이젯</p>
+                  <p className="text-[10px] text-stone-400">AI 세무 서비스</p>
+                </div>
+              </div>
+              {[
+                { label: '신고 기한 캘린더', color: 'bg-blue-500' },
+                { label: '세금 계산기', color: 'bg-emerald-500' },
+                { label: 'AI 세무 상담', color: 'bg-violet-500' },
+                { label: '상담 예약·관리', color: 'bg-amber-500' },
               ].map(({ label, color }) => (
                 <div key={label} className="flex items-center gap-2.5">
                   <div className={`w-2 h-2 rounded-full ${color}`} />
