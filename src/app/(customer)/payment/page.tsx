@@ -3,7 +3,8 @@
 import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Order, PaymentMethod } from '@/types/order';
-import { CreditCard, Banknote, Smartphone, CheckCircle, Clock, Truck, UtensilsCrossed, MapPin } from 'lucide-react';
+import { ReceiptModal } from '@/components/admin/ReceiptModal';
+import { CreditCard, Banknote, Smartphone, CheckCircle, Clock, Truck, UtensilsCrossed, MapPin, Receipt } from 'lucide-react';
 import { clsx } from 'clsx';
 
 const PAYMENT_METHODS: { value: PaymentMethod; label: string; icon: React.ReactNode; color: string }[] = [
@@ -21,6 +22,7 @@ function PaymentContent() {
   const [order, setOrder] = useState<Order | null>(null);
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod | null>(null);
   const [submitted, setSubmitted] = useState(false);
+  const [showReceipt, setShowReceipt] = useState(false);
 
   useEffect(() => {
     if (!orderId) return;
@@ -130,12 +132,21 @@ function PaymentContent() {
             <CheckCircle size={40} className="text-emerald-500" />
             <p className="font-bold text-emerald-700 text-lg">결제 완료</p>
             <p className="text-sm text-emerald-600 text-center">결제가 확인되었습니다. 감사합니다!</p>
-            <button
-              onClick={() => router.push('/')}
-              className="mt-2 px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-xl transition-colors"
-            >
-              처음으로
-            </button>
+            <div className="flex gap-2 mt-2 w-full">
+              <button
+                onClick={() => setShowReceipt(true)}
+                className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 border border-emerald-300 text-emerald-700 hover:bg-emerald-100 text-sm font-semibold rounded-xl transition-colors"
+              >
+                <Receipt size={15} />
+                영수증 보기
+              </button>
+              <button
+                onClick={() => router.push('/')}
+                className="flex-1 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-xl transition-colors"
+              >
+                처음으로
+              </button>
+            </div>
           </div>
         ) : submitted ? (
           <div className="bg-blue-50 border border-blue-200 rounded-2xl p-6 flex flex-col items-center gap-3">
@@ -179,6 +190,10 @@ function PaymentContent() {
               {selectedMethod ? `${order.totalAmount.toLocaleString()}원 결제 요청` : '결제 방법을 선택하세요'}
             </button>
           </div>
+        )}
+
+        {showReceipt && order && (
+          <ReceiptModal order={order} onClose={() => setShowReceipt(false)} />
         )}
 
         {/* Delivery tracking link */}

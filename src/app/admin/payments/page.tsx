@@ -3,7 +3,9 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Order, PaymentMethod } from '@/types/order';
 import { PaymentBadge } from '@/components/admin/PaymentBadge';
-import { CreditCard, Smartphone, Banknote, Truck, CheckCircle, Clock, AlertCircle } from 'lucide-react';
+import { ReceiptModal } from '@/components/admin/ReceiptModal';
+import { RefundModal } from '@/components/admin/RefundModal';
+import { CreditCard, Smartphone, Banknote, Truck, CheckCircle, Clock, AlertCircle, Receipt, RotateCcw } from 'lucide-react';
 import { clsx } from 'clsx';
 
 const METHOD_LABEL: Record<PaymentMethod, string> = {
@@ -40,6 +42,8 @@ export default function PaymentsPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [tab, setTab] = useState<FilterTab>('all');
   const [loading, setLoading] = useState<string | null>(null);
+  const [receiptOrder, setReceiptOrder] = useState<Order | null>(null);
+  const [refundTarget, setRefundTarget] = useState<Order | null>(null);
 
   const fetchOrders = useCallback(async () => {
     const res = await fetch('/api/orders');
@@ -215,6 +219,12 @@ export default function PaymentsPage() {
                       {order.deliveryFee && (
                         <p className="text-xs text-stone-400">배달료 {order.deliveryFee.toLocaleString()}원 포함</p>
                       )}
+                      {order.refundAmount !== undefined && (
+                        <p className="text-xs text-red-500 mt-0.5">
+                          환불 -{order.refundAmount.toLocaleString()}원
+                          {order.refundReason && ` · ${order.refundReason}`}
+                        </p>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-right font-bold text-amber-700">
                       {order.totalAmount.toLocaleString()}원
@@ -233,27 +243,55 @@ export default function PaymentsPage() {
                       <PaymentBadge status={order.paymentStatus} method={order.paymentMethod} />
                     </td>
                     <td className="px-4 py-3 text-center">
-                      {order.paymentStatus === 'pending' && (
+                      <div className="flex items-center justify-center gap-1.5 flex-wrap">
+                        {order.paymentStatus === 'pending' && (
+                          <button
+                            onClick={() => handleConfirmPayment(order.id)}
+                            disabled={loading === order.id}
+                            className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg transition-colors disabled:opacity-50"
+                          >
+                            {loading === order.id ? '처리 중...' : '결제 승인'}
+                          </button>
+                        )}
+                        {order.paymentStatus === 'paid' &&
+                          order.status !== 'refunded' &&
+                          order.status !== 'partially_refunded' && (
+                            <>
+                              <button
+                                onClick={() => handleMarkUnpaid(order.id)}
+                                disabled={loading === order.id}
+                                className="px-2.5 py-1.5 border border-stone-200 text-stone-400 hover:border-red-300 hover:text-red-400 text-xs font-semibold rounded-lg transition-colors disabled:opacity-50"
+                              >
+                                결제취소
+                              </button>
+                              <button
+                                onClick={() => setRefundTarget(order)}
+                                disabled={loading === order.id}
+                                className="flex items-center gap-1 px-2.5 py-1.5 border border-red-200 text-red-500 hover:bg-red-50 hover:border-red-400 text-xs font-semibold rounded-lg transition-colors disabled:opacity-50"
+                              >
+                                <RotateCcw size={11} />
+                                환불
+                              </button>
+                            </>
+                          )}
+                        {(order.status === 'refunded' ||
+                          order.status === 'partially_refunded') && (
+                          <span className="text-xs font-semibold text-red-500 px-1">
+                            {order.status === 'refunded' ? '환불완료' : '부분환불'}
+                          </span>
+                        )}
+                        {order.paymentStatus === 'unpaid' && (
+                          <span className="text-xs text-stone-300">대기</span>
+                        )}
                         <button
-                          onClick={() => handleConfirmPayment(order.id)}
-                          disabled={loading === order.id}
-                          className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg transition-colors disabled:opacity-50"
+                          onClick={() => setReceiptOrder(order)}
+                          className="flex items-center gap-1 px-2.5 py-1.5 border border-stone-200 text-stone-500 hover:border-stone-400 hover:text-stone-700 text-xs font-semibold rounded-lg transition-colors"
+                          title="영수증 보기"
                         >
-                          {loading === order.id ? '처리 중...' : '결제 승인'}
+                          <Receipt size={12} />
+                          영수증
                         </button>
-                      )}
-                      {order.paymentStatus === 'paid' && (
-                        <button
-                          onClick={() => handleMarkUnpaid(order.id)}
-                          disabled={loading === order.id}
-                          className="px-3 py-1.5 border border-stone-200 text-stone-400 hover:border-red-300 hover:text-red-400 text-xs font-semibold rounded-lg transition-colors disabled:opacity-50"
-                        >
-                          취소
-                        </button>
-                      )}
-                      {order.paymentStatus === 'unpaid' && (
-                        <span className="text-xs text-stone-300">대기</span>
-                      )}
+                      </div>
                     </td>
                   </tr>
                 );
@@ -261,6 +299,17 @@ export default function PaymentsPage() {
             </tbody>
           </table>
         </div>
+      )}
+
+      {receiptOrder && (
+        <ReceiptModal order={receiptOrder} onClose={() => setReceiptOrder(null)} />
+      )}
+      {refundTarget && (
+        <RefundModal
+          order={refundTarget}
+          onClose={() => setRefundTarget(null)}
+          onRefunded={() => { setRefundTarget(null); fetchOrders(); }}
+        />
       )}
     </div>
   );

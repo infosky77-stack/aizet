@@ -4,7 +4,9 @@ export type OrderStatus =
   | 'preparing'
   | 'ready'
   | 'delivered'
-  | 'cancelled';
+  | 'cancelled'
+  | 'refunded'
+  | 'partially_refunded';
 
 export type PaymentStatus = 'unpaid' | 'pending' | 'paid';
 export type PaymentMethod = 'card' | 'cash' | 'kakao' | 'naver';
@@ -34,4 +36,7 @@ export interface Order {
   createdAt: string;
   updatedAt: string;
   note?: string;
+  refundAmount?: number;
+  refundReason?: string;
+  refundedAt?: string;
 }

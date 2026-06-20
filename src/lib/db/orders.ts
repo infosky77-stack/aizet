@@ -3,6 +3,9 @@ import { Order, OrderStatus, PaymentStatus, PaymentMethod } from '@/types/order'
 export const DELIVERY_FEE = 3000;
 
 const orders: Order[] = [];
+
+// key: 'YYYY-MM-DD'
+const closedDates = new Map<string, { closedAt: string }>();
 let seeded = false;
 
 function seedOrders() {
@@ -148,6 +151,39 @@ export function updateOrderRobot(id: string, robotId: string | undefined): Order
   order.robotId = robotId;
   order.updatedAt = new Date().toISOString();
   return order;
+}
+
+export function refundOrder(
+  id: string,
+  refundType: 'full' | 'partial',
+  refundAmount: number,
+  refundReason: string
+): Order | null {
+  seedOrders();
+  const order = orders.find((o) => o.id === id);
+  if (!order) return null;
+  const now = new Date().toISOString();
+  order.status = refundType === 'full' ? 'refunded' : 'partially_refunded';
+  order.refundAmount = refundAmount;
+  order.refundReason = refundReason;
+  order.refundedAt = now;
+  order.updatedAt = now;
+  return order;
+}
+
+export function getOrdersByDate(date: string): Order[] {
+  seedOrders();
+  return orders.filter((o) => o.createdAt.slice(0, 10) === date);
+}
+
+export function getClosedDate(date: string): { closedAt: string } | undefined {
+  return closedDates.get(date);
+}
+
+export function closeDate(date: string): { closedAt: string } {
+  const record = { closedAt: new Date().toISOString() };
+  closedDates.set(date, record);
+  return record;
 }
 
 export function getStats() {

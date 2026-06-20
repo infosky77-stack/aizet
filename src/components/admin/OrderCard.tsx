@@ -1,10 +1,12 @@
 'use client';
 
+import { useState } from 'react';
 import { Order, OrderStatus } from '@/types/order';
 import { Robot } from '@/types/robot';
 import { OrderStatusBadge } from './OrderStatusBadge';
 import { PaymentBadge } from './PaymentBadge';
-import { ChevronRight, Bot, Truck, CreditCard, MapPin } from 'lucide-react';
+import { ReceiptModal } from './ReceiptModal';
+import { ChevronRight, Bot, Truck, CreditCard, MapPin, Receipt } from 'lucide-react';
 import { clsx } from 'clsx';
 
 const STATUS_FLOW: Partial<Record<OrderStatus, OrderStatus>> = {
@@ -37,6 +39,7 @@ function timeAgo(iso: string) {
 }
 
 export function OrderCard({ order, onStatusChange, onDispatchRobot, onConfirmPayment, robots = [], compact }: Props) {
+  const [showReceipt, setShowReceipt] = useState(false);
   const nextStatus = STATUS_FLOW[order.status];
   const idleRobot = robots.find((r) => r.status === 'idle' && r.batteryLevel > 20);
   const dispatchedRobot = order.robotId ? robots.find((r) => r.id === order.robotId) : undefined;
@@ -154,7 +157,20 @@ export function OrderCard({ order, onStatusChange, onDispatchRobot, onConfirmPay
             결제 확인
           </button>
         )}
+
+        {/* Receipt */}
+        <button
+          onClick={() => setShowReceipt(true)}
+          className="flex items-center justify-center gap-1.5 py-2 border border-stone-200 text-stone-500 hover:border-stone-400 hover:text-stone-700 text-sm rounded-xl transition-colors"
+        >
+          <Receipt size={14} />
+          영수증 보기
+        </button>
       </div>
+
+      {showReceipt && (
+        <ReceiptModal order={order} onClose={() => setShowReceipt(false)} />
+      )}
     </div>
   );
 }
