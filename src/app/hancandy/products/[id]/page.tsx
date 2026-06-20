@@ -1,8 +1,9 @@
 'use client';
 
 import { use, useState } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowLeft, ShoppingCart, CheckCircle, Leaf, AlertCircle } from 'lucide-react';
+import { ArrowLeft, ShoppingCart, CheckCircle, Leaf, AlertCircle, Sparkles } from 'lucide-react';
 import { getProduct, THEME_COLORS } from '@/lib/hancandy/products';
 import { useCandyCart } from '@/store/candyCart';
 
@@ -80,6 +81,13 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
             </span>
           </div>
 
+          {/* 브랜드 카피 인용구 */}
+          {product.headerQuote && (
+            <blockquote className={`border-l-4 ${tc.border} pl-4 italic text-sm text-gray-600 leading-relaxed`}>
+              &ldquo;{product.headerQuote}&rdquo;
+            </blockquote>
+          )}
+
           {/* 제품 설명 */}
           <p className="text-gray-700 text-sm leading-relaxed">{product.longDescription}</p>
 
@@ -128,33 +136,73 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
           <h2 className="text-xl font-black text-gray-900">핵심성분</h2>
           <span className="text-xs text-gray-400">— 어떤 성분이, 왜 들어 있나요?</span>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
           {product.keyIngredients.map((ing, i) => (
             <div
               key={ing.name}
-              className={`rounded-2xl border p-5 ${i === 0 ? `${tc.bgLight} ${tc.border}` : 'bg-white border-gray-100 shadow-sm'}`}
+              className={`rounded-2xl border overflow-hidden ${i === 0 ? `${tc.bgLight} ${tc.border}` : 'bg-white border-gray-100 shadow-sm'}`}
             >
-              <div className="flex items-start gap-3 mb-2">
-                <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 font-black text-sm ${i === 0 ? `${tc.bg} text-white` : 'bg-gray-100 text-gray-600'}`}>
-                  {i + 1}
+              {/* 성분 사진 */}
+              {ing.image ? (
+                <div className="relative w-full aspect-square">
+                  <Image
+                    src={ing.image}
+                    alt={ing.name}
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 640px) 50vw, 33vw"
+                  />
                 </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-black text-gray-900">{ing.name}</span>
-                    {ing.priority && (
-                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${tc.badge}`}>
-                        {ing.priority}
-                      </span>
-                    )}
+              ) : (
+                <div className={`w-full aspect-square flex items-center justify-center ${i === 0 ? tc.bg : 'bg-gray-100'}`}>
+                  <Leaf size={32} className={i === 0 ? 'text-white' : 'text-gray-400'} />
+                </div>
+              )}
+
+              {/* 성분 정보 */}
+              <div className="p-3">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <div className={`w-5 h-5 rounded-md flex items-center justify-center shrink-0 font-black text-[10px] ${i === 0 ? `${tc.bg} text-white` : 'bg-gray-100 text-gray-600'}`}>
+                    {i + 1}
                   </div>
-                  <span className={`text-xs font-semibold ${tc.text}`}>{ing.role}</span>
+                  <span className="font-black text-gray-900 text-sm leading-tight">{ing.name}</span>
                 </div>
+                {ing.nameDetail && (
+                  <p className="text-[10px] text-gray-400 mb-1 ml-6">{ing.nameDetail}</p>
+                )}
+                <p className={`text-xs font-semibold ${tc.text} mb-1 ml-6`}>{ing.role}</p>
+                <p className="text-xs text-gray-500 leading-relaxed ml-6">{ing.desc}</p>
               </div>
-              <p className="text-sm text-gray-600 leading-relaxed pl-11">{ing.desc}</p>
             </div>
           ))}
         </div>
       </section>
+
+      {/* ── 제품 특징 섹션 ── */}
+      {product.characteristics && product.characteristics.length > 0 && (
+        <section className="mb-8">
+          <div className="flex items-center gap-2 mb-4">
+            <Sparkles size={18} className={tc.text} />
+            <h2 className="text-xl font-black text-gray-900">제품 특징</h2>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {product.characteristics.map(c => (
+              <div
+                key={c.label}
+                className={`rounded-2xl border ${tc.bgLight} ${tc.border} p-4 flex items-start gap-3`}
+              >
+                <div className={`w-6 h-6 rounded-lg ${tc.bg} text-white flex items-center justify-center shrink-0 text-xs font-bold`}>
+                  ✓
+                </div>
+                <div>
+                  <p className={`font-bold text-sm ${tc.textDark}`}>{c.label}</p>
+                  <p className="text-xs text-gray-500 mt-0.5">{c.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* ── 일상 활용 시나리오 섹션 ── */}
       <section className="mb-8">
@@ -165,13 +213,42 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {product.scenarios.map(s => (
-            <div key={s.situation} className={`flex items-start gap-4 rounded-2xl border p-4 bg-white ${tc.border} hover:shadow-sm transition-shadow`}>
-              <span className="text-3xl shrink-0">{s.icon}</span>
-              <div>
-                <div className="font-bold text-sm text-gray-900 mb-0.5">{s.situation}</div>
-                <div className="text-xs text-gray-500 leading-relaxed">{s.detail}</div>
+            s.image ? (
+              /* 이미지형 시나리오 카드 */
+              <div
+                key={s.situation}
+                className={`rounded-2xl border overflow-hidden ${tc.border} hover:shadow-md transition-shadow`}
+              >
+                <div className="relative w-full aspect-video">
+                  <Image
+                    src={s.image}
+                    alt={s.situation}
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 640px) 100vw, 50vw"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+                  <div className="absolute bottom-0 left-0 right-0 p-3">
+                    <p className="font-bold text-white text-sm drop-shadow">{s.situation}</p>
+                  </div>
+                </div>
+                <div className={`p-4 bg-white`}>
+                  <p className="text-xs text-gray-600 leading-relaxed">{s.detail}</p>
+                </div>
               </div>
-            </div>
+            ) : (
+              /* 텍스트형 시나리오 카드 */
+              <div
+                key={s.situation}
+                className={`flex items-start gap-4 rounded-2xl border p-4 bg-white ${tc.border} hover:shadow-sm transition-shadow`}
+              >
+                <span className="text-3xl shrink-0">{s.icon}</span>
+                <div>
+                  <div className="font-bold text-sm text-gray-900 mb-0.5">{s.situation}</div>
+                  <div className="text-xs text-gray-500 leading-relaxed">{s.detail}</div>
+                </div>
+              </div>
+            )
           ))}
         </div>
       </section>
