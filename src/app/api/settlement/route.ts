@@ -19,13 +19,10 @@ export async function GET(req: NextRequest) {
   const cancelledOrders = orders.filter((o) => o.status === 'cancelled');
   const cancelledPaidOrders = cancelledOrders.filter((o) => o.paymentStatus === 'paid');
 
-  // paid 집계에서 환불/취소 제외
+  // 총매출(gross)에 환불 주문 포함 — 취소만 제외
+  // netRevenue = totalRevenue - cancelledAmount - refundedAmount 로 순매출 산출
   const paidOrders = orders.filter(
-    (o) =>
-      o.paymentStatus === 'paid' &&
-      o.status !== 'cancelled' &&
-      o.status !== 'refunded' &&
-      o.status !== 'partially_refunded'
+    (o) => o.paymentStatus === 'paid' && o.status !== 'cancelled'
   );
 
   const excludedStatuses = new Set(['cancelled', 'refunded', 'partially_refunded']);
