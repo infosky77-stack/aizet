@@ -320,9 +320,9 @@ function Navbar() {
             <BookOpen size={14} />
             프롬프트
           </Link>
-          <Link href="/admin" className="flex items-center gap-1.5 hover:text-amber-600 transition-colors">
+          <Link href="/azos" className="flex items-center gap-1.5 hover:text-amber-600 transition-colors">
             <LayoutDashboard size={14} />
-            대시보드
+            AZOS 대시보드
           </Link>
         </nav>
 
@@ -378,7 +378,7 @@ function Navbar() {
             프롬프트 라이브러리
           </Link>
           <Link
-            href="/admin"
+            href="/azos"
             onClick={() => setOpen(false)}
             className="flex items-center gap-2 text-sm font-medium text-stone-600 py-2"
           >
