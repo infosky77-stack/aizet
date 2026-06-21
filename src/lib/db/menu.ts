@@ -12,6 +12,7 @@ export const MENU_ITEMS: MenuItem[] = [
     tags: ['popular'],
     allergens: ['gluten', 'soy'],
     available: true,
+    imageUrl: '/demo/menu/menu-jjajangmyeon.jpg',
   },
   {
     id: 'menu-102',
@@ -23,6 +24,7 @@ export const MENU_ITEMS: MenuItem[] = [
     tags: ['popular', 'spicy'],
     allergens: ['gluten', 'shellfish'],
     available: true,
+    imageUrl: '/demo/menu/menu-jjamppong.jpg',
   },
   {
     id: 'menu-103',
@@ -34,6 +36,7 @@ export const MENU_ITEMS: MenuItem[] = [
     tags: ['popular', 'sharing'],
     allergens: ['gluten', 'soy'],
     available: true,
+    imageUrl: '/demo/menu/menu-jaengban-jjajang.jpg',
   },
   {
     id: 'menu-104',
@@ -45,6 +48,7 @@ export const MENU_ITEMS: MenuItem[] = [
     tags: [],
     allergens: ['gluten', 'shellfish'],
     available: true,
+    imageUrl: '/demo/menu/menu-baek-jjamppong.jpg',
   },
 
   // ── 밥류 ──────────────────────────────────────────────
@@ -69,6 +73,7 @@ export const MENU_ITEMS: MenuItem[] = [
     tags: ['popular'],
     allergens: ['shellfish', 'egg'],
     available: true,
+    imageUrl: '/demo/menu/menu-shrimp-friedrice.jpg',
   },
   {
     id: 'menu-203',

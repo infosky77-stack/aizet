@@ -4,6 +4,7 @@ import { MenuItem } from '@/types/menu';
 import { useCartStore } from '@/store/cart';
 import { Plus, Minus, Flame, Leaf } from 'lucide-react';
 import { clsx } from 'clsx';
+import Image from 'next/image';
 
 interface Props {
   item: MenuItem;
@@ -22,14 +23,25 @@ export function MenuCard({ item }: Props) {
         qty > 0 && 'border-amber-400 shadow-amber-100'
       )}
     >
-      {/* Image placeholder */}
-      <div className="h-36 bg-gradient-to-br from-amber-50 to-orange-100 flex items-center justify-center text-5xl relative">
-        {item.category === 'noodle' && '🍜'}
-        {item.category === 'rice' && '🍚'}
-        {item.category === 'dish' && '🍲'}
-        {item.category === 'side' && '🥢'}
-        {item.category === 'set' && '🍱'}
-
+      {/* Image */}
+      <div className="h-36 relative overflow-hidden">
+        {item.imageUrl ? (
+          <Image
+            src={item.imageUrl}
+            alt={item.nameKo}
+            fill
+            className="object-cover"
+            sizes="(max-width: 640px) 50vw, 200px"
+          />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-br from-amber-50 to-orange-100 flex items-center justify-center text-5xl">
+            {item.category === 'noodle' && '🍜'}
+            {item.category === 'rice' && '🍚'}
+            {item.category === 'dish' && '🍲'}
+            {item.category === 'side' && '🥢'}
+            {item.category === 'set' && '🍱'}
+          </div>
+        )}
         {/* Tags */}
         <div className="absolute top-2 left-2 flex gap-1">
           {item.tags.includes('popular') && (
