@@ -23,6 +23,9 @@ import {
   ArrowLeft,
   Activity,
   Box,
+  Package,
+  WifiOff,
+  Plus,
 } from 'lucide-react';
 import Image from 'next/image';
 import clsx from 'clsx';
@@ -107,6 +110,149 @@ function HeroGallery() {
   );
 }
 
+/* ─── Advantages ───────────────────────────────────────── */
+const AZOS_ADV = [
+  {
+    icon: <Shield size={16} />,
+    title: '메모리 안전성',
+    desc: '가비지 컬렉터 없이 메모리 오류를 컴파일 시점에 차단. 드론·로봇 제어처럼 오작동이 사고로 이어지는 환경에 필수.',
+  },
+  {
+    icon: <Activity size={16} />,
+    title: '실시간성',
+    desc: 'GC 멈춤이 없어 응답 지연이 예측 가능. 드론 군집 제어처럼 타이밍이 중요한 작업에 최적.',
+  },
+  {
+    icon: <Zap size={16} />,
+    title: '고성능 저자원',
+    desc: 'C/C++급 속도에 적은 메모리 사용량. 스마트폰처럼 자원이 제한된 디바이스에도 적합.',
+  },
+  {
+    icon: <Cpu size={16} />,
+    title: '동시성 처리',
+    desc: '수백 개 노드를 동시에 안전하게 제어. 데이터 레이스를 컴파일러가 원천 차단.',
+  },
+  {
+    icon: <Globe size={16} />,
+    title: '크로스플랫폼',
+    desc: 'ARM 기반 스마트폰 프로세서에도 쉽게 컴파일. 다양한 디바이스에 동일한 코드베이스 배포.',
+  },
+];
+
+const HW_ADV = [
+  {
+    icon: <Box size={16} />,
+    title: '범용 하드웨어',
+    desc: '갤럭시 스마트폰을 노드로 사용. 전세계 어디서나 구매·교체·수리 가능.',
+  },
+  {
+    icon: <BatteryFull size={16} />,
+    title: '올인원 노드',
+    desc: '폰 1대에 배터리·디스플레이·카메라·센서·Snapdragon 8 Elite Gen 5 for Galaxy NPU(전작 대비 39% 성능 향상)가 모두 내장.',
+  },
+  {
+    icon: <Package size={16} />,
+    title: '현장 즉시 배치',
+    desc: '보안 잠금 케이스 + 휴대용 디자인. 행사장·현장에 바로 설치 가능.',
+  },
+  {
+    icon: <Plus size={16} />,
+    title: '모듈식 확장',
+    desc: '폰을 추가하면 컴퓨팅 파워가 그만큼 늘어남. 수요에 맞게 점진적으로 증설.',
+  },
+  {
+    icon: <WifiOff size={16} />,
+    title: '온디바이스 AI',
+    desc: 'Snapdragon 8 Elite Gen 5 NPU로 클라우드 연결 없이 로컬 AI 추론. 인터넷 없는 현장에서도 동작.',
+  },
+];
+
+function AdvantagesSection() {
+  return (
+    <section className="py-20 px-4 bg-white">
+      <div className="max-w-6xl mx-auto flex flex-col gap-10">
+        {/* Header */}
+        <div className="text-center">
+          <p className="text-xs font-semibold text-cyan-600 uppercase tracking-widest mb-2">Why SR-05</p>
+          <h2 className="text-3xl font-bold text-slate-900">왜 Rust OS + 스마트폰인가</h2>
+          <p className="text-slate-500 text-sm mt-2 max-w-xl mx-auto">
+            소프트웨어와 하드웨어 양쪽의 선택이 SR-05의 핵심입니다.
+          </p>
+        </div>
+
+        {/* Two columns */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* AZOS — dark */}
+          <div className="bg-slate-900 rounded-2xl p-7 flex flex-col gap-5">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-cyan-600/20 border border-cyan-500/30 flex items-center justify-center">
+                <span className="text-cyan-400 font-black text-xs">Rs</span>
+              </div>
+              <div>
+                <p className="font-bold text-white text-sm">AZOS · Rust 기반 OS</p>
+                <p className="text-[11px] text-slate-400">안전성과 실시간성을 컴파일 수준에서 보장</p>
+              </div>
+            </div>
+            <div className="flex flex-col gap-4">
+              {AZOS_ADV.map(({ icon, title, desc }) => (
+                <div key={title} className="flex gap-3">
+                  <div className="shrink-0 w-7 h-7 rounded-lg bg-cyan-600/15 border border-cyan-500/20 flex items-center justify-center text-cyan-400 mt-0.5">
+                    {icon}
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-white mb-0.5">{title}</p>
+                    <p className="text-xs text-slate-400 leading-relaxed">{desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Hardware — light */}
+          <div className="bg-slate-50 border border-slate-200 rounded-2xl p-7 flex flex-col gap-5">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-slate-200 flex items-center justify-center">
+                <Server size={15} className="text-slate-600" />
+              </div>
+              <div>
+                <p className="font-bold text-slate-900 text-sm">AIZET-SR-05 · 하드웨어</p>
+                <p className="text-[11px] text-slate-400">전세계 어디서나 구할 수 있는 스마트폰이 서버가 됩니다</p>
+              </div>
+            </div>
+            <div className="flex flex-col gap-4">
+              {HW_ADV.map(({ icon, title, desc }) => (
+                <div key={title} className="flex gap-3">
+                  <div className="shrink-0 w-7 h-7 rounded-lg bg-slate-200 flex items-center justify-center text-slate-600 mt-0.5">
+                    {icon}
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-slate-900 mb-0.5">{title}</p>
+                    <p className="text-xs text-slate-500 leading-relaxed">{desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Key differentiator banner */}
+        <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-cyan-950 rounded-2xl px-8 py-6 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+          <div className="shrink-0 w-10 h-10 rounded-xl bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center">
+            <Zap size={18} className="text-cyan-400" />
+          </div>
+          <div>
+            <p className="text-[10px] font-semibold text-cyan-400 uppercase tracking-widest mb-1">핵심 차별점</p>
+            <p className="text-white text-sm leading-relaxed">
+              저렴하고 어디서나 구할 수 있는 하드웨어 + 안전성이 검증된 Rust OS로,{' '}
+              <span className="text-cyan-300 font-semibold">전용 서버랙 없이 스마트폰 몇 대로 현장형 AI 오케스트레이션 인프라를 즉석에서 구성</span>합니다.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 /* ─── Data ─────────────────────────────────────────────── */
 const CONFIGS = [
   {
@@ -159,7 +305,7 @@ const FEATURES = [
   {
     icon: <Zap size={20} />,
     title: '초저전력 AI 추론',
-    desc: '갤럭시 S26 울트라의 Snapdragon Elite + 리벨리온 REBEL NPU로 GPU 대비 1/8 전력으로 동일한 추론 성능.',
+    desc: '갤럭시 S26 울트라의 Snapdragon 8 Elite Gen 5 for Galaxy NPU로 GPU 대비 1/8 전력으로 동일한 추론 성능.',
     color: 'bg-yellow-50 text-yellow-600',
   },
   {
@@ -182,8 +328,8 @@ const FEATURES = [
   },
   {
     icon: <Cpu size={20} />,
-    title: '리벨리온 국산 NPU',
-    desc: '국내 팹리스 리벨리온의 REBEL 칩 탑재. 한국어 LLM·비전·음성 모델 최적화. 국산 AI 인프라.',
+    title: 'Snapdragon 8 Elite Gen 5 NPU',
+    desc: '갤럭시 S26 울트라 내장 NPU. 전작 대비 39% 성능 향상. 한국어 LLM·비전·음성 모델 온디바이스 추론.',
     color: 'bg-rose-50 text-rose-600',
   },
   {
@@ -196,8 +342,8 @@ const FEATURES = [
 
 const SPECS = [
   { label: '노드 디바이스', value: 'Samsung Galaxy S26 Ultra (2026)' },
-  { label: 'AP', value: 'Snapdragon 8 Elite 2세대' },
-  { label: 'AI NPU', value: '리벨리온 REBEL-M (내장 슬롯)' },
+  { label: 'AP', value: 'Snapdragon 8 Elite Gen 5 for Galaxy' },
+  { label: 'AI NPU', value: 'Snapdragon 8 Elite Gen 5 내장 NPU (전작 대비 39% 성능 향상)' },
   { label: 'RAM / 스토리지', value: '24GB LPDDR6 / 512GB UFS 4.1' },
   { label: '노드당 소비전력', value: '최대 12W (추론 시) / 대기 2.4W' },
   { label: '배터리 (노드당)', value: '5,000mAh / 72Wh' },
@@ -404,7 +550,7 @@ export default function SR05Page() {
             <div className="flex flex-wrap items-center gap-2">
               <span className="inline-flex items-center gap-1.5 bg-cyan-600/20 border border-cyan-500/30 text-cyan-400 text-xs font-semibold px-3 py-1.5 rounded-full">
                 <Cpu size={11} />
-                갤럭시 S26 Ultra × 리벨리온 NPU
+                갤럭시 S26 Ultra × Snapdragon 8 Elite Gen 5
               </span>
               <span className="inline-flex items-center gap-1.5 bg-emerald-600/20 border border-emerald-500/30 text-emerald-400 text-xs font-semibold px-3 py-1.5 rounded-full">
                 국산 AI 인프라
@@ -415,7 +561,7 @@ export default function SR05Page() {
               <span className="text-2xl sm:text-3xl font-bold text-slate-300">모바일 분산 서버 클러스터</span>
             </h1>
             <p className="text-slate-400 text-base leading-relaxed max-w-lg">
-              스마트폰이 서버가 됩니다. 갤럭시 S26 울트라를 분산 노드로 묶고 리벨리온 국산 NPU로 가속한 초저전력 AI 추론 클러스터. GPU 서버실이 필요 없습니다.
+              스마트폰이 서버가 됩니다. 갤럭시 S26 울트라를 분산 노드로 묶고 Snapdragon 8 Elite Gen 5 NPU로 가속한 초저전력 AI 추론 클러스터. GPU 서버실이 필요 없습니다.
             </p>
             <div className="flex flex-wrap gap-3">
               <a
@@ -435,7 +581,7 @@ export default function SR05Page() {
               {[
                 { v: 'GPU 대비 1/8 전력', c: 'text-yellow-400' },
                 { v: '서버실 불필요', c: 'text-emerald-400' },
-                { v: '완전 국산 NPU', c: 'text-cyan-400' },
+                { v: 'Snapdragon 8 Elite Gen 5 NPU', c: 'text-cyan-400' },
               ].map(({ v, c }) => (
                 <span key={v} className="flex items-center gap-1.5">
                   <Check size={12} className={c} />
@@ -452,8 +598,10 @@ export default function SR05Page() {
         </div>
       </section>
 
+      <AdvantagesSection />
+
       {/* Features */}
-      <section className="py-20 px-4 bg-white">
+      <section className="py-20 px-4 bg-slate-50">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
             <p className="text-xs font-semibold text-cyan-600 uppercase tracking-widest mb-2">Hardware</p>
