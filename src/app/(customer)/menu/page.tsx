@@ -60,29 +60,29 @@ export default function MenuPage() {
               <span className="text-xs text-stone-400 ml-1">테이블 {tableNumber}번</span>
             )}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <button
               onClick={() => router.push('/reservation')}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-stone-200 text-stone-600 hover:border-amber-400 text-xs font-medium transition-colors"
+              className="w-9 h-9 rounded-full border border-stone-200 text-stone-600 hover:border-amber-400 hover:text-amber-600 flex items-center justify-center transition-colors"
+              aria-label="예약"
             >
-              <CalendarClock size={13} />
-              예약
+              <CalendarClock size={17} />
             </button>
             <button
               onClick={() => router.push('/chat')}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-stone-200 text-stone-600 hover:border-amber-400 text-xs font-medium transition-colors"
+              className="w-9 h-9 rounded-full border border-stone-200 text-stone-600 hover:border-amber-400 hover:text-amber-600 flex items-center justify-center transition-colors"
+              aria-label="AI 주문"
             >
-              <MessageSquare size={13} />
-              AI 주문
+              <MessageSquare size={17} />
             </button>
             <button
               onClick={() => setCartOpen(true)}
-              className="relative flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-600 hover:bg-amber-700 text-white text-xs font-medium transition-colors"
+              className="relative w-9 h-9 rounded-full bg-amber-600 hover:bg-amber-700 text-white flex items-center justify-center transition-colors"
+              aria-label="장바구니"
             >
-              <ShoppingCart size={13} />
-              장바구니
+              <ShoppingCart size={17} />
               {cartCount > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
+                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
                   {cartCount}
                 </span>
               )}
