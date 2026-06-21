@@ -462,7 +462,8 @@ function Hero() {
             <div className="relative">
               <div className="absolute -inset-4 bg-amber-400/10 rounded-3xl blur-2xl" />
 
-              <div className="relative bg-white rounded-2xl shadow-2xl border border-stone-200 overflow-hidden">
+              <Link href="/demo" className="block group">
+              <div className="relative bg-white rounded-2xl shadow-2xl border border-stone-200 overflow-hidden group-hover:shadow-amber-200/60 group-hover:border-amber-300 transition-all duration-200">
                 <div className="flex items-center gap-2 px-4 py-3 bg-stone-50 border-b border-stone-100">
                   <div className="flex gap-1.5">
                     <div className="w-3 h-3 rounded-full bg-red-400" />
@@ -472,6 +473,7 @@ function Hero() {
                   <div className="flex-1 bg-white rounded-md px-3 py-1 text-xs text-stone-400 border border-stone-200 ml-2">
                     my-restaurant.aizet.co.kr
                   </div>
+                  <span className="text-[10px] text-amber-500 font-semibold hidden group-hover:inline">데모 체험 →</span>
                 </div>
 
                 <div className="bg-gradient-to-b from-amber-600 to-amber-800 p-6">
@@ -479,10 +481,10 @@ function Hero() {
                     <div className="w-7 h-7 bg-white/20 rounded-lg flex items-center justify-center">
                       <UtensilsCrossed size={13} className="text-white" />
                     </div>
-                    <span className="text-white font-bold text-sm">맛있는 한식당</span>
+                    <span className="text-white font-bold text-sm">중화가정</span>
                   </div>
-                  <h2 className="text-white text-lg font-bold mb-1">정성 가득한 한식</h2>
-                  <p className="text-amber-200 text-xs mb-4">서울 마포구 · 매일 11:00–22:00</p>
+                  <h2 className="text-white text-lg font-bold mb-1">가정집의 주방처럼, 어머니의 요리처럼</h2>
+                  <p className="text-amber-200 text-xs mb-4">신세계백화점 의정부점 9층 · 매일 11:00–21:00</p>
                   <div className="flex gap-2">
                     <div className="bg-white text-amber-700 text-xs font-bold px-3 py-1.5 rounded-lg">메뉴 보기</div>
                     <div className="bg-white/20 text-white text-xs font-bold px-3 py-1.5 rounded-lg">예약하기</div>
@@ -492,8 +494,8 @@ function Hero() {
                 <div className="p-4 flex flex-col gap-3">
                   <div className="flex gap-3">
                     {[
-                      { name: '갈비탕', price: '₩14,000', tag: '인기' },
-                      { name: '비빔밥', price: '₩11,000', tag: 'NEW' },
+                      { name: '짜장면', price: '₩8,000', tag: '인기' },
+                      { name: '짬뽕', price: '₩10,000', tag: '인기' },
                     ].map((item) => (
                       <div key={item.name} className="flex-1 bg-stone-50 rounded-xl p-3 border border-stone-100">
                         <div className="w-full h-14 bg-stone-200 rounded-lg mb-2" />
@@ -515,6 +517,7 @@ function Hero() {
                   </div>
                 </div>
               </div>
+              </Link>
 
               <div className="absolute -right-3 top-16 bg-white rounded-xl shadow-lg border border-stone-100 px-3 py-2 flex items-center gap-2">
                 <Zap size={13} className="text-amber-500" />
