@@ -86,6 +86,7 @@ export const MENU_ITEMS: MenuItem[] = [
     tags: [],
     allergens: ['shellfish', 'egg'],
     available: true,
+    imageUrl: '/demo/menu/menu-haemul-japtangbap.jpg',
   },
   {
     id: 'menu-204',
