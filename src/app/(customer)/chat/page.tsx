@@ -6,7 +6,7 @@ import { useCartStore } from '@/store/cart';
 import { ChatBubble } from '@/components/chat/ChatBubble';
 import { TypingIndicator } from '@/components/chat/TypingIndicator';
 import { OrderConfirmCard, ConfirmedItem } from '@/components/chat/OrderConfirmCard';
-import { ArrowLeft, Send, UtensilsCrossed } from 'lucide-react';
+import { ArrowLeft, Send, UtensilsCrossed, Home } from 'lucide-react';
 
 interface Message {
   id: string;
@@ -172,10 +172,19 @@ export default function ChatPage() {
           <p className="font-semibold text-sm leading-tight">중화가정 AI 주문 도우미</p>
           <p className="text-xs text-stone-400">테이블 {tableNumber}번</p>
         </div>
-        <span className="ml-auto flex items-center gap-1 text-xs text-green-600 font-medium">
-          <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-          응대 중
-        </span>
+        <div className="ml-auto flex items-center gap-2">
+          <button
+            onClick={() => router.push('/demo')}
+            className="flex items-center gap-1 px-3 py-1.5 rounded-full border border-stone-200 text-stone-500 hover:border-amber-400 hover:text-amber-600 text-xs font-medium transition-colors"
+          >
+            <Home size={13} />
+            홈으로
+          </button>
+          <span className="flex items-center gap-1 text-xs text-green-600 font-medium">
+            <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+            응대 중
+          </span>
+        </div>
       </header>
 
       {/* Messages */}

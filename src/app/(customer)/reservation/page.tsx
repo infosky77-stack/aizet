@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, CalendarClock, CheckCircle, Users, Phone, User, Clock } from 'lucide-react';
+import { ArrowLeft, CalendarClock, CheckCircle, Users, Phone, User, Clock, Home } from 'lucide-react';
 import { clsx } from 'clsx';
 
 type Step = 'form' | 'done';
@@ -94,6 +94,13 @@ export default function ReservationPage() {
               메뉴 보기
             </button>
             <button
+              onClick={() => router.push('/demo')}
+              className="w-full py-3 border border-stone-200 hover:border-amber-400 text-stone-500 hover:text-amber-600 text-sm font-medium rounded-xl transition-colors flex items-center justify-center gap-1.5"
+            >
+              <Home size={14} />
+              홈으로 돌아가기
+            </button>
+            <button
               onClick={() => { setStep('form'); setForm(f => ({ ...f, guestName: '', phone: '', time: '', note: '' })); }}
               className="text-sm text-stone-400 hover:text-stone-600 transition-colors"
             >
@@ -117,6 +124,13 @@ export default function ReservationPage() {
           <span className="font-semibold text-sm">예약하기</span>
           <p className="text-[11px] text-stone-400 leading-none">중화가정 · 신세계백화점 의정부점 9층</p>
         </div>
+        <button
+          onClick={() => router.push('/demo')}
+          className="ml-auto flex items-center gap-1 px-3 py-1.5 rounded-full border border-stone-200 text-stone-500 hover:border-amber-400 hover:text-amber-600 text-xs font-medium transition-colors"
+        >
+          <Home size={13} />
+          홈으로
+        </button>
       </header>
 
       <div className="max-w-md mx-auto px-4 pt-6 flex flex-col gap-5">

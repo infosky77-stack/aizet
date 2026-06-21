@@ -4,7 +4,7 @@ import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Order, PaymentMethod } from '@/types/order';
 import { ReceiptModal } from '@/components/admin/ReceiptModal';
-import { CreditCard, Banknote, Smartphone, CheckCircle, Clock, Truck, UtensilsCrossed, MapPin, Receipt } from 'lucide-react';
+import { CreditCard, Banknote, Smartphone, CheckCircle, Clock, Truck, UtensilsCrossed, MapPin, Receipt, Home } from 'lucide-react';
 import { clsx } from 'clsx';
 
 const PAYMENT_METHODS: { value: PaymentMethod; label: string; icon: React.ReactNode; color: string }[] = [
@@ -81,14 +81,23 @@ function PaymentContent() {
     <div className="min-h-screen flex flex-col items-center justify-center px-4 py-8 bg-gradient-to-b from-amber-50 to-[#fafaf8]">
       <div className="w-full max-w-sm flex flex-col gap-5">
         {/* Header */}
-        <div className="flex items-center gap-2">
-          <div className="w-9 h-9 rounded-xl bg-amber-600 flex items-center justify-center">
-            <UtensilsCrossed size={17} className="text-white" />
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-9 h-9 rounded-xl bg-amber-600 flex items-center justify-center">
+              <UtensilsCrossed size={17} className="text-white" />
+            </div>
+            <div>
+              <p className="font-bold text-amber-800 text-sm">중화가정</p>
+              <p className="text-xs text-stone-400">결제</p>
+            </div>
           </div>
-          <div>
-            <p className="font-bold text-amber-800 text-sm">중화가정</p>
-            <p className="text-xs text-stone-400">결제</p>
-          </div>
+          <button
+            onClick={() => router.push('/demo')}
+            className="flex items-center gap-1 px-3 py-1.5 rounded-full border border-stone-200 text-stone-500 hover:border-amber-400 hover:text-amber-600 text-xs font-medium transition-colors"
+          >
+            <Home size={13} />
+            홈으로
+          </button>
         </div>
 
         {/* Order summary */}

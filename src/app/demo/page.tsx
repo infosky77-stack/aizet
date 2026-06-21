@@ -1,20 +1,34 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCartStore } from '@/store/cart';
-import { UtensilsCrossed, Truck, MapPin, Clock, ChevronDown } from 'lucide-react';
+import { UtensilsCrossed, Truck, MapPin, Clock, ChevronDown, X } from 'lucide-react';
 import { clsx } from 'clsx';
 import Image from 'next/image';
 import { OrderType } from '@/types/order';
+
+type LightboxMedia = { type: 'image' | 'video'; src: string } | null;
 
 export default function LandingPage() {
   const [orderType, setOrderType] = useState<OrderType>('dine-in');
   const [tableInput, setTableInput] = useState('');
   const [addressInput, setAddressInput] = useState('');
   const [error, setError] = useState('');
+  const [lightbox, setLightbox] = useState<LightboxMedia>(null);
   const { setTable, setOrderType: storeSetOrderType, setDeliveryAddress } = useCartStore();
   const router = useRouter();
+
+  useEffect(() => {
+    if (!lightbox) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setLightbox(null); };
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', onKey);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      document.body.style.overflow = '';
+    };
+  }, [lightbox]);
 
   function handleStart() {
     if (orderType === 'dine-in') {
@@ -41,7 +55,10 @@ export default function LandingPage() {
     <main className="min-h-screen bg-[#fafaf8] flex flex-col">
 
       {/* ── 히어로: 매장 영상 ─────────────────────────────── */}
-      <section className="relative w-full h-[60vw] min-h-[280px] max-h-[420px] overflow-hidden">
+      <section
+        className="relative w-full h-[60vw] min-h-[280px] max-h-[420px] overflow-hidden cursor-zoom-in"
+        onDoubleClick={() => setLightbox({ type: 'video', src: '/demo/restaurant-walkthrough.mp4' })}
+      >
         <video
           autoPlay
           muted
@@ -51,8 +68,8 @@ export default function LandingPage() {
           poster="/demo/restaurant-exterior.jpg"
           className="absolute inset-0 w-full h-full object-cover"
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/40 to-black/65" />
-        <div className="absolute inset-0 flex flex-col items-center justify-center text-white text-center px-6 gap-3">
+        <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/40 to-black/65 pointer-events-none" />
+        <div className="absolute inset-0 flex flex-col items-center justify-center text-white text-center px-6 gap-3 pointer-events-none">
           <div className="flex items-center gap-2 mb-1">
             <div className="w-8 h-8 rounded-xl bg-amber-500/90 flex items-center justify-center">
               <UtensilsCrossed size={16} className="text-white" />
@@ -65,7 +82,8 @@ export default function LandingPage() {
           </p>
           <a
             href="#order"
-            className="mt-2 flex items-center gap-1.5 px-5 py-2.5 rounded-full bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold transition-colors shadow-lg"
+            className="mt-2 flex items-center gap-1.5 px-5 py-2.5 rounded-full bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold transition-colors shadow-lg pointer-events-auto"
+            onDoubleClick={(e) => e.stopPropagation()}
           >
             지금 주문하기
             <ChevronDown size={15} />
@@ -91,15 +109,18 @@ export default function LandingPage() {
       {/* ── 매장 분위기: 인테리어 이미지 ────────────────────── */}
       <section className="px-4 pt-7 pb-2 max-w-sm mx-auto w-full">
         <p className="text-[11px] font-semibold text-amber-600 uppercase tracking-widest mb-2">Interior</p>
-        <div className="relative h-52 rounded-2xl overflow-hidden shadow-sm">
+        <div
+          className="relative h-52 rounded-2xl overflow-hidden shadow-sm cursor-zoom-in"
+          onDoubleClick={() => setLightbox({ type: 'image', src: '/demo/restaurant-interior.jpg' })}
+        >
           <Image
             src="/demo/restaurant-interior.jpg"
             alt="중화가정 매장 내부"
             fill
             className="object-cover"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
-          <div className="absolute bottom-0 left-0 right-0 p-4">
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent pointer-events-none" />
+          <div className="absolute bottom-0 left-0 right-0 p-4 pointer-events-none">
             <p className="text-white font-bold text-base leading-tight">편안한 가정 분위기</p>
             <p className="text-white/75 text-xs mt-0.5">백화점 안에서 즐기는 고즈넉한 중식 공간</p>
           </div>
@@ -109,15 +130,18 @@ export default function LandingPage() {
       {/* ── 대표 메뉴: 음식 이미지 ──────────────────────────── */}
       <section className="px-4 pt-5 pb-2 max-w-sm mx-auto w-full">
         <p className="text-[11px] font-semibold text-amber-600 uppercase tracking-widest mb-2">Signature Menu</p>
-        <div className="relative h-52 rounded-2xl overflow-hidden shadow-sm">
+        <div
+          className="relative h-52 rounded-2xl overflow-hidden shadow-sm cursor-zoom-in"
+          onDoubleClick={() => setLightbox({ type: 'image', src: '/demo/restaurant-food.jpg' })}
+        >
           <Image
             src="/demo/restaurant-food.jpg"
             alt="중화가정 대표 메뉴"
             fill
             className="object-cover"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
-          <div className="absolute bottom-0 left-0 right-0 p-4">
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent pointer-events-none" />
+          <div className="absolute bottom-0 left-0 right-0 p-4 pointer-events-none">
             <p className="text-white font-bold text-base leading-tight">대표 메뉴</p>
             <div className="flex gap-1.5 mt-1.5 flex-wrap">
               {['짜장면', '짬뽕', '탕수육', '깐풍기', '유린기'].map((name) => (
@@ -227,6 +251,39 @@ export default function LandingPage() {
             : '경기도 의정부시 일대 배달 가능 · 배달 불가 시 문의'}
         </p>
       </section>
+
+      {/* ── 전체화면 라이트박스 ──────────────────────────────── */}
+      {lightbox && (
+        <div
+          className="fixed inset-0 z-50 bg-black/92 flex items-center justify-center"
+          onClick={() => setLightbox(null)}
+        >
+          <button
+            className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center text-white transition-colors"
+            onClick={() => setLightbox(null)}
+          >
+            <X size={20} />
+          </button>
+          {lightbox.type === 'image' ? (
+            <img
+              src={lightbox.src}
+              alt="전체화면"
+              className="max-w-full max-h-full object-contain select-none"
+              onClick={(e) => e.stopPropagation()}
+            />
+          ) : (
+            <video
+              src={lightbox.src}
+              autoPlay
+              loop
+              controls
+              playsInline
+              className="max-w-full max-h-full"
+              onClick={(e) => e.stopPropagation()}
+            />
+          )}
+        </div>
+      )}
 
     </main>
   );

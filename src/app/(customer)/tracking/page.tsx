@@ -11,6 +11,7 @@ import {
   MapPin,
   UtensilsCrossed,
   ArrowLeft,
+  Home,
 } from 'lucide-react';
 import { clsx } from 'clsx';
 
@@ -119,6 +120,13 @@ function TrackingContent() {
               <p className="text-xs text-stone-400">배달 추적</p>
             </div>
           </div>
+          <button
+            onClick={() => router.push('/demo')}
+            className="ml-auto flex items-center gap-1 px-3 py-1.5 rounded-full border border-stone-200 text-stone-500 hover:border-amber-400 hover:text-amber-600 text-xs font-medium transition-colors"
+          >
+            <Home size={13} />
+            홈으로
+          </button>
         </div>
 
         {/* Delivery address */}

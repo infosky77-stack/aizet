@@ -1,8 +1,9 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { MenuItem } from '@/types/menu';
 import { useCartStore } from '@/store/cart';
-import { Plus, Minus, Flame, Leaf } from 'lucide-react';
+import { Plus, Minus, Flame, Leaf, X } from 'lucide-react';
 import { clsx } from 'clsx';
 import Image from 'next/image';
 
@@ -14,6 +15,18 @@ export function MenuCard({ item }: Props) {
   const { items, addItem, updateQuantity } = useCartStore();
   const cartItem = items.find((i) => i.menuItem.id === item.id);
   const qty = cartItem?.quantity ?? 0;
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+
+  useEffect(() => {
+    if (!lightboxOpen) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setLightboxOpen(false); };
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', onKey);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      document.body.style.overflow = '';
+    };
+  }, [lightboxOpen]);
 
   return (
     <div
@@ -24,7 +37,10 @@ export function MenuCard({ item }: Props) {
       )}
     >
       {/* Image */}
-      <div className="h-36 relative overflow-hidden">
+      <div
+        className={clsx('h-36 relative overflow-hidden', item.imageUrl && 'cursor-zoom-in')}
+        onDoubleClick={() => item.imageUrl && setLightboxOpen(true)}
+      >
         {item.imageUrl ? (
           <Image
             src={item.imageUrl}
@@ -98,6 +114,28 @@ export function MenuCard({ item }: Props) {
           )}
         </div>
       </div>
+
+      {/* Lightbox */}
+      {lightboxOpen && item.imageUrl && (
+        <div
+          className="fixed inset-0 z-50 bg-black/92 flex items-center justify-center"
+          onClick={() => setLightboxOpen(false)}
+        >
+          <button
+            className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center text-white transition-colors"
+            onClick={() => setLightboxOpen(false)}
+          >
+            <X size={20} />
+          </button>
+          <img
+            src={item.imageUrl}
+            alt={item.nameKo}
+            className="max-w-full max-h-full object-contain select-none"
+            onClick={(e) => e.stopPropagation()}
+          />
+          <p className="absolute bottom-6 text-white/70 text-sm font-medium">{item.nameKo}</p>
+        </div>
+      )}
     </div>
   );
 }
