@@ -40,14 +40,16 @@ export default function LandingPage() {
   return (
     <main className="min-h-screen bg-[#fafaf8] flex flex-col">
 
-      {/* ── 히어로: 외관 이미지 ─────────────────────────────── */}
+      {/* ── 히어로: 매장 영상 ─────────────────────────────── */}
       <section className="relative w-full h-[60vw] min-h-[280px] max-h-[420px] overflow-hidden">
-        <Image
-          src="/demo/restaurant-exterior.jpg"
-          alt="중화가정 매장 외관"
-          fill
-          className="object-cover"
-          priority
+        <video
+          autoPlay
+          muted
+          loop
+          playsInline
+          src="/demo/restaurant-walkthrough.mp4"
+          poster="/demo/restaurant-exterior.jpg"
+          className="absolute inset-0 w-full h-full object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/40 to-black/65" />
         <div className="absolute inset-0 flex flex-col items-center justify-center text-white text-center px-6 gap-3">
