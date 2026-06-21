@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCartStore } from '@/store/cart';
-import { UtensilsCrossed, Truck, MapPin, Clock, ChevronDown, X } from 'lucide-react';
+import { UtensilsCrossed, Truck, MapPin, Clock, ChevronDown, X, ChevronLeft } from 'lucide-react';
 import { clsx } from 'clsx';
 import Image from 'next/image';
 import { OrderType } from '@/types/order';
@@ -53,6 +54,16 @@ export default function LandingPage() {
 
   return (
     <main className="min-h-screen bg-[#fafaf8] flex flex-col">
+      {/* 메인 랜딩으로 나가기 */}
+      <div className="bg-stone-50 border-b border-stone-100 px-4 py-2 flex items-center">
+        <Link
+          href="/"
+          className="flex items-center gap-1 text-xs text-stone-400 hover:text-stone-600 transition-colors"
+        >
+          <ChevronLeft size={13} />
+          메인으로 돌아가기
+        </Link>
+      </div>
 
       {/* ── 히어로: 매장 영상 ─────────────────────────────── */}
       <section

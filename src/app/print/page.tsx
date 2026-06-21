@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -312,11 +313,18 @@ export default function PrintCatalogPage() {
       {/* Header */}
       <header className="sticky top-0 z-30 bg-white/90 backdrop-blur border-b border-stone-100">
         <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-blue-600 flex items-center justify-center">
-              <Printer size={14} className="text-white" />
+          <div className="flex items-center gap-2.5">
+            <Image
+              src="/print/fullinkey-logo.png"
+              alt="FULL IN KEY"
+              width={24}
+              height={24}
+              className="rounded-lg object-contain"
+            />
+            <div>
+              <p className="font-bold text-stone-900 text-sm leading-tight">주식회사 풀린키</p>
+              <p className="text-[10px] text-stone-400 tracking-wider">GLOBAL INTERACTIVE</p>
             </div>
-            <span className="font-bold text-blue-900 tracking-tight">AIZET 인쇄소</span>
           </div>
           <nav className="hidden sm:flex items-center gap-1">
             {[
@@ -348,8 +356,19 @@ export default function PrintCatalogPage() {
       </header>
 
       {/* Hero */}
-      <section className="bg-gradient-to-br from-blue-700 via-blue-800 to-indigo-900 text-white py-14 px-4">
-        <div className="max-w-5xl mx-auto">
+      <section className="relative text-white py-14 px-4 overflow-hidden">
+        <video
+          autoPlay
+          muted
+          loop
+          playsInline
+          poster="/print/print-facility-wide.jpg"
+          className="absolute inset-0 w-full h-full object-cover object-center"
+        >
+          <source src="/print/print-walkthrough.mp4" type="video/mp4" />
+        </video>
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-900/88 via-blue-800/80 to-indigo-900/75" />
+        <div className="relative z-10 max-w-5xl mx-auto">
           <div className="flex items-center gap-2 mb-4">
             <span className="bg-white/20 text-white text-xs font-semibold px-3 py-1 rounded-full flex items-center gap-1">
               <Sparkles size={11} />
@@ -360,7 +379,8 @@ export default function PrintCatalogPage() {
             빠르고 정확한<br />맞춤 인쇄 서비스
           </h1>
           <p className="text-blue-200 text-sm mb-7 max-w-lg">
-            명함부터 패키지까지 — 전문 AI가 최적 옵션을 안내하고 실시간 견적을 제공합니다.
+            디지털 컬러·흑백 윤전기와 후가공 장비가 완전 자동화 —<br className="hidden sm:block" />
+            명함부터 패키지까지 AI가 최적 옵션을 안내하고 실시간 견적을 제공합니다.
           </p>
           <div className="flex flex-wrap gap-3">
             <button
@@ -412,6 +432,90 @@ export default function PrintCatalogPage() {
                 {text}
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Facility section */}
+      <section className="bg-white border-b border-stone-100">
+        <div className="max-w-5xl mx-auto px-4 py-10">
+          <div className="mb-7">
+            <p className="text-xs font-bold text-blue-600 uppercase tracking-widest mb-1.5">설비 소개</p>
+            <h2 className="text-xl sm:text-2xl font-black text-stone-900 leading-tight">
+              디지털 컬러·흑백 윤전기와<br />후가공 장비가 완전 자동화
+            </h2>
+            <p className="text-sm text-stone-500 mt-2.5 max-w-lg leading-relaxed">
+              최신 디지털 윤전기와 자동화 후가공 라인을 직접 운용하여 소량 단가부터 대량 인쇄까지 균일한 품질과 빠른 납기를 보장합니다.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            {/* 디지털 윤전기 */}
+            <div className="rounded-2xl overflow-hidden border border-stone-100 shadow-sm">
+              <div className="relative h-52">
+                <Image
+                  src="/print/print-digital-press.jpg"
+                  alt="디지털 윤전기"
+                  fill
+                  className="object-cover"
+                />
+              </div>
+              <div className="p-5">
+                <h3 className="font-bold text-stone-900 text-sm mb-1.5">디지털 컬러 · 흑백 윤전기</h3>
+                <p className="text-xs text-stone-500 leading-relaxed">
+                  고속 디지털 컬러 및 흑백 윤전기를 직접 운용합니다. 소량 주문도 대량과 동일한 색 정확도로 출력하며, 색상 프로파일 관리로 재주문 시에도 동일한 결과를 보장합니다.
+                </p>
+              </div>
+            </div>
+            {/* 후가공 자동화 */}
+            <div className="rounded-2xl overflow-hidden border border-stone-100 shadow-sm">
+              <div className="relative h-52">
+                <Image
+                  src="/print/print-finishing-line.jpg"
+                  alt="후가공 자동화 라인"
+                  fill
+                  className="object-cover"
+                />
+              </div>
+              <div className="p-5">
+                <h3 className="font-bold text-stone-900 text-sm mb-1.5">후가공 자동화 라인</h3>
+                <p className="text-xs text-stone-500 leading-relaxed">
+                  코팅·재단·제본·포장까지 완전 자동화된 후가공 라인을 갖추고 있습니다. 수작업 오차 없이 균일한 품질을 유지하며, 당일 납기 생산을 실현합니다.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Products flatlay section */}
+      <section className="bg-[#fafaf8] border-b border-stone-100">
+        <div className="max-w-5xl mx-auto px-4 py-10">
+          <div className="rounded-2xl overflow-hidden border border-stone-100 shadow-sm flex flex-col sm:flex-row">
+            <div className="relative sm:w-[55%] h-56 sm:h-auto shrink-0">
+              <Image
+                src="/print/print-products-flatlay.jpg"
+                alt="완성 인쇄물 플랫레이"
+                fill
+                className="object-cover"
+              />
+            </div>
+            <div className="bg-white px-7 py-8 flex flex-col justify-center gap-3">
+              <p className="text-xs font-bold text-blue-600 uppercase tracking-widest">완성 인쇄물</p>
+              <h2 className="text-lg sm:text-xl font-black text-stone-900 leading-snug">
+                완성도 높은 인쇄물,<br />직접 확인하세요
+              </h2>
+              <p className="text-xs text-stone-500 leading-relaxed">
+                명함·전단·카탈로그·패키지까지 — 완전 자동화 설비에서 생산된 결과물입니다.
+                소량부터 대량까지 동일한 색 재현율과 후가공 품질을 보장합니다.
+              </p>
+              <button
+                onClick={() => router.push('/print/quote')}
+                className="mt-1 self-start flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold transition-colors"
+              >
+                <Calculator size={13} />
+                견적 받기
+              </button>
+            </div>
           </div>
         </div>
       </section>

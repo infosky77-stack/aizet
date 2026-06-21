@@ -174,7 +174,7 @@ export default function ChatPage() {
         </div>
         <div className="ml-auto flex items-center gap-2">
           <button
-            onClick={() => router.push('/demo')}
+            onClick={() => router.replace('/demo')}
             className="flex items-center gap-1 px-3 py-1.5 rounded-full border border-stone-200 text-stone-500 hover:border-amber-400 hover:text-amber-600 text-xs font-medium transition-colors"
           >
             <Home size={13} />

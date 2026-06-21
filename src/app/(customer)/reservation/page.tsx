@@ -94,7 +94,7 @@ export default function ReservationPage() {
               메뉴 보기
             </button>
             <button
-              onClick={() => router.push('/demo')}
+              onClick={() => router.replace('/demo')}
               className="w-full py-3 border border-stone-200 hover:border-amber-400 text-stone-500 hover:text-amber-600 text-sm font-medium rounded-xl transition-colors flex items-center justify-center gap-1.5"
             >
               <Home size={14} />
@@ -125,7 +125,7 @@ export default function ReservationPage() {
           <p className="text-[11px] text-stone-400 leading-none">중화가정 · 신세계백화점 의정부점 9층</p>
         </div>
         <button
-          onClick={() => router.push('/demo')}
+          onClick={() => router.replace('/demo')}
           className="ml-auto flex items-center gap-1 px-3 py-1.5 rounded-full border border-stone-200 text-stone-500 hover:border-amber-400 hover:text-amber-600 text-xs font-medium transition-colors"
         >
           <Home size={13} />

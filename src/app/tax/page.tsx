@@ -18,8 +18,10 @@ const STRENGTHS = [
   { icon: CheckCircle, title: '가산세 제로 보장', desc: '신고기한 알림 시스템으로 기한 내 신고 완벽 지원' },
 ];
 
+const TODAY_STR = new Date().toISOString().slice(0, 10);
+
 const UPCOMING = TAX_DEADLINES
-  .filter(d => d.date >= '2026-06-19')
+  .filter(d => d.date >= TODAY_STR)
   .sort((a, b) => a.date.localeCompare(b.date))
   .slice(0, 3);
 
@@ -87,7 +89,7 @@ export default function TaxHome() {
           {UPCOMING.map(d => {
             const typeInfo = DEADLINE_TYPE_LABELS[d.type];
             const deadlineDate = new Date(d.date);
-            const today = new Date('2026-06-19');
+            const today = new Date();
             const daysLeft = Math.ceil((deadlineDate.getTime() - today.getTime()) / 86400000);
             return (
               <div key={d.id} className={`rounded-2xl border p-4 flex items-center gap-4 ${d.bg}`}>

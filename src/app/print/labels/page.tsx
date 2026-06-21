@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import {
   ChevronLeft, Tag, Download, RefreshCw, CheckCircle,
@@ -11,12 +12,24 @@ import { LabelCountry, LabelData, Client } from '@/types/print-files';
 import { generateLabelSVG, getDefaultOverrides, LabelOverrides } from '@/lib/print/label-svg';
 
 const COUNTRIES: { code: LabelCountry; name: string; flag: string; cert?: string }[] = [
-  { code: 'US', name: '미국 (USA)', flag: '🇺🇸' },
+  { code: 'US', name: '미국', flag: '🇺🇸' },
   { code: 'EU', name: '유럽 (EU)', flag: '🇪🇺', cert: 'CE' },
+  { code: 'GB', name: '영국', flag: '🇬🇧', cert: 'UKCA' },
+  { code: 'CA', name: '캐나다', flag: '🇨🇦', cert: 'CSA' },
   { code: 'JP', name: '일본', flag: '🇯🇵', cert: 'PSE' },
   { code: 'CN', name: '중국', flag: '🇨🇳', cert: 'CCC' },
   { code: 'KR', name: '한국', flag: '🇰🇷' },
   { code: 'AU', name: '호주', flag: '🇦🇺', cert: 'RCM' },
+  { code: 'IN', name: '인도', flag: '🇮🇳', cert: 'BIS' },
+  { code: 'SG', name: '싱가포르', flag: '🇸🇬', cert: 'SAFETY' },
+  { code: 'MY', name: '말레이시아', flag: '🇲🇾', cert: 'SIRIM' },
+  { code: 'ID', name: '인도네시아', flag: '🇮🇩', cert: 'SNI' },
+  { code: 'VN', name: '베트남', flag: '🇻🇳' },
+  { code: 'TH', name: '태국', flag: '🇹🇭', cert: 'TISI' },
+  { code: 'MX', name: '멕시코', flag: '🇲🇽', cert: 'NOM' },
+  { code: 'BR', name: '브라질', flag: '🇧🇷', cert: 'INMETRO' },
+  { code: 'AE', name: 'UAE', flag: '🇦🇪', cert: 'ESMA' },
+  { code: 'SA', name: '사우디', flag: '🇸🇦', cert: 'SASO' },
 ];
 
 interface FormData {
@@ -262,6 +275,32 @@ export default function LabelsPage() {
         </div>
       </header>
 
+      {/* Intro banner — form 모드일 때만 표시 */}
+      {mode === 'form' && (
+        <div className="max-w-6xl mx-auto px-4 pt-5">
+          <div className="rounded-2xl overflow-hidden border border-stone-100 shadow-sm flex flex-col sm:flex-row">
+            <div className="relative sm:w-56 h-36 sm:h-auto shrink-0">
+              <Image
+                src="/print/print-labels-closeup.jpg"
+                alt="수출 박스 라벨 클로즈업"
+                fill
+                className="object-cover"
+              />
+            </div>
+            <div className="bg-white px-6 py-5 flex flex-col justify-center gap-2">
+              <p className="text-[10px] font-bold text-blue-600 uppercase tracking-widest">수출 라벨 인쇄 전문</p>
+              <h2 className="text-sm font-black text-stone-900 leading-snug">
+                6개국 규격 라벨을 즉시 생성 · 출력
+              </h2>
+              <p className="text-xs text-stone-500 leading-relaxed">
+                미국·EU·일본·중국·한국·호주 — 국가별 인증 마크(CE·PSE·CCC·RCM)를 포함한
+                수출 박스 라벨을 자동으로 생성합니다. 텍스트 편집 후 바로 인쇄 발주로 연결됩니다.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="max-w-6xl mx-auto px-4 py-6 flex flex-col lg:flex-row gap-6 lg:items-start">
 
         {/* ──────── LEFT PANEL ──────── */}
@@ -270,7 +309,7 @@ export default function LabelsPage() {
             {/* Country selector */}
             <div className="bg-white rounded-2xl border border-stone-100 p-5">
               <h2 className="text-sm font-bold text-stone-700 mb-3">수출 대상 국가</h2>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                 {COUNTRIES.map(c => (
                   <button
                     key={c.code}

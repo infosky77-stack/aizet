@@ -1,4 +1,7 @@
-export type LabelCountry = 'US' | 'EU' | 'JP' | 'CN' | 'KR' | 'AU';
+export type LabelCountry =
+  | 'US' | 'EU' | 'JP' | 'CN' | 'KR' | 'AU'
+  | 'GB' | 'CA' | 'IN' | 'SG' | 'MY' | 'ID' | 'VN' | 'TH'
+  | 'MX' | 'BR' | 'AE' | 'SA';
 
 export interface Client {
   id: string;

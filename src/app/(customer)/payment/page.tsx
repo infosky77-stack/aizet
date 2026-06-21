@@ -92,7 +92,7 @@ function PaymentContent() {
             </div>
           </div>
           <button
-            onClick={() => router.push('/demo')}
+            onClick={() => router.replace('/demo')}
             className="flex items-center gap-1 px-3 py-1.5 rounded-full border border-stone-200 text-stone-500 hover:border-amber-400 hover:text-amber-600 text-xs font-medium transition-colors"
           >
             <Home size={13} />
@@ -150,7 +150,7 @@ function PaymentContent() {
                 영수증 보기
               </button>
               <button
-                onClick={() => router.push('/demo')}
+                onClick={() => router.replace('/demo')}
                 className="flex-1 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-xl transition-colors"
               >
                 처음으로

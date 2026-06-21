@@ -6,12 +6,13 @@ import { CalendarDays, Filter, AlertTriangle, CalendarClock, ChevronLeft, Chevro
 import { TAX_DEADLINES, DEADLINE_TYPE_LABELS } from '@/lib/tax/data';
 
 const MONTHS = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
-const TODAY = '2026-06-19';
-const CURRENT_YEAR = 2026;
+const _today = new Date();
+const TODAY = _today.toISOString().slice(0, 10);
+const CURRENT_YEAR = _today.getFullYear();
 
 export default function TaxCalendarPage() {
   const [filter, setFilter] = useState<string>('all');
-  const [viewMonth, setViewMonth] = useState(5); // 0-indexed, June = 5
+  const [viewMonth, setViewMonth] = useState(_today.getMonth());
 
   const filtered = filter === 'all' ? TAX_DEADLINES : TAX_DEADLINES.filter(d => d.type === filter);
   const sorted = [...filtered].sort((a, b) => a.date.localeCompare(b.date));

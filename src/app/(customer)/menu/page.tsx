@@ -20,17 +20,21 @@ export default function MenuPage() {
   const cartCount = items.reduce((s, i) => s + i.quantity, 0);
   const cartTotal = useCartStore((s) => s.total);
 
+  // 세션 guard — mount 시 1회만 실행 (뒤로가기 재진입 시 중복 replace 방지)
   useEffect(() => {
     const isDineIn = orderType === 'dine-in' && !!tableNumber;
     const isDelivery = orderType === 'delivery' && !!deliveryAddress;
     if (!isDineIn && !isDelivery) {
       router.replace('/demo');
-      return;
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
     fetch('/api/menu')
       .then((r) => r.json())
       .then((data) => setMenuItems(data.items ?? []));
-  }, [tableNumber, deliveryAddress, orderType, router]);
+  }, []);
 
   const filtered = useMemo(
     () => category === 'all' ? menuItems : menuItems.filter((i) => i.category === category),
@@ -44,7 +48,7 @@ export default function MenuPage() {
         <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <button
-              onClick={() => router.push('/demo')}
+              onClick={() => router.replace('/demo')}
               className="w-8 h-8 rounded-full hover:bg-stone-100 flex items-center justify-center transition-colors"
             >
               <ArrowLeft size={18} className="text-stone-600" />

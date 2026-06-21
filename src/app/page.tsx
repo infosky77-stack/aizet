@@ -1,7 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import NextImage from 'next/image';
 import Link from 'next/link';
+import { AddToHomeButton } from '@/components/AddToHomeButton';
+import { InAppBrowserBanner } from '@/components/InAppBrowserBanner';
 import {
   ArrowRight,
   Check,
@@ -300,11 +303,15 @@ function Navbar() {
   return (
     <header className="fixed top-0 inset-x-0 z-50 bg-white/80 backdrop-blur border-b border-stone-100">
       <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-amber-600 flex items-center justify-center">
-            <UtensilsCrossed size={15} className="text-white" />
-          </div>
-          <span className="font-bold text-stone-900 text-lg tracking-tight">AIZET</span>
+        <div className="flex items-center">
+          <NextImage
+            src="/aizet-logo-transparent.png"
+            alt="AIZET"
+            height={22}
+            width={97}
+            className="object-contain"
+            priority
+          />
         </div>
 
         <nav className="hidden md:flex items-center gap-7 text-sm font-medium text-stone-500">
@@ -327,6 +334,7 @@ function Navbar() {
         </nav>
 
         <div className="hidden md:flex items-center gap-3">
+          <AddToHomeButton />
           <Link
             href="/login"
             className="text-sm font-medium text-stone-600 hover:text-stone-900 transition-colors px-3 py-1.5"
@@ -385,6 +393,7 @@ function Navbar() {
             <LayoutDashboard size={14} />
             AZOS 대시보드
           </Link>
+          <AddToHomeButton mobile />
           <Link
             href="/login"
             onClick={() => setOpen(false)}
@@ -1603,6 +1612,7 @@ export default function LandingPage() {
   return (
     <div className="bg-white">
       <Navbar />
+      <InAppBrowserBanner />
       <Hero />
       <Stats />
       <HowItWorks />
