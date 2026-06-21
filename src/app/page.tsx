@@ -883,28 +883,22 @@ function DemoPreview() {
             </Link>
           </div>
           <div className="relative w-full md:w-52 shrink-0">
-            <div className="bg-white rounded-2xl shadow-2xl p-4 flex flex-col gap-2.5">
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 bg-amber-100 rounded-lg flex items-center justify-center">
-                  <UtensilsCrossed size={13} className="text-amber-600" />
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-stone-800">AIZET 식당</p>
-                  <p className="text-[10px] text-stone-400">AI 자동 생성</p>
-                </div>
+            <div className="relative rounded-[2rem] overflow-hidden border-[3px] border-white/40 shadow-2xl h-80">
+              <video
+                autoPlay
+                muted
+                loop
+                playsInline
+                poster="/demo/restaurant-exterior.jpg"
+                className="absolute inset-0 w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+              <div className="absolute bottom-4 left-0 right-0 flex justify-center">
+                <span className="bg-white/90 backdrop-blur-sm text-amber-700 text-[11px] font-bold px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-lg">
+                  <Sparkles size={11} />
+                  AI가 만들어드립니다
+                </span>
               </div>
-              {[
-                { label: '주문 관리', color: 'bg-amber-500' },
-                { label: 'AI 결제', color: 'bg-blue-500' },
-                { label: '서빙 로봇', color: 'bg-emerald-500' },
-                { label: '배달 추적', color: 'bg-violet-500' },
-              ].map(({ label, color }) => (
-                <div key={label} className="flex items-center gap-2.5">
-                  <div className={`w-2 h-2 rounded-full ${color}`} />
-                  <span className="text-xs text-stone-600">{label}</span>
-                  <Check size={11} className="ml-auto text-emerald-500" />
-                </div>
-              ))}
             </div>
           </div>
         </div>
