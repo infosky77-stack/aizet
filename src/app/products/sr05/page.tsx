@@ -6,6 +6,7 @@ import {
   ArrowRight,
   Check,
   ChevronRight,
+  ChevronLeft,
   Server,
   Cpu,
   BatteryFull,
@@ -23,7 +24,88 @@ import {
   Activity,
   Box,
 } from 'lucide-react';
+import Image from 'next/image';
 import clsx from 'clsx';
+
+/* ─── Hero Gallery ──────────────────────────────────────── */
+const HERO_IMAGES = [
+  { src: '/products/sr05-hero.jpg',  alt: 'AIZET-SR-05 메인 컷' },
+  { src: '/products/sr05-hero2.jpg', alt: 'AIZET-SR-05 추가 컷 2' },
+  { src: '/products/sr05-hero3.jpg', alt: 'AIZET-SR-05 추가 컷 3' },
+];
+
+function HeroGallery() {
+  const [active, setActive] = useState(0);
+  const prev = () => setActive(a => (a - 1 + HERO_IMAGES.length) % HERO_IMAGES.length);
+  const next = () => setActive(a => (a + 1) % HERO_IMAGES.length);
+
+  return (
+    <div className="relative">
+      <div className="absolute -inset-8 bg-cyan-500/5 rounded-full blur-3xl pointer-events-none" />
+      <div className="relative flex flex-col gap-3" style={{ width: 480 }}>
+        {/* Main image */}
+        <div className="relative rounded-2xl overflow-hidden shadow-2xl shadow-cyan-900/40 border border-slate-700 group">
+          <Image
+            key={HERO_IMAGES[active].src}
+            src={HERO_IMAGES[active].src}
+            alt={HERO_IMAGES[active].alt}
+            width={480}
+            height={360}
+            className="object-cover w-full"
+            priority={active === 0}
+          />
+          {/* Arrows */}
+          <button
+            onClick={prev}
+            className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/50 hover:bg-black/70 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+          >
+            <ChevronLeft size={16} />
+          </button>
+          <button
+            onClick={next}
+            className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/50 hover:bg-black/70 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+          >
+            <ChevronRight size={16} />
+          </button>
+          {/* Dot indicator */}
+          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
+            {HERO_IMAGES.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => setActive(i)}
+                className={clsx(
+                  'w-1.5 h-1.5 rounded-full transition-all',
+                  i === active ? 'bg-white w-4' : 'bg-white/50 hover:bg-white/75'
+                )}
+              />
+            ))}
+          </div>
+        </div>
+        {/* Thumbnails */}
+        <div className="flex gap-2">
+          {HERO_IMAGES.map((img, i) => (
+            <button
+              key={i}
+              onClick={() => setActive(i)}
+              className={clsx(
+                'flex-1 rounded-xl overflow-hidden border-2 transition-all',
+                i === active ? 'border-cyan-400 shadow-lg shadow-cyan-500/20' : 'border-slate-700 opacity-60 hover:opacity-90'
+              )}
+            >
+              <Image
+                src={img.src}
+                alt={img.alt}
+                width={150}
+                height={90}
+                className="object-cover w-full h-16"
+              />
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 /* ─── Data ─────────────────────────────────────────────── */
 const CONFIGS = [
@@ -365,10 +447,7 @@ export default function SR05Page() {
 
           {/* Visual */}
           <div className="flex-1 flex justify-center">
-            <div className="relative">
-              <div className="absolute -inset-8 bg-cyan-500/5 rounded-full blur-3xl" />
-              <NodeVisual count={selectedConfig} />
-            </div>
+            <HeroGallery />
           </div>
         </div>
       </section>

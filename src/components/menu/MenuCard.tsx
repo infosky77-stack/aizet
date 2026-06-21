@@ -24,10 +24,10 @@ export function MenuCard({ item }: Props) {
     >
       {/* Image placeholder */}
       <div className="h-36 bg-gradient-to-br from-amber-50 to-orange-100 flex items-center justify-center text-5xl relative">
-        {item.category === 'main' && '🍽️'}
-        {item.category === 'appetizer' && '🥗'}
-        {item.category === 'dessert' && '🍰'}
-        {item.category === 'beverage' && '🥤'}
+        {item.category === 'noodle' && '🍜'}
+        {item.category === 'rice' && '🍚'}
+        {item.category === 'dish' && '🍲'}
+        {item.category === 'side' && '🥢'}
         {item.category === 'set' && '🍱'}
 
         {/* Tags */}

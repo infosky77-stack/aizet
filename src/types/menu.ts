@@ -1,8 +1,8 @@
 export type MenuCategory =
-  | 'appetizer'
-  | 'main'
-  | 'dessert'
-  | 'beverage'
+  | 'noodle'
+  | 'rice'
+  | 'dish'
+  | 'side'
   | 'set';
 
 export interface MenuItem {

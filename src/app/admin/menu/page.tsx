@@ -6,10 +6,10 @@ import { OrderStatusBadge } from '@/components/admin/OrderStatusBadge';
 import { clsx } from 'clsx';
 
 const CATEGORY_LABEL: Record<MenuCategory, string> = {
-  appetizer: '전식',
-  main: '메인',
-  dessert: '디저트',
-  beverage: '음료',
+  noodle: '면 요리',
+  rice: '밥 요리',
+  dish: '요리',
+  side: '사이드',
   set: '세트',
 };
 

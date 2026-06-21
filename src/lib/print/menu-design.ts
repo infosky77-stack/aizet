@@ -3,10 +3,10 @@ import { MenuItem, MenuCategory } from '@/types/menu';
 export type TemplateStyle = 'classic' | 'modern' | 'premium';
 
 const CATEGORY_LABELS: Record<MenuCategory, string> = {
-  appetizer: '전채 요리',
-  main: '메인 요리',
-  dessert: '디저트',
-  beverage: '음료',
+  noodle: '면 요리',
+  rice: '밥 요리',
+  dish: '요리',
+  side: '사이드',
   set: '세트 메뉴',
 };
 
@@ -60,7 +60,7 @@ export const TEMPLATES: Record<TemplateStyle, Template> = {
 
 export const TEMPLATE_STYLES: TemplateStyle[] = ['classic', 'modern', 'premium'];
 
-const CAT_ORDER: MenuCategory[] = ['appetizer', 'main', 'dessert', 'beverage', 'set'];
+const CAT_ORDER: MenuCategory[] = ['noodle', 'rice', 'dish', 'side', 'set'];
 
 function esc(s: string): string {
   return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');

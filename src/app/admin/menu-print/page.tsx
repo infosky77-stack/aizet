@@ -37,10 +37,10 @@ interface ColorEdit {
 }
 
 const CAT_OPTIONS: { value: MenuCategory; label: string }[] = [
-  { value: 'appetizer', label: '전채 요리' },
-  { value: 'main', label: '메인 요리' },
-  { value: 'dessert', label: '디저트' },
-  { value: 'beverage', label: '음료' },
+  { value: 'noodle', label: '면 요리' },
+  { value: 'rice', label: '밥 요리' },
+  { value: 'dish', label: '요리' },
+  { value: 'side', label: '사이드' },
   { value: 'set', label: '세트 메뉴' },
 ];
 
@@ -218,7 +218,7 @@ function EditorStep({
       nameKo: '',
       price: 0,
       description: '',
-      category: 'main' as MenuCategory,
+      category: 'noodle' as MenuCategory,
       available: true,
     }]);
   }
