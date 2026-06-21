@@ -160,6 +160,7 @@ export const MENU_ITEMS: MenuItem[] = [
     tags: [],
     allergens: ['gluten', 'egg'],
     available: true,
+    imageUrl: '/demo/menu/menu-gwobarou.jpg',
   },
   {
     id: 'menu-306',
