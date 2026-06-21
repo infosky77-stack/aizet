@@ -8,7 +8,7 @@ import { CategoryFilter } from '@/components/menu/CategoryFilter';
 import { CartDrawer } from '@/components/menu/CartDrawer';
 import { AiRecommendBanner } from '@/components/menu/AiRecommendBanner';
 import { MenuItem, MenuCategory } from '@/types/menu';
-import { ShoppingCart, UtensilsCrossed, MessageSquare, CalendarClock, Truck } from 'lucide-react';
+import { ShoppingCart, UtensilsCrossed, MessageSquare, CalendarClock, Truck, ArrowLeft } from 'lucide-react';
 
 export default function MenuPage() {
   const router = useRouter();
@@ -43,6 +43,12 @@ export default function MenuPage() {
       <header className="sticky top-0 z-30 bg-white/90 backdrop-blur border-b border-stone-100">
         <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => router.push('/demo')}
+              className="w-8 h-8 rounded-full hover:bg-stone-100 flex items-center justify-center transition-colors"
+            >
+              <ArrowLeft size={18} className="text-stone-600" />
+            </button>
             <UtensilsCrossed size={20} className="text-amber-600" />
             <span className="font-bold text-amber-800 tracking-tight">중화가정</span>
             {orderType === 'delivery' ? (

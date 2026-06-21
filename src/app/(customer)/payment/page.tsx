@@ -141,7 +141,7 @@ function PaymentContent() {
                 영수증 보기
               </button>
               <button
-                onClick={() => router.push('/')}
+                onClick={() => router.push('/demo')}
                 className="flex-1 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-xl transition-colors"
               >
                 처음으로
