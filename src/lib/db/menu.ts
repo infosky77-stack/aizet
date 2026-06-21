@@ -62,6 +62,7 @@ export const MENU_ITEMS: MenuItem[] = [
     tags: ['spicy'],
     allergens: ['shellfish'],
     available: true,
+    imageUrl: '/demo/menu/menu-jjamppong.jpg',
   },
   {
     id: 'menu-202',
