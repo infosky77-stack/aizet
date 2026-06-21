@@ -262,11 +262,11 @@ export default function LabelsPage() {
         </div>
       </header>
 
-      <div className="max-w-6xl mx-auto px-4 py-6 flex gap-6 items-start">
+      <div className="max-w-6xl mx-auto px-4 py-6 flex flex-col lg:flex-row gap-6 lg:items-start">
 
         {/* ──────── LEFT PANEL ──────── */}
         {mode === 'form' ? (
-          <div className="w-96 shrink-0 flex flex-col gap-4">
+          <div className="w-full lg:w-96 lg:shrink-0 flex flex-col gap-4">
             {/* Country selector */}
             <div className="bg-white rounded-2xl border border-stone-100 p-5">
               <h2 className="text-sm font-bold text-stone-700 mb-3">수출 대상 국가</h2>
@@ -369,7 +369,7 @@ export default function LabelsPage() {
           </div>
         ) : (
           /* ──────── EDITOR PANEL ──────── */
-          <div className="w-96 shrink-0 flex flex-col gap-4">
+          <div className="w-full lg:w-96 lg:shrink-0 flex flex-col gap-4">
             {/* Back button */}
             <div className="flex items-center gap-2">
               <button

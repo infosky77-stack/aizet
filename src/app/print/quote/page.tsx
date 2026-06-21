@@ -264,15 +264,15 @@ function QuoteContent() {
           <div className="flex gap-2">
             <button
               onClick={() => router.push('/print/upload')}
-              className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-stone-200 text-stone-600 text-xs font-semibold hover:border-blue-300 transition-colors"
+              className="flex items-center gap-1.5 px-3 sm:px-4 py-2.5 rounded-xl border border-stone-200 text-stone-600 text-xs font-semibold hover:border-blue-300 transition-colors"
             >
               <Upload size={13} />
-              파일 업로드
+              <span className="hidden sm:inline">파일 업로드</span>
             </button>
             <button
               onClick={handleOrder}
               disabled={price === null}
-              className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:bg-stone-200 text-white text-xs font-bold transition-colors"
+              className="flex items-center gap-1.5 px-4 sm:px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:bg-stone-200 text-white text-xs font-bold transition-colors"
             >
               <ShoppingCart size={13} />
               주문하기

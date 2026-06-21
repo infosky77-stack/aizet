@@ -659,7 +659,8 @@ export default function FilesPage() {
             <span className="font-bold text-blue-900">거래처 파일 관리</span>
           </div>
           <div className="ml-auto flex items-center gap-2">
-            <div className="relative">
+            {/* Search — desktop only */}
+            <div className="relative hidden sm:block">
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
               <input
                 className="pl-8 pr-4 py-2 rounded-xl border border-stone-200 text-xs focus:border-blue-400 focus:outline-none w-48"
@@ -673,15 +674,25 @@ export default function FilesPage() {
               className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700"
             >
               <Plus size={13} />
-              거래처 등록
+              <span className="hidden sm:inline">거래처 등록</span>
             </button>
           </div>
         </div>
       </header>
 
-      <div className="max-w-6xl mx-auto w-full px-4 py-5 flex gap-5 flex-1">
-        {/* Client list */}
-        <div className="w-64 shrink-0">
+      <div className="max-w-6xl mx-auto w-full px-4 py-5 flex flex-col md:flex-row gap-5 flex-1">
+        {/* Client list — hidden on mobile when a client is selected */}
+        <div className={clsx('md:w-64 md:shrink-0', selected ? 'hidden md:block' : 'block')}>
+          {/* Mobile search */}
+          <div className="sm:hidden mb-3 relative">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
+            <input
+              className="w-full pl-8 pr-4 py-2 rounded-xl border border-stone-200 text-xs focus:border-blue-400 focus:outline-none"
+              placeholder="거래처·파일 검색..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+            />
+          </div>
           <p className="text-[11px] font-semibold text-stone-500 uppercase tracking-widest mb-3">거래처 ({filteredClients.length})</p>
           {loading ? (
             <div className="text-sm text-stone-400 py-4 text-center">불러오는 중...</div>
@@ -713,8 +724,18 @@ export default function FilesPage() {
           )}
         </div>
 
-        {/* File browser */}
-        <div className="flex-1 min-w-0">
+        {/* File browser — hidden on mobile when no client is selected */}
+        <div className={clsx('flex-1 min-w-0', !selected ? 'hidden md:block' : 'block')}>
+          {/* Mobile back to client list */}
+          {selected && (
+            <button
+              onClick={() => { setSelected(null); setOpenFolder(null); }}
+              className="md:hidden mb-3 flex items-center gap-1 text-sm text-blue-600 font-medium"
+            >
+              <ChevronLeft size={16} />
+              거래처 목록
+            </button>
+          )}
           {/* Google Drive Banner */}
           <GoogleDriveBanner
             driveState={driveState}
