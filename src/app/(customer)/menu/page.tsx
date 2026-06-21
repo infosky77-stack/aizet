@@ -44,7 +44,7 @@ export default function MenuPage() {
         <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <UtensilsCrossed size={20} className="text-amber-600" />
-            <span className="font-bold text-amber-800 tracking-tight">AIZET</span>
+            <span className="font-bold text-amber-800 tracking-tight">중화가정</span>
             {orderType === 'delivery' ? (
               <span className="text-xs text-stone-400 ml-1 flex items-center gap-1">
                 <Truck size={11} />

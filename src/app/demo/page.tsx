@@ -3,8 +3,9 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCartStore } from '@/store/cart';
-import { UtensilsCrossed, Truck, MapPin } from 'lucide-react';
+import { UtensilsCrossed, Truck, MapPin, Clock, ChevronDown } from 'lucide-react';
 import { clsx } from 'clsx';
+import Image from 'next/image';
 import { OrderType } from '@/types/order';
 
 export default function LandingPage() {
@@ -17,8 +18,8 @@ export default function LandingPage() {
 
   function handleStart() {
     if (orderType === 'dine-in') {
-      const n = parseInt(tableInput);
-      if (!tableInput || isNaN(n) || n < 1 || n > 30) {
+      const n = tableInput ? parseInt(tableInput) : 1;
+      if (tableInput && (isNaN(n) || n < 1 || n > 30)) {
         setError('1~30 사이의 테이블 번호를 입력해 주세요.');
         return;
       }
@@ -37,20 +38,104 @@ export default function LandingPage() {
   }
 
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center px-4 bg-gradient-to-b from-amber-50 to-[#fafaf8]">
-      <div className="w-full max-w-sm flex flex-col items-center gap-8">
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-20 h-20 rounded-2xl bg-amber-600 flex items-center justify-center shadow-lg">
-            <UtensilsCrossed className="text-white" size={40} />
+    <main className="min-h-screen bg-[#fafaf8] flex flex-col">
+
+      {/* ── 히어로: 외관 이미지 ─────────────────────────────── */}
+      <section className="relative w-full h-[60vw] min-h-[280px] max-h-[420px] overflow-hidden">
+        <Image
+          src="/demo/restaurant-exterior.jpg"
+          alt="중화가정 매장 외관"
+          fill
+          className="object-cover"
+          priority
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/40 to-black/65" />
+        <div className="absolute inset-0 flex flex-col items-center justify-center text-white text-center px-6 gap-3">
+          <div className="flex items-center gap-2 mb-1">
+            <div className="w-8 h-8 rounded-xl bg-amber-500/90 flex items-center justify-center">
+              <UtensilsCrossed size={16} className="text-white" />
+            </div>
+            <span className="text-xs font-semibold tracking-widest text-amber-200 uppercase">Jungwha Gajeong</span>
           </div>
-          <div className="text-center">
-            <h1 className="text-3xl font-bold tracking-tight text-amber-800">AIZET</h1>
-            <p className="text-sm text-stone-500 mt-1">AI 스마트 오더</p>
+          <h1 className="text-4xl font-black tracking-tight drop-shadow-lg">중화가정</h1>
+          <p className="text-sm text-white/85 leading-relaxed max-w-xs">
+            가정집의 주방처럼, 어머니의 요리처럼<br />맛있고 신선하고 정성이 깃든 중화가정입니다
+          </p>
+          <a
+            href="#order"
+            className="mt-2 flex items-center gap-1.5 px-5 py-2.5 rounded-full bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold transition-colors shadow-lg"
+          >
+            지금 주문하기
+            <ChevronDown size={15} />
+          </a>
+        </div>
+      </section>
+
+      {/* ── 정보 바 ─────────────────────────────────────────── */}
+      <div className="bg-white border-b border-stone-100 px-4 py-3 flex items-center justify-center gap-4 text-xs text-stone-500 flex-wrap">
+        <span className="flex items-center gap-1">
+          <MapPin size={12} className="text-amber-500" />
+          신세계백화점 의정부점 9층
+        </span>
+        <span className="text-stone-200">|</span>
+        <span className="flex items-center gap-1">
+          <Clock size={12} className="text-amber-500" />
+          매일 11:00 ~ 21:00
+        </span>
+        <span className="text-stone-200">|</span>
+        <span className="text-stone-400">매월 첫째주 월요일 휴무</span>
+      </div>
+
+      {/* ── 매장 분위기: 인테리어 이미지 ────────────────────── */}
+      <section className="px-4 pt-7 pb-2 max-w-sm mx-auto w-full">
+        <p className="text-[11px] font-semibold text-amber-600 uppercase tracking-widest mb-2">Interior</p>
+        <div className="relative h-52 rounded-2xl overflow-hidden shadow-sm">
+          <Image
+            src="/demo/restaurant-interior.jpg"
+            alt="중화가정 매장 내부"
+            fill
+            className="object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
+          <div className="absolute bottom-0 left-0 right-0 p-4">
+            <p className="text-white font-bold text-base leading-tight">편안한 가정 분위기</p>
+            <p className="text-white/75 text-xs mt-0.5">백화점 안에서 즐기는 고즈넉한 중식 공간</p>
           </div>
         </div>
+      </section>
 
-        <div className="w-full bg-white rounded-2xl shadow-md p-6 flex flex-col gap-5">
-          {/* Order type selector */}
+      {/* ── 대표 메뉴: 음식 이미지 ──────────────────────────── */}
+      <section className="px-4 pt-5 pb-2 max-w-sm mx-auto w-full">
+        <p className="text-[11px] font-semibold text-amber-600 uppercase tracking-widest mb-2">Signature Menu</p>
+        <div className="relative h-52 rounded-2xl overflow-hidden shadow-sm">
+          <Image
+            src="/demo/restaurant-food.jpg"
+            alt="중화가정 대표 메뉴"
+            fill
+            className="object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
+          <div className="absolute bottom-0 left-0 right-0 p-4">
+            <p className="text-white font-bold text-base leading-tight">대표 메뉴</p>
+            <div className="flex gap-1.5 mt-1.5 flex-wrap">
+              {['짜장면', '짬뽕', '탕수육', '깐풍기', '유린기'].map((name) => (
+                <span
+                  key={name}
+                  className="px-2 py-0.5 rounded-full bg-white/20 backdrop-blur-sm text-white text-[11px] font-medium border border-white/30"
+                >
+                  {name}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── 주문 카드 ────────────────────────────────────────── */}
+      <section id="order" className="px-4 pt-6 pb-10 max-w-sm mx-auto w-full scroll-mt-4">
+        <p className="text-[11px] font-semibold text-amber-600 uppercase tracking-widest mb-3">Order</p>
+        <div className="bg-white rounded-2xl shadow-md p-6 flex flex-col gap-5">
+          {/* 주문 방식 */}
           <div>
             <h2 className="text-sm font-semibold text-stone-500 mb-2">주문 방식 선택</h2>
             <div className="grid grid-cols-2 gap-2">
@@ -81,17 +166,19 @@ export default function LandingPage() {
             </div>
           </div>
 
-          {/* Dine-in: table number */}
+          {/* 매장: 테이블 번호 */}
           {orderType === 'dine-in' && (
             <div className="flex flex-col gap-2">
-              <label className="text-sm font-semibold text-stone-700">테이블 번호</label>
-              <p className="text-xs text-stone-400">테이블에 부착된 번호를 확인해 주세요</p>
+              <label className="text-sm font-semibold text-stone-700">
+                테이블 번호 <span className="text-stone-400 font-normal">(선택)</span>
+              </label>
+              <p className="text-xs text-stone-400">비워두면 체험용 1번 테이블로 입장됩니다</p>
               <input
                 type="number"
                 inputMode="numeric"
                 min={1}
                 max={30}
-                placeholder="예) 5"
+                placeholder="비워두면 1번으로 체험"
                 value={tableInput}
                 onChange={(e) => { setTableInput(e.target.value); setError(''); }}
                 onKeyDown={(e) => e.key === 'Enter' && handleStart()}
@@ -100,7 +187,7 @@ export default function LandingPage() {
             </div>
           )}
 
-          {/* Delivery: address */}
+          {/* 배달: 주소 */}
           {orderType === 'delivery' && (
             <div className="flex flex-col gap-2">
               <label className="text-sm font-semibold text-stone-700 flex items-center gap-1.5">
@@ -109,7 +196,7 @@ export default function LandingPage() {
               </label>
               <textarea
                 rows={2}
-                placeholder="예) 서울시 마포구 와우산로 17길 5, 201호"
+                placeholder="예) 경기도 의정부시 평화로 100, 101호"
                 value={addressInput}
                 onChange={(e) => { setAddressInput(e.target.value); setError(''); }}
                 className="w-full text-sm py-3 px-4 rounded-xl border-2 border-stone-200 focus:border-blue-500 focus:outline-none transition-colors resize-none"
@@ -128,16 +215,17 @@ export default function LandingPage() {
                 : 'bg-blue-600 hover:bg-blue-700 active:bg-blue-800'
             )}
           >
-            {orderType === 'dine-in' ? '메뉴 보기' : '메뉴 보기'}
+            메뉴 보기
           </button>
         </div>
 
-        <p className="text-xs text-stone-400 text-center">
+        <p className="text-xs text-stone-400 text-center mt-4">
           {orderType === 'dine-in'
             ? '테이블 번호가 없으신가요? 직원에게 문의해 주세요.'
-            : '배달 가능 지역: 서울시 마포구, 서대문구 일대'}
+            : '경기도 의정부시 일대 배달 가능 · 배달 불가 시 문의'}
         </p>
-      </div>
+      </section>
+
     </main>
   );
 }

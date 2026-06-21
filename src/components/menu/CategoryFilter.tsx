@@ -5,11 +5,11 @@ import { clsx } from 'clsx';
 
 const CATEGORIES: { value: 'all' | MenuCategory; label: string }[] = [
   { value: 'all', label: '전체' },
-  { value: 'appetizer', label: '전식' },
-  { value: 'main', label: '메인' },
-  { value: 'dessert', label: '디저트' },
-  { value: 'beverage', label: '음료' },
-  { value: 'set', label: '세트' },
+  { value: 'noodle', label: '면류' },
+  { value: 'rice', label: '밥류' },
+  { value: 'dish', label: '요리' },
+  { value: 'side', label: '식사보조' },
+  { value: 'set', label: '세트메뉴' },
 ];
 
 interface Props {

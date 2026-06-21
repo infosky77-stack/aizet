@@ -17,8 +17,8 @@ interface FormData {
 }
 
 const TIME_SLOTS = [
-  '11:30', '12:00', '12:30', '13:00', '13:30',
-  '17:30', '18:00', '18:30', '19:00', '19:30', '20:00', '20:30',
+  '11:00', '11:30', '12:00', '12:30', '13:00', '13:30', '14:00', '14:30',
+  '17:00', '17:30', '18:00', '18:30', '19:00', '19:30', '20:00', '20:30',
 ];
 
 function todayStr() {
@@ -79,8 +79,12 @@ export default function ReservationPage() {
             </p>
           </div>
           <div className="w-full bg-stone-50 rounded-xl p-4 text-left text-sm space-y-1.5">
-            <p className="text-stone-500">예약 확인 문자를 <span className="font-medium text-stone-700">{form.phone}</span>으로 발송했습니다</p>
-            {form.note && <p className="text-stone-400">메모: {form.note}</p>}
+            <p className="font-semibold text-stone-700">중화가정 · 신세계백화점 의정부점 9층</p>
+            <p className="text-stone-400 text-xs">경기도 의정부시 평화로 525</p>
+            <div className="border-t border-stone-200 pt-2 mt-2">
+              <p className="text-stone-500">예약 확인 문자를 <span className="font-medium text-stone-700">{form.phone}</span>으로 발송했습니다</p>
+              {form.note && <p className="text-stone-400">메모: {form.note}</p>}
+            </div>
           </div>
           <div className="flex flex-col gap-2 w-full">
             <button
@@ -109,7 +113,10 @@ export default function ReservationPage() {
           <ArrowLeft size={18} />
         </button>
         <CalendarClock size={18} className="text-amber-600" />
-        <span className="font-semibold">예약하기</span>
+        <div>
+          <span className="font-semibold text-sm">예약하기</span>
+          <p className="text-[11px] text-stone-400 leading-none">중화가정 · 신세계백화점 의정부점 9층</p>
+        </div>
       </header>
 
       <div className="max-w-md mx-auto px-4 pt-6 flex flex-col gap-5">

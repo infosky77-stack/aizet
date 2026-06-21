@@ -89,8 +89,8 @@ export function ReceiptModal({ order, onClose }: Props) {
           <div className="px-6 py-5 font-mono text-sm receipt-print-area">
             {/* 매장명 */}
             <div className="text-center mb-4">
-              <p className="text-base font-bold tracking-widest">식당 데모</p>
-              <p className="text-[11px] text-stone-400 mt-0.5">AIZET Restaurant</p>
+              <p className="text-base font-bold tracking-widest">중화가정</p>
+              <p className="text-[11px] text-stone-400 mt-0.5">신세계백화점 의정부점 9층 · 매일 11:00~21:00</p>
               <div className="border-t border-dashed border-stone-300 mt-3" />
             </div>
 

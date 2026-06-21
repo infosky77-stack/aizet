@@ -28,7 +28,7 @@ function parseOrder(text: string): ConfirmedItem[] | null {
 }
 
 const INITIAL_GREETING = (table: number) =>
-  `안녕하세요! 테이블 ${table}번 고객님 😊 AIZET 레스토랑에 오신 것을 환영합니다!\n오늘 어떤 메뉴가 끌리세요? 추천이 필요하시면 말씀해 주세요 🍽️`;
+  `안녕하세요! 테이블 ${table}번 고객님 😊 중화가정에 오신 것을 환영합니다!\n가정집의 주방처럼 정성껏 준비한 중식 메뉴를 소개해 드릴게요. 오늘 어떤 메뉴가 끌리세요? 🥢`;
 
 export default function ChatPage() {
   const router = useRouter();
@@ -169,7 +169,7 @@ export default function ChatPage() {
           <UtensilsCrossed size={15} className="text-white" />
         </div>
         <div>
-          <p className="font-semibold text-sm leading-tight">AI 주문 도우미</p>
+          <p className="font-semibold text-sm leading-tight">중화가정 AI 주문 도우미</p>
           <p className="text-xs text-stone-400">테이블 {tableNumber}번</p>
         </div>
         <span className="ml-auto flex items-center gap-1 text-xs text-green-600 font-medium">

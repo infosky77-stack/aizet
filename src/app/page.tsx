@@ -627,21 +627,21 @@ function Industries() {
           </p>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4">
           {INDUSTRIES_LIST.map((ind) => (
             <Link
               key={ind.name}
               href={ind.href!}
-              className="group bg-white border border-stone-100 rounded-2xl p-5 hover:shadow-md hover:border-amber-200 transition-all flex flex-col gap-3"
+              className="group bg-white border border-stone-100 rounded-xl sm:rounded-2xl p-2.5 sm:p-5 hover:shadow-md hover:border-amber-200 transition-all flex flex-col gap-1.5 sm:gap-3"
             >
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${ind.color}`}>
+              <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl flex items-center justify-center ${ind.color}`}>
                 {ind.icon}
               </div>
               <div>
-                <p className="font-semibold text-stone-800 text-sm">{ind.name}</p>
-                <p className="text-xs text-stone-400 mt-0.5">{ind.sub}</p>
+                <p className="font-semibold text-stone-800 text-xs sm:text-sm">{ind.name}</p>
+                <p className="hidden sm:block text-xs text-stone-400 mt-0.5">{ind.sub}</p>
               </div>
-              <ChevronRight size={14} className="text-stone-300 group-hover:text-amber-500 transition-colors" />
+              <ChevronRight size={10} className="text-stone-300 group-hover:text-amber-500 transition-colors" />
             </Link>
           ))}
         </div>

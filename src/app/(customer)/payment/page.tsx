@@ -86,7 +86,7 @@ function PaymentContent() {
             <UtensilsCrossed size={17} className="text-white" />
           </div>
           <div>
-            <p className="font-bold text-amber-800 text-sm">AIZET</p>
+            <p className="font-bold text-amber-800 text-sm">중화가정</p>
             <p className="text-xs text-stone-400">결제</p>
           </div>
         </div>
