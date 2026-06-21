@@ -96,6 +96,7 @@ export const MENU_ITEMS: MenuItem[] = [
     tags: [],
     allergens: ['gluten', 'soy'],
     available: true,
+    imageUrl: '/demo/menu/menu-japchae-bap.jpg',
   },
 
   // ── 요리 ──────────────────────────────────────────────
@@ -109,6 +110,7 @@ export const MENU_ITEMS: MenuItem[] = [
     tags: ['popular', 'sharing'],
     allergens: ['gluten', 'egg'],
     available: true,
+    imageUrl: '/demo/menu/menu-tangsuyuk.jpg',
   },
   {
     id: 'menu-302',
@@ -120,6 +122,7 @@ export const MENU_ITEMS: MenuItem[] = [
     tags: ['sharing'],
     allergens: ['gluten', 'egg'],
     available: true,
+    imageUrl: '/demo/menu/menu-tangsuyuk.jpg',
   },
   {
     id: 'menu-303',
@@ -131,6 +134,7 @@ export const MENU_ITEMS: MenuItem[] = [
     tags: ['popular', 'spicy'],
     allergens: ['gluten', 'egg'],
     available: true,
+    imageUrl: '/demo/menu/menu-kkanpunggi.jpg',
   },
   {
     id: 'menu-304',
@@ -142,6 +146,7 @@ export const MENU_ITEMS: MenuItem[] = [
     tags: ['popular'],
     allergens: ['gluten', 'egg', 'soy'],
     available: true,
+    imageUrl: '/demo/menu/menu-yurinki.jpg',
   },
   {
     id: 'menu-305',
@@ -164,6 +169,7 @@ export const MENU_ITEMS: MenuItem[] = [
     tags: [],
     allergens: ['gluten', 'shellfish', 'egg'],
     available: true,
+    imageUrl: '/demo/menu/menu-menbosha.jpg',
   },
   {
     id: 'menu-307',
@@ -175,6 +181,7 @@ export const MENU_ITEMS: MenuItem[] = [
     tags: ['spicy'],
     allergens: ['gluten', 'shellfish', 'egg'],
     available: true,
+    imageUrl: '/demo/menu/menu-kkansho-shrimp.jpg',
   },
   {
     id: 'menu-308',
@@ -186,6 +193,7 @@ export const MENU_ITEMS: MenuItem[] = [
     tags: [],
     allergens: ['shellfish', 'egg'],
     available: true,
+    imageUrl: '/demo/menu/menu-gesal-gyeranTang.jpg',
   },
 
   // ── 세트메뉴 ───────────────────────────────────────────
@@ -199,6 +207,7 @@ export const MENU_ITEMS: MenuItem[] = [
     tags: ['popular', 'best-value'],
     allergens: ['gluten', 'shellfish', 'egg'],
     available: true,
+    imageUrl: '/demo/menu/menu-junghwa-set.jpg',
   },
   {
     id: 'menu-402',
@@ -210,6 +219,7 @@ export const MENU_ITEMS: MenuItem[] = [
     tags: ['best-value'],
     allergens: ['gluten', 'shellfish', 'egg'],
     available: true,
+    imageUrl: '/demo/menu/menu-gajeong-set.jpg',
   },
 
   // ── 식사보조 ───────────────────────────────────────────
@@ -223,6 +233,7 @@ export const MENU_ITEMS: MenuItem[] = [
     tags: ['popular'],
     allergens: ['gluten', 'egg'],
     available: true,
+    imageUrl: '/demo/menu/menu-gunmandu.jpg',
   },
 ];
 
