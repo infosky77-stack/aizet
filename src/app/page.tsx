@@ -305,7 +305,7 @@ function Navbar() {
       <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
         <div className="flex items-center">
           <NextImage
-            src="/aizet-logo-transparent.png"
+            src="/aizet-logo-charcoal.png"
             alt="AIZET"
             height={22}
             width={97}
