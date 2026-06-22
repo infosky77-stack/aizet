@@ -52,13 +52,13 @@ export default function TaxReservationPage() {
           <CheckCircle size={40} className="text-emerald-600" />
         </div>
         <h1 className="text-2xl font-black text-slate-900 mb-3">예약이 완료되었습니다!</h1>
-        <p className="text-slate-500 text-sm mb-2">빠른 시일 내에 담당 세무사가 연락드립니다.</p>
-        <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 text-sm text-slate-600 text-left mt-4 mb-8 space-y-1.5">
+        <p className="text-slate-700 text-base mb-2">빠른 시일 내에 담당 세무사가 연락드립니다.</p>
+        <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 text-base text-slate-700 text-left mt-4 mb-8 space-y-1.5">
           <p><span className="font-semibold">성함:</span> {form.name}</p>
           <p><span className="font-semibold">상담 주제:</span> {form.topic}</p>
           <p><span className="font-semibold">예약 일시:</span> {form.date} {form.time}</p>
         </div>
-        <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-xl p-3 mb-6">
+        <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-xl p-3 mb-6">
           ⚠️ 이 화면은 데모입니다. 실제 예약이 이루어지지 않습니다.
         </p>
         <button onClick={() => { setDone(false); setForm({ name:'',phone:'',email:'',businessType:'',topic:'',date:'',time:'',note:'' }); }}
@@ -76,7 +76,7 @@ export default function TaxReservationPage() {
           <CalendarClock size={20} className="text-amber-600" />
           <h1 className="text-2xl font-black text-slate-900">상담 예약</h1>
         </div>
-        <p className="text-slate-500 text-sm">전문 세무사와 1:1 맞춤 세무 상담을 예약하세요</p>
+        <p className="text-slate-700 text-base">전문 세무사와 1:1 맞춤 세무 상담을 예약하세요</p>
       </div>
 
       {/* Info cards */}
@@ -84,15 +84,15 @@ export default function TaxReservationPage() {
         <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 flex items-center gap-3">
           <Clock size={20} className="text-blue-600 shrink-0" />
           <div>
-            <div className="text-xs font-bold text-blue-800">상담 시간</div>
-            <div className="text-xs text-blue-600">50분 / 회</div>
+            <div className="text-sm font-bold text-blue-800">상담 시간</div>
+            <div className="text-sm text-blue-700">50분 / 회</div>
           </div>
         </div>
         <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex items-center gap-3">
           <Phone size={20} className="text-emerald-600 shrink-0" />
           <div>
-            <div className="text-xs font-bold text-emerald-800">긴급 문의</div>
-            <div className="text-xs text-emerald-600">02-1234-5678</div>
+            <div className="text-sm font-bold text-emerald-800">긴급 문의</div>
+            <div className="text-sm text-emerald-700">02-1234-5678</div>
           </div>
         </div>
       </div>
@@ -100,37 +100,37 @@ export default function TaxReservationPage() {
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-5">
         {/* 이름 */}
         <div>
-          <label className="block text-sm font-semibold text-slate-700 mb-1.5">성함 <span className="text-red-500">*</span></label>
+          <label className="block text-base font-semibold text-slate-800 mb-1.5">성함 <span className="text-red-500">*</span></label>
           <input type="text" placeholder="홍길동" value={form.name}
             onChange={e => { setForm(p => ({ ...p, name: e.target.value })); setErrors(p => ({ ...p, name: '' })); }}
-            className={`w-full px-4 py-3 rounded-xl border text-sm focus:outline-none transition-colors ${errors.name ? 'border-red-300 focus:border-red-400' : 'border-slate-200 focus:border-slate-500'}`} />
-          {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
+            className={`w-full px-4 py-3 rounded-xl border text-base focus:outline-none transition-colors ${errors.name ? 'border-red-300 focus:border-red-400' : 'border-slate-200 focus:border-slate-500'}`} />
+          {errors.name && <p className="text-red-600 text-sm mt-1">{errors.name}</p>}
         </div>
 
         {/* 연락처 */}
         <div>
-          <label className="block text-sm font-semibold text-slate-700 mb-1.5">휴대폰 <span className="text-red-500">*</span></label>
+          <label className="block text-base font-semibold text-slate-800 mb-1.5">휴대폰 <span className="text-red-500">*</span></label>
           <input type="tel" placeholder="010-1234-5678" value={form.phone}
             onChange={e => { setForm(p => ({ ...p, phone: e.target.value })); setErrors(p => ({ ...p, phone: '' })); }}
-            className={`w-full px-4 py-3 rounded-xl border text-sm focus:outline-none transition-colors ${errors.phone ? 'border-red-300 focus:border-red-400' : 'border-slate-200 focus:border-slate-500'}`} />
-          {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
+            className={`w-full px-4 py-3 rounded-xl border text-base focus:outline-none transition-colors ${errors.phone ? 'border-red-300 focus:border-red-400' : 'border-slate-200 focus:border-slate-500'}`} />
+          {errors.phone && <p className="text-red-600 text-sm mt-1">{errors.phone}</p>}
         </div>
 
         {/* 이메일 */}
         <div>
-          <label className="block text-sm font-semibold text-slate-700 mb-1.5">이메일 <span className="text-slate-400 font-normal text-xs">(선택)</span></label>
+          <label className="block text-base font-semibold text-slate-800 mb-1.5">이메일 <span className="text-slate-600 font-normal text-sm">(선택)</span></label>
           <input type="email" placeholder="example@email.com" value={form.email}
             onChange={e => setForm(p => ({ ...p, email: e.target.value }))}
-            className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-slate-500 focus:outline-none text-sm" />
+            className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-slate-500 focus:outline-none text-base" />
         </div>
 
         {/* 사업 형태 */}
         <div>
-          <label className="block text-sm font-semibold text-slate-700 mb-2">사업 형태</label>
+          <label className="block text-base font-semibold text-slate-800 mb-2">사업 형태</label>
           <div className="flex flex-wrap gap-2">
             {BUSINESS_TYPES.map(t => (
               <button key={t} onClick={() => setForm(p => ({ ...p, businessType: t }))}
-                className={`text-sm px-4 py-2 rounded-xl border-2 font-medium transition-all ${form.businessType === t ? 'border-slate-700 bg-slate-800 text-white' : 'border-slate-200 text-slate-600 hover:border-slate-400'}`}>
+                className={`text-sm px-4 py-2 rounded-xl border-2 font-medium transition-all ${form.businessType === t ? 'border-slate-700 bg-slate-800 text-white' : 'border-slate-200 text-slate-700 hover:border-slate-400'}`}>
                 {t}
               </button>
             ))}
@@ -139,51 +139,51 @@ export default function TaxReservationPage() {
 
         {/* 상담 주제 */}
         <div>
-          <label className="block text-sm font-semibold text-slate-700 mb-2">상담 주제 <span className="text-red-500">*</span></label>
+          <label className="block text-base font-semibold text-slate-800 mb-2">상담 주제 <span className="text-red-500">*</span></label>
           <div className="flex flex-wrap gap-2">
             {TOPICS.map(t => (
               <button key={t} onClick={() => { setForm(p => ({ ...p, topic: t })); setErrors(p => ({ ...p, topic: '' })); }}
-                className={`text-sm px-4 py-2 rounded-xl border-2 font-medium transition-all ${form.topic === t ? 'border-blue-600 bg-blue-600 text-white' : 'border-slate-200 text-slate-600 hover:border-blue-300'}`}>
+                className={`text-sm px-4 py-2 rounded-xl border-2 font-medium transition-all ${form.topic === t ? 'border-blue-600 bg-blue-600 text-white' : 'border-slate-200 text-slate-700 hover:border-blue-300'}`}>
                 {t}
               </button>
             ))}
           </div>
-          {errors.topic && <p className="text-red-500 text-xs mt-1">{errors.topic}</p>}
+          {errors.topic && <p className="text-red-600 text-sm mt-1">{errors.topic}</p>}
         </div>
 
         {/* 날짜·시간 */}
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-1.5">날짜 <span className="text-red-500">*</span></label>
+            <label className="block text-base font-semibold text-slate-800 mb-1.5">날짜 <span className="text-red-500">*</span></label>
             <input type="date" min={getMinDate()} value={form.date}
               onChange={e => { setForm(p => ({ ...p, date: e.target.value })); setErrors(p => ({ ...p, date: '' })); }}
-              className={`w-full px-4 py-3 rounded-xl border text-sm focus:outline-none transition-colors ${errors.date ? 'border-red-300' : 'border-slate-200 focus:border-slate-500'}`} />
-            {errors.date && <p className="text-red-500 text-xs mt-1">{errors.date}</p>}
+              className={`w-full px-4 py-3 rounded-xl border text-base focus:outline-none transition-colors ${errors.date ? 'border-red-300' : 'border-slate-200 focus:border-slate-500'}`} />
+            {errors.date && <p className="text-red-600 text-sm mt-1">{errors.date}</p>}
           </div>
           <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-1.5">시간 <span className="text-red-500">*</span></label>
+            <label className="block text-base font-semibold text-slate-800 mb-1.5">시간 <span className="text-red-500">*</span></label>
             <select value={form.time} onChange={e => { setForm(p => ({ ...p, time: e.target.value })); setErrors(p => ({ ...p, time: '' })); }}
-              className={`w-full px-4 py-3 rounded-xl border text-sm focus:outline-none bg-white transition-colors ${errors.time ? 'border-red-300' : 'border-slate-200 focus:border-slate-500'}`}>
+              className={`w-full px-4 py-3 rounded-xl border text-base focus:outline-none bg-white transition-colors ${errors.time ? 'border-red-300' : 'border-slate-200 focus:border-slate-500'}`}>
               <option value="">시간 선택</option>
               {TIMES.map(t => <option key={t} value={t}>{t}</option>)}
             </select>
-            {errors.time && <p className="text-red-500 text-xs mt-1">{errors.time}</p>}
+            {errors.time && <p className="text-red-600 text-sm mt-1">{errors.time}</p>}
           </div>
         </div>
 
         {/* 메모 */}
         <div>
-          <label className="block text-sm font-semibold text-slate-700 mb-1.5">추가 문의사항 <span className="text-slate-400 font-normal text-xs">(선택)</span></label>
+          <label className="block text-base font-semibold text-slate-800 mb-1.5">추가 문의사항 <span className="text-slate-600 font-normal text-sm">(선택)</span></label>
           <textarea rows={3} placeholder="미리 준비해야 할 서류나 궁금한 점을 남겨주세요." value={form.note}
             onChange={e => setForm(p => ({ ...p, note: e.target.value }))}
-            className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-slate-500 focus:outline-none text-sm resize-none" />
+            className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-slate-500 focus:outline-none text-base resize-none" />
         </div>
 
         <button onClick={handleSubmit} disabled={submitting}
           className="w-full bg-gradient-to-r from-slate-700 to-blue-800 hover:from-slate-800 hover:to-blue-900 disabled:opacity-60 text-white font-black py-4 rounded-2xl shadow-md transition-all text-base">
           {submitting ? '예약 중...' : '상담 예약하기'}
         </button>
-        <p className="text-center text-[10px] text-slate-400">※ 데모 화면 – 실제 예약이 이루어지지 않습니다</p>
+        <p className="text-center text-sm text-slate-600">※ 데모 화면 – 실제 예약이 이루어지지 않습니다</p>
       </div>
     </div>
   );
