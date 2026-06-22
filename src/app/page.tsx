@@ -314,7 +314,7 @@ function Navbar() {
           />
         </div>
 
-        <nav className="hidden md:flex items-center gap-7 text-sm font-medium text-stone-500">
+        <nav className="hidden md:flex items-center gap-7 text-base font-medium text-stone-700">
           <a href="#features" className="hover:text-stone-900 transition-colors">기능</a>
           <a href="#industries" className="hover:text-stone-900 transition-colors">업종</a>
           <a href="#pricing" className="hover:text-stone-900 transition-colors">요금제</a>
@@ -325,13 +325,13 @@ function Navbar() {
           <AddToHomeButton />
           <Link
             href="/login"
-            className="text-sm font-medium text-stone-600 hover:text-stone-900 transition-colors px-3 py-1.5"
+            className="text-base font-medium text-stone-700 hover:text-stone-900 transition-colors px-3 py-1.5"
           >
             로그인
           </Link>
           <Link
             href="/signup"
-            className="text-sm font-semibold bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg transition-colors"
+            className="text-base font-semibold bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg transition-colors"
           >
             무료 시작
           </Link>
@@ -397,7 +397,7 @@ function Hero() {
               <span className="text-amber-600">AI가 5분 만에</span> 완성
             </h1>
 
-            <p className="text-stone-500 text-xl leading-relaxed max-w-xl mx-auto lg:mx-0">
+            <p className="text-stone-700 text-xl leading-relaxed max-w-xl mx-auto lg:mx-0">
               업종만 선택하면 예약·주문·결제까지 갖춘
               스마트 홈페이지를 자동으로 만들어 드립니다.
               코딩 지식 없이도 바로 오픈.
@@ -420,7 +420,7 @@ function Hero() {
               </a>
             </div>
 
-            <div className="flex items-center gap-5 justify-center lg:justify-start text-sm text-stone-400">
+            <div className="flex items-center gap-5 justify-center lg:justify-start text-base text-stone-600">
               {['신용카드 불필요', '5분 내 완성', '언제든 취소 가능'].map((t) => (
                 <span key={t} className="flex items-center gap-1">
                   <Check size={12} className="text-emerald-500" />
@@ -523,7 +523,7 @@ function Stats() {
           {items.map(({ value, label }) => (
             <div key={label} className="text-center">
               <p className="text-4xl font-bold text-amber-600">{value}</p>
-              <p className="text-base text-stone-500 mt-1">{label}</p>
+              <p className="text-base text-stone-700 mt-1">{label}</p>
             </div>
           ))}
         </div>
@@ -561,7 +561,7 @@ function HowItWorks() {
         <div className="text-center mb-14">
           <p className="text-sm font-semibold text-amber-600 uppercase tracking-widest mb-3">How it works</p>
           <h2 className="text-3xl sm:text-4xl font-bold text-stone-900">단 세 단계로 완성</h2>
-          <p className="text-stone-500 text-base mt-3 max-w-md mx-auto">복잡한 설정 없이 누구나 5분 안에 완성도 높은 홈페이지를 오픈할 수 있습니다.</p>
+          <p className="text-stone-700 text-base mt-3 max-w-md mx-auto">복잡한 설정 없이 누구나 5분 안에 완성도 높은 홈페이지를 오픈할 수 있습니다.</p>
         </div>
 
         <div className="grid md:grid-cols-3 gap-8">
@@ -574,11 +574,11 @@ function HowItWorks() {
                 <span className="text-4xl font-black text-stone-100">{step.num}</span>
               </div>
               <h3 className="font-bold text-stone-900 text-xl">{step.title}</h3>
-              <p className="text-stone-500 text-base leading-relaxed">{step.desc}</p>
+              <p className="text-stone-700 text-base leading-relaxed">{step.desc}</p>
               {i < 2 && (
                 <ChevronRight
                   size={20}
-                  className="hidden md:block absolute -right-3 top-1/2 -translate-y-1/2 text-stone-300"
+                  className="hidden md:block absolute -right-3 top-1/2 -translate-y-1/2 text-stone-500"
                 />
               )}
             </div>
@@ -597,7 +597,7 @@ function Industries() {
         <div className="text-center mb-14">
           <p className="text-sm font-semibold text-amber-600 uppercase tracking-widest mb-3">Industries</p>
           <h2 className="text-3xl sm:text-4xl font-bold text-stone-900">어떤 업종이든 바로 시작</h2>
-          <p className="text-stone-500 text-base mt-3 max-w-md mx-auto">
+          <p className="text-stone-700 text-base mt-3 max-w-md mx-auto">
             각 업종에 특화된 기능과 디자인이 자동으로 적용됩니다.{' '}
             <span className="text-amber-600 font-medium">카드를 클릭해 데모를 체험해 보세요.</span>
           </p>
@@ -614,10 +614,10 @@ function Industries() {
                 {ind.icon}
               </div>
               <div>
-                <p className="font-semibold text-stone-800 text-sm">{ind.name}</p>
-                <p className="hidden sm:block text-xs text-stone-400 mt-0.5">{ind.sub}</p>
+                <p className="font-semibold text-stone-900 text-base">{ind.name}</p>
+                <p className="hidden sm:block text-sm text-stone-600 mt-0.5">{ind.sub}</p>
               </div>
-              <ChevronRight size={10} className="text-stone-300 group-hover:text-amber-500 transition-colors" />
+              <ChevronRight size={10} className="text-stone-500 group-hover:text-amber-500 transition-colors" />
             </Link>
           ))}
         </div>
@@ -673,7 +673,7 @@ function Features() {
         <div className="text-center mb-14">
           <p className="text-sm font-semibold text-amber-600 uppercase tracking-widest mb-3">Features</p>
           <h2 className="text-3xl sm:text-4xl font-bold text-stone-900">필요한 기능, 전부 포함</h2>
-          <p className="text-stone-500 text-base mt-3 max-w-md mx-auto">비싼 플러그인 없이 모든 스마트 기능이 기본 탑재됩니다.</p>
+          <p className="text-stone-700 text-base mt-3 max-w-md mx-auto">비싼 플러그인 없이 모든 스마트 기능이 기본 탑재됩니다.</p>
         </div>
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -684,7 +684,7 @@ function Features() {
               </div>
               <div>
                 <h3 className="font-bold text-stone-900 text-lg">{title}</h3>
-                <p className="text-stone-500 text-base mt-1.5 leading-relaxed">{desc}</p>
+                <p className="text-stone-700 text-base mt-1.5 leading-relaxed">{desc}</p>
               </div>
             </div>
           ))}
@@ -835,7 +835,7 @@ function DemoPreview() {
         <div className="text-center mb-2">
           <p className="text-sm font-semibold text-amber-600 uppercase tracking-widest mb-3">Live Demo</p>
           <h2 className="text-3xl sm:text-4xl font-bold text-stone-900">실제 데모를 직접 체험해 보세요</h2>
-          <p className="text-stone-500 text-base mt-3 max-w-md mx-auto">AIZET가 자동 생성한 업종별 데모입니다. 모든 기능이 실제로 작동합니다.</p>
+          <p className="text-stone-700 text-base mt-3 max-w-md mx-auto">AIZET가 자동 생성한 업종별 데모입니다. 모든 기능이 실제로 작동합니다.</p>
         </div>
 
         {/* Restaurant demo */}
@@ -1105,9 +1105,9 @@ function MySpaceSection() {
               <span className="text-violet-600">나만의 조용한 공간</span>
             </h2>
 
-            <p className="text-stone-500 text-base leading-relaxed max-w-lg">
+            <p className="text-stone-700 text-base leading-relaxed max-w-lg">
               알고리즘 노출 없이, 댓글 없이, 좋아요 없이. 동영상과 이미지를 내가 원하는 사람에게만
-              공유하는 <strong className="text-stone-700">프라이버시 중심 개인 미디어 공간</strong>입니다.
+              공유하는 <strong className="text-stone-800">프라이버시 중심 개인 미디어 공간</strong>입니다.
               구글 드라이브와 연동해 원본 화질 그대로 보관하세요.
             </p>
 
@@ -1117,7 +1117,7 @@ function MySpaceSection() {
                   <span className={`mt-0.5 flex-shrink-0 ${color.split(' ')[1]}`}>{icon}</span>
                   <div>
                     <p className="text-xs font-semibold text-stone-800">{label}</p>
-                    <p className="text-[11px] text-stone-500 mt-0.5 leading-snug">{desc}</p>
+                    <p className="text-xs text-stone-600 mt-0.5 leading-snug">{desc}</p>
                   </div>
                 </div>
               ))}
@@ -1229,7 +1229,7 @@ function PromptLibraryCTA() {
             <br />
             <span className="text-amber-600">복사 한 번</span>으로 시작
           </h2>
-          <p className="text-stone-500 text-base leading-relaxed max-w-md">
+          <p className="text-stone-700 text-base leading-relaxed max-w-md">
             식당·카페·미용실 등 8개 업종에 맞는 이미지·영상·SNS 프롬프트를 무료로 제공합니다.
             Midjourney, DALL·E, Runway에 바로 붙여 쓰세요.
           </p>
@@ -1312,7 +1312,7 @@ function Testimonials() {
               <p className="text-stone-600 text-base leading-relaxed flex-1">"{text}"</p>
               <div>
                 <p className="font-semibold text-stone-800 text-base">{name}</p>
-                <p className="text-sm text-stone-400 mt-0.5">{role} · {location}</p>
+                <p className="text-sm text-stone-600 mt-0.5">{role} · {location}</p>
               </div>
             </div>
           ))}
@@ -1456,7 +1456,7 @@ function Pricing() {
         <div className="text-center mb-14">
           <p className="text-sm font-semibold text-amber-600 uppercase tracking-widest mb-3">Pricing</p>
           <h2 className="text-3xl sm:text-4xl font-bold text-stone-900">합리적인 요금제</h2>
-          <p className="text-stone-500 text-base mt-3">초기 비용 없이 시작, 성장에 맞게 업그레이드하세요.</p>
+          <p className="text-stone-700 text-base mt-3">초기 비용 없이 시작, 성장에 맞게 업그레이드하세요.</p>
         </div>
 
         <div className="grid md:grid-cols-3 gap-6 items-start">
@@ -1469,11 +1469,11 @@ function Pricing() {
               )}
               <div>
                 <h3 className="font-bold text-stone-900 text-xl">{name}</h3>
-                <p className="text-stone-400 text-sm mt-1">{desc}</p>
+                <p className="text-stone-600 text-sm mt-1">{desc}</p>
               </div>
               <div className="flex items-end gap-0.5">
                 <span className="text-4xl font-black text-stone-900">{price}</span>
-                {period && <span className="text-stone-400 text-base mb-1">{period}</span>}
+                {period && <span className="text-stone-600 text-base mb-1">{period}</span>}
               </div>
               <ul className="flex flex-col gap-2.5">
                 {features.map((f) => (
