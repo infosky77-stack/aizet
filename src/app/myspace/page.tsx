@@ -8,7 +8,8 @@ import {
   Share2, Shield, BookOpen, ChevronDown, Search, Play,
   User, ExternalLink, Cloud, HardDrive,
 } from 'lucide-react';
-import { getDriveState, connectDrive, fmtBytes, type DriveState } from '@/lib/google-drive';
+import { fmtBytes, type DriveState } from '@/lib/google-drive';
+import { useSession } from '@/hooks/useSession';
 import { ALL_PROMPTS, INDUSTRY_META, type PromptCategory } from '@/lib/prompts-data';
 
 /* ─── Types ─────────────────────────────────────────────── */
@@ -362,7 +363,7 @@ function UploadModal({
                 )
                 : (
                   <button
-                    onClick={() => connectDrive('my@gmail.com', 'basic')}
+                    onClick={() => { window.location.href = '/api/auth/google?callbackUrl=/myspace'; }}
                     className="text-xs font-semibold text-blue-600 hover:text-blue-700"
                   >
                     연동하기
@@ -592,6 +593,7 @@ function ProfileModal({ profile, onClose, onSave }: {
 
 /* ─── Page ───────────────────────────────────────────────── */
 export default function MySpacePage() {
+  const { session } = useSession();
   const [profile, setProfile] = useState<Profile>(defaultProfile());
   const [items, setItems] = useState<MediaItem[]>([]);
   const [drive, setDrive] = useState<DriveState | null>(null);
@@ -603,8 +605,26 @@ export default function MySpacePage() {
     const data = loadData();
     setProfile(data.profile);
     setItems(data.items);
-    setDrive(getDriveState());
   }, []);
+
+  useEffect(() => {
+    if (!session) return;
+    if (!session.driveConnected) { setDrive(null); return; }
+    fetch('/api/drive/quota')
+      .then(r => r.ok ? r.json() : null)
+      .then(q => {
+        if (!q) return;
+        setDrive({
+          connected: true,
+          email: session.email,
+          tier: session.plan === 'free' ? 'basic' : 'premium',
+          usedBytes: q.usageInDrive ?? q.usage ?? 0,
+          totalBytes: q.limit ?? (session.plan === 'free' ? 15 * 1024 ** 3 : 2 * 1024 ** 4),
+          connectedAt: new Date().toISOString(),
+        });
+      })
+      .catch(() => {});
+  }, [session]);
 
   const persist = useCallback((p: Profile, its: MediaItem[]) => {
     setProfile(p);
@@ -757,7 +777,7 @@ export default function MySpacePage() {
               </div>
             ) : (
               <button
-                onClick={() => { setDrive(connectDrive('my@gmail.com', 'basic')); }}
+                onClick={() => { window.location.href = '/api/auth/google?callbackUrl=/myspace'; }}
                 className="flex items-center gap-1.5 text-sm font-semibold text-blue-600 hover:text-blue-700 border border-blue-200 hover:border-blue-300 bg-blue-50 px-3 py-2 rounded-xl transition-all"
               >
                 <Cloud size={13} />
