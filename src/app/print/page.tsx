@@ -313,13 +313,16 @@ export default function PrintCatalogPage() {
       {/* Header */}
       <header className="sticky top-0 z-30 bg-white/90 backdrop-blur border-b border-stone-100">
         <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
-          <div className="relative w-10 h-10 overflow-hidden rounded-xl shrink-0">
-            <Image
-              src="/print/fullinkey-logo.png"
-              alt="풀린키"
-              fill
-              className="object-cover object-left"
-            />
+          <div className="flex items-center gap-2.5 shrink-0">
+            <div className="relative w-10 h-10 overflow-hidden rounded-xl">
+              <Image
+                src="/print/fullinkey-logo.png"
+                alt="풀린키"
+                fill
+                className="object-cover object-left"
+              />
+            </div>
+            <span className="font-bold text-lg text-stone-800 tracking-tight">풀린키</span>
           </div>
           <nav className="hidden sm:flex items-center gap-1">
             {[
