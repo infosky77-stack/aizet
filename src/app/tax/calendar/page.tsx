@@ -32,7 +32,7 @@ export default function TaxCalendarPage() {
           <CalendarDays size={20} className="text-blue-600" />
           <h1 className="text-2xl font-black text-slate-900">세금 신고 기한 캘린더</h1>
         </div>
-        <p className="text-slate-500 text-sm">국세청 기준 주요 세금 신고 일정 · 기한을 놓치면 무신고 가산세 20% 부과</p>
+        <p className="text-slate-700 text-base">국세청 기준 주요 세금 신고 일정 · 기한을 놓치면 무신고 가산세 20% 부과</p>
       </div>
 
       {/* Filter */}
@@ -67,7 +67,7 @@ export default function TaxCalendarPage() {
             </div>
 
             {monthDeadlines.length === 0 ? (
-              <div className="text-center py-6 text-slate-400 text-sm">이 달은 주요 신고 기한이 없습니다.</div>
+              <div className="text-center py-6 text-slate-600 text-base">이 달은 주요 신고 기한이 없습니다.</div>
             ) : (
               <div className="space-y-2">
                 {monthDeadlines.map(d => {
@@ -76,11 +76,11 @@ export default function TaxCalendarPage() {
                   return (
                     <div key={d.id} className={`flex items-center gap-3 p-3 rounded-xl border ${isPast ? 'opacity-50 bg-gray-50 border-gray-100' : d.bg}`}>
                       <div className="w-8 h-8 bg-white rounded-lg flex flex-col items-center justify-center shadow-sm shrink-0">
-                        <span className="text-[9px] font-bold text-slate-400">{d.date.slice(5, 7)}/{d.date.slice(8)}</span>
+                        <span className="text-xs font-bold text-slate-700">{d.date.slice(5, 7)}/{d.date.slice(8)}</span>
                       </div>
                       <div className="min-w-0">
-                        <div className={`text-[10px] font-bold ${typeInfo.color}`}>{typeInfo.label}</div>
-                        <div className="text-xs font-semibold text-slate-800 leading-tight truncate">{d.title}</div>
+                        <div className={`text-xs font-bold ${typeInfo.color}`}>{typeInfo.label}</div>
+                        <div className="text-sm font-semibold text-slate-900 leading-tight truncate">{d.title}</div>
                       </div>
                     </div>
                   );
@@ -95,7 +95,7 @@ export default function TaxCalendarPage() {
               <AlertTriangle size={14} className="text-red-600" />
               <span className="text-sm font-bold text-red-700">가산세 안내</span>
             </div>
-            <div className="text-xs text-red-600 space-y-1 leading-relaxed">
+            <div className="text-sm text-red-700 space-y-1 leading-relaxed">
               <p>• 무신고 가산세: 납부세액의 <strong>20%</strong></p>
               <p>• 부정 무신고: <strong>40%</strong></p>
               <p>• 납부지연 가산세: 1일 <strong>0.022%</strong></p>
@@ -106,7 +106,7 @@ export default function TaxCalendarPage() {
 
         {/* Full deadline list */}
         <div className="lg:col-span-2">
-          <h2 className="font-bold text-slate-700 text-sm mb-3">전체 신고 일정 ({upcomingAll.length}건 예정)</h2>
+          <h2 className="font-bold text-slate-900 text-base mb-3">전체 신고 일정 ({upcomingAll.length}건 예정)</h2>
           <div className="space-y-3">
             {sorted.map(d => {
               const typeInfo = DEADLINE_TYPE_LABELS[d.type];
@@ -119,30 +119,30 @@ export default function TaxCalendarPage() {
                 <div key={d.id} className={`rounded-2xl border p-5 transition-all ${isPast ? 'opacity-50 bg-gray-50 border-gray-100' : `${d.bg} hover:shadow-md`}`}>
                   <div className="flex items-start gap-4">
                     <div className="w-14 h-14 bg-white rounded-2xl flex flex-col items-center justify-center shadow-sm shrink-0 border border-white">
-                      <span className="text-xs font-bold text-slate-400">{d.date.slice(5, 7)}월</span>
+                      <span className="text-sm font-bold text-slate-600">{d.date.slice(5, 7)}월</span>
                       <span className="text-2xl font-black text-slate-900 leading-none">{d.date.slice(8)}</span>
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap mb-1">
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${typeInfo.bg} ${typeInfo.color}`}>
+                        <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${typeInfo.bg} ${typeInfo.color}`}>
                           {typeInfo.label}
                         </span>
                         {!isPast && daysLeft <= 30 && (
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${daysLeft <= 7 ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>
+                          <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${daysLeft <= 7 ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>
                             D-{daysLeft}
                           </span>
                         )}
-                        {isPast && <span className="text-[10px] text-slate-400 font-semibold">마감</span>}
+                        {isPast && <span className="text-xs text-slate-500 font-semibold">마감</span>}
                       </div>
                       <div className="font-bold text-slate-900 mb-1">{d.title}</div>
-                      <div className="text-xs text-slate-600 space-y-0.5">
+                      <div className="text-sm text-slate-700 space-y-0.5">
                         <p>📅 신고 기간: {d.period}</p>
                         <p>👤 대상: {d.target}</p>
                         <p>⚠️ {d.penalty}</p>
                       </div>
                     </div>
                     {!isPast && (
-                      <Link href="/tax/reservation" className="shrink-0 text-xs font-bold bg-white border border-slate-200 text-slate-700 px-3 py-2 rounded-xl hover:bg-slate-50 transition-colors flex items-center gap-1">
+                      <Link href="/tax/reservation" className="shrink-0 text-sm font-bold bg-white border border-slate-200 text-slate-700 px-3 py-2 rounded-xl hover:bg-slate-50 transition-colors flex items-center gap-1">
                         <CalendarClock size={12} />
                         예약
                       </Link>
