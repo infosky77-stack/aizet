@@ -1,9 +1,8 @@
 'use client';
 
 import { use, useState } from 'react';
-import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowLeft, ShoppingCart, CheckCircle, Leaf, AlertCircle, Sparkles } from 'lucide-react';
+import { ArrowLeft, ShoppingCart, CheckCircle } from 'lucide-react';
 import { getProduct, THEME_COLORS } from '@/lib/hancandy/products';
 import { useCandyCart } from '@/store/candyCart';
 
@@ -26,6 +25,8 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
   }
 
   const tc = THEME_COLORS[product.themeKey];
+  const detailImage = `/images/hancandy/detail/hancandy_${product.number}ho_detail.png`;
+  const [imgFailed, setImgFailed] = useState(false);
 
   function handleAdd() {
     addItem(product!);
@@ -34,64 +35,50 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-10">
+    <div className="max-w-2xl mx-auto">
       {/* Back */}
-      <Link
-        href="/hancandy/products"
-        className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-green-700 mb-6 transition-colors"
-      >
-        <ArrowLeft size={14} />
-        제품 목록
-      </Link>
+      <div className="px-4 pt-6 pb-4">
+        <Link
+          href="/hancandy/products"
+          className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-green-700 transition-colors"
+        >
+          <ArrowLeft size={14} />
+          제품 목록
+        </Link>
+      </div>
 
-      {/* 상단 2열 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
-        {/* Left – 제품 비주얼 */}
-        <div className={`rounded-3xl ${product.headerBg} flex flex-col items-center justify-center p-12 text-center min-h-64`}>
-          <span className="text-8xl mb-4">{product.image}</span>
-          <div className={`text-4xl font-black ${tc.text} mb-1`}>{product.number}호</div>
-          <h1 className="text-2xl font-black text-gray-900 mb-1">{product.nameEn}</h1>
-          <p className={`text-sm font-semibold ${tc.text} opacity-80 mb-4`}>{product.slogan}</p>
-          <div className="flex gap-2 mt-2 flex-wrap justify-center">
+      {/* 상품 상세 이미지 (풀 너비 스크롤) */}
+      {imgFailed ? (
+        <div className={`mx-4 rounded-3xl ${product.headerBg} flex flex-col items-center justify-center py-16 text-center`}>
+          <span className="text-6xl mb-4">{product.image}</span>
+          <div className={`text-2xl font-black ${tc.text} mb-1`}>{product.name}</div>
+          <p className={`text-sm font-semibold ${tc.text} opacity-70 mb-4`}>{product.slogan}</p>
+          <div className="flex gap-2 flex-wrap justify-center mb-6">
             {product.benefitTags.map(t => (
               <span key={t} className={`text-xs font-semibold px-3 py-1 rounded-full ${tc.badge}`}>
                 #{t}
               </span>
             ))}
           </div>
+          <span className={`text-xs font-bold px-4 py-2 rounded-full ${tc.bg} text-white opacity-80`}>
+            상세 이미지 준비중
+          </span>
         </div>
+      ) : (
+        <img
+          src={detailImage}
+          alt={`${product.name} 상세 이미지`}
+          onError={() => setImgFailed(true)}
+          style={{ width: '100%', height: 'auto', display: 'block' }}
+        />
+      )}
 
-        {/* Right – 구매 정보 */}
-        <div className="flex flex-col gap-5">
-          {/* 컨셉 뱃지 */}
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className={`text-xs font-bold px-3 py-1 rounded-full ${tc.badge}`}>
-              {product.concept}
-            </span>
-            {product.badge && (
-              <span className={`text-xs font-bold px-3 py-1 rounded-full ${tc.bg} text-white`}>
-                {product.badge}
-              </span>
-            )}
-            <span className="text-xs bg-gray-100 text-gray-600 px-3 py-1 rounded-full font-semibold">
-              당류 0g
-            </span>
-            <span className="text-xs bg-gray-100 text-gray-600 px-3 py-1 rounded-full font-semibold">
-              무자극 설계
-            </span>
-          </div>
-
-          {/* 브랜드 카피 인용구 */}
-          {product.headerQuote && (
-            <blockquote className={`border-l-4 ${tc.border} pl-4 italic text-sm text-gray-600 leading-relaxed`}>
-              &ldquo;{product.headerQuote}&rdquo;
-            </blockquote>
-          )}
-
-          {/* 제품 설명 */}
-          <p className="text-gray-700 text-sm leading-relaxed">{product.longDescription}</p>
-
-          {/* 가격 */}
+      {/* 구매 정보 */}
+      <div className="px-4 py-6 flex flex-col gap-4">
+        {/* 제품명 + 가격 */}
+        <div>
+          <h1 className="text-xl font-black text-gray-900 mb-1">{product.name} — {product.nameEn}</h1>
+          <p className={`text-sm ${tc.text} font-semibold mb-3`}>{product.slogan}</p>
           <div className="flex items-baseline gap-2">
             <span className="text-3xl font-black text-gray-900">{product.price.toLocaleString()}원</span>
             {product.originalPrice && (
@@ -103,238 +90,45 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
               </>
             )}
           </div>
-          <p className="text-xs text-gray-400">{product.weight} · 1회 섭취량 {product.nutrition.servingSize}</p>
+          <p className="text-xs text-gray-400 mt-1">{product.weight} · 1회 섭취량 {product.nutrition.servingSize}</p>
+        </div>
 
-          {/* 장바구니 */}
-          <button
-            onClick={handleAdd}
-            className={`flex items-center justify-center gap-2 w-full py-4 rounded-2xl font-bold text-base transition-all shadow-md ${
-              added
-                ? 'bg-gray-100 text-gray-700 shadow-none'
-                : `bg-gradient-to-r ${tc.gradient} text-white shadow-lg`
-            }`}
-          >
-            {added ? (
-              <><CheckCircle size={18} /> 장바구니에 담겼습니다!</>
-            ) : (
-              <><ShoppingCart size={18} /> 장바구니에 담기</>
-            )}
-          </button>
+        {/* 장바구니 */}
+        <button
+          onClick={handleAdd}
+          className={`flex items-center justify-center gap-2 w-full py-4 rounded-2xl font-bold text-base transition-all shadow-md ${
+            added
+              ? 'bg-gray-100 text-gray-700 shadow-none'
+              : `bg-gradient-to-r ${tc.gradient} text-white shadow-lg`
+          }`}
+        >
+          {added ? (
+            <><CheckCircle size={18} /> 장바구니에 담겼습니다!</>
+          ) : (
+            <><ShoppingCart size={18} /> 장바구니에 담기</>
+          )}
+        </button>
+        <Link
+          href="/hancandy/cart"
+          className={`text-center text-sm font-semibold ${tc.text} hover:underline`}
+        >
+          장바구니 바로가기 →
+        </Link>
+
+        {/* AI 상담 CTA */}
+        <div className={`bg-gradient-to-r ${tc.gradient} rounded-2xl p-5 text-white flex items-center justify-between gap-4 flex-wrap mt-2`}>
+          <div>
+            <p className="font-bold text-base mb-1">1·2·3호 중 어떤 게 나에게 맞을까요?</p>
+            <p className="text-sm opacity-80">AI 상담으로 딱 맞는 호를 추천받아 보세요.</p>
+          </div>
           <Link
-            href="/hancandy/cart"
-            className={`text-center text-sm font-semibold ${tc.text} hover:underline`}
+            href="/hancandy/chat"
+            className="shrink-0 bg-white font-bold text-sm px-5 py-2.5 rounded-xl hover:bg-gray-50 transition-colors"
+            style={{ color: 'inherit' }}
           >
-            장바구니 바로가기 →
+            🤖 AI 상담받기 →
           </Link>
         </div>
-      </div>
-
-      {/* ── 핵심성분 섹션 ── */}
-      <section className="mb-8">
-        <div className="flex items-center gap-2 mb-5">
-          <Leaf size={18} className={tc.text} />
-          <h2 className="text-xl font-black text-gray-900">핵심성분</h2>
-          <span className="text-xs text-gray-400">— 어떤 성분이, 왜 들어 있나요?</span>
-        </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-          {product.keyIngredients.map((ing, i) => (
-            <div
-              key={ing.name}
-              className={`rounded-2xl border overflow-hidden ${i === 0 ? `${tc.bgLight} ${tc.border}` : 'bg-white border-gray-100 shadow-sm'}`}
-            >
-              {/* 성분 사진 */}
-              {ing.image ? (
-                <div className="relative w-full aspect-square">
-                  <Image
-                    src={ing.image}
-                    alt={ing.name}
-                    fill
-                    className="object-cover"
-                    sizes="(max-width: 640px) 50vw, 33vw"
-                  />
-                </div>
-              ) : (
-                <div className={`w-full aspect-square flex items-center justify-center ${i === 0 ? tc.bg : 'bg-gray-100'}`}>
-                  <Leaf size={32} className={i === 0 ? 'text-white' : 'text-gray-400'} />
-                </div>
-              )}
-
-              {/* 성분 정보 */}
-              <div className="p-3">
-                <div className="flex items-center gap-1.5 mb-1">
-                  <div className={`w-5 h-5 rounded-md flex items-center justify-center shrink-0 font-black text-[10px] ${i === 0 ? `${tc.bg} text-white` : 'bg-gray-100 text-gray-600'}`}>
-                    {i + 1}
-                  </div>
-                  <span className="font-black text-gray-900 text-sm leading-tight">{ing.name}</span>
-                </div>
-                {ing.nameDetail && (
-                  <p className="text-[10px] text-gray-400 mb-1 ml-6">{ing.nameDetail}</p>
-                )}
-                <p className={`text-xs font-semibold ${tc.text} mb-1 ml-6`}>{ing.role}</p>
-                <p className="text-xs text-gray-500 leading-relaxed ml-6">{ing.desc}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ── 제품 특징 섹션 ── */}
-      {product.characteristics && product.characteristics.length > 0 && (
-        <section className="mb-8">
-          <div className="flex items-center gap-2 mb-4">
-            <Sparkles size={18} className={tc.text} />
-            <h2 className="text-xl font-black text-gray-900">제품 특징</h2>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {product.characteristics.map(c => (
-              <div
-                key={c.label}
-                className={`rounded-2xl border ${tc.bgLight} ${tc.border} p-4 flex items-start gap-3`}
-              >
-                <div className={`w-6 h-6 rounded-lg ${tc.bg} text-white flex items-center justify-center shrink-0 text-xs font-bold`}>
-                  ✓
-                </div>
-                <div>
-                  <p className={`font-bold text-sm ${tc.textDark}`}>{c.label}</p>
-                  <p className="text-xs text-gray-500 mt-0.5">{c.desc}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* ── 일상 활용 시나리오 섹션 ── */}
-      <section className="mb-8">
-        <div className="flex items-center gap-2 mb-5">
-          <span className="text-xl">📍</span>
-          <h2 className="text-xl font-black text-gray-900">일상 활용 시나리오</h2>
-          <span className="text-xs text-gray-400">— 이런 상황에 드세요</span>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {product.scenarios.map(s => (
-            s.image ? (
-              /* 이미지형 시나리오 카드 */
-              <div
-                key={s.situation}
-                className={`rounded-2xl border overflow-hidden ${tc.border} hover:shadow-md transition-shadow`}
-              >
-                <div className="relative w-full aspect-video">
-                  <Image
-                    src={s.image}
-                    alt={s.situation}
-                    fill
-                    className="object-cover"
-                    sizes="(max-width: 640px) 100vw, 50vw"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-                  <div className="absolute bottom-0 left-0 right-0 p-3">
-                    <p className="font-bold text-white text-sm drop-shadow">{s.situation}</p>
-                  </div>
-                </div>
-                <div className={`p-4 bg-white`}>
-                  <p className="text-xs text-gray-600 leading-relaxed">{s.detail}</p>
-                </div>
-              </div>
-            ) : (
-              /* 텍스트형 시나리오 카드 */
-              <div
-                key={s.situation}
-                className={`flex items-start gap-4 rounded-2xl border p-4 bg-white ${tc.border} hover:shadow-sm transition-shadow`}
-              >
-                <span className="text-3xl shrink-0">{s.icon}</span>
-                <div>
-                  <div className="font-bold text-sm text-gray-900 mb-0.5">{s.situation}</div>
-                  <div className="text-xs text-gray-500 leading-relaxed">{s.detail}</div>
-                </div>
-              </div>
-            )
-          ))}
-        </div>
-      </section>
-
-      {/* ── 성분 목록 + 영양정보 ── */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-        {/* 영양 정보 */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-          <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-            <span>📊</span> 영양 정보
-            <span className="text-xs font-normal text-gray-400">({product.nutrition.servingSize} 기준)</span>
-          </h3>
-          <div className="divide-y divide-gray-50">
-            {[
-              { label: '열량', value: `${product.nutrition.calories}kcal` },
-              { label: '탄수화물', value: `${product.nutrition.carbs}g` },
-              { label: '당류', value: `${product.nutrition.sugar}g`, zero: true },
-              { label: '단백질', value: `${product.nutrition.protein}g` },
-              { label: '지방', value: `${product.nutrition.fat}g` },
-              { label: '식이섬유', value: `${product.nutrition.fiber}g` },
-            ].map(n => (
-              <div key={n.label} className="flex items-center justify-between py-2.5">
-                <span className="text-sm text-gray-600">{n.label}</span>
-                <span className={`text-sm font-bold ${n.zero ? tc.text : 'text-gray-800'}`}>
-                  {n.value}
-                  {n.zero && (
-                    <span className={`text-[10px] font-semibold ml-1 ${tc.badge} px-1.5 py-0.5 rounded-full`}>ZERO</span>
-                  )}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* 원재료 */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-          <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-            <Leaf size={16} className={tc.text} /> 원재료 및 성분
-          </h3>
-          <div className="flex flex-wrap gap-2 mb-5">
-            {product.ingredients.map((ing, i) => (
-              <span
-                key={i}
-                className={`text-xs px-2.5 py-1 rounded-full font-medium ${
-                  i === 0 ? `${tc.badge} font-bold` : 'bg-gray-100 text-gray-600'
-                }`}
-              >
-                {ing}
-              </span>
-            ))}
-          </div>
-          <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-start gap-2">
-            <AlertCircle size={14} className="text-amber-500 shrink-0 mt-0.5" />
-            <p className="text-xs text-amber-700 leading-relaxed">
-              본 제품은 의약품이 아니며 질병 예방·치료를 목적으로 하지 않습니다. 임산부·수유부·복약 중인 분은 섭취 전 전문가와 상담하세요.
-            </p>
-          </div>
-
-          <div className="mt-4 grid grid-cols-3 gap-2 text-center text-xs">
-            {[
-              { icon: '🚫', label: '무설탕' },
-              { icon: '🎨', label: '무색소' },
-              { icon: '🧪', label: '무방부제' },
-            ].map(b => (
-              <div key={b.label} className="bg-gray-50 rounded-xl py-2">
-                <div className="text-lg mb-0.5">{b.icon}</div>
-                <div className="font-semibold text-gray-600">{b.label}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* AI 상담 CTA */}
-      <div className={`bg-gradient-to-r ${tc.gradient} rounded-2xl p-6 text-white flex items-center justify-between gap-4 flex-wrap`}>
-        <div>
-          <p className="font-bold text-lg mb-1">1·2·3호 중 어떤 게 나에게 맞을까요?</p>
-          <p className="text-sm opacity-80">AI 상담으로 상황에 딱 맞는 호를 추천받아 보세요.</p>
-        </div>
-        <Link
-          href="/hancandy/chat"
-          className="shrink-0 bg-white font-bold text-sm px-5 py-2.5 rounded-xl hover:bg-gray-50 transition-colors"
-          style={{ color: 'inherit' }}
-        >
-          🤖 AI 상담받기 →
-        </Link>
       </div>
     </div>
   );

@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowRight, Scale, CalendarDays, Calculator, MessageCircle, CalendarClock, CheckCircle, Shield, Award, Users } from 'lucide-react';
+import { ArrowRight, CalendarDays, Calculator, MessageCircle, CalendarClock, CheckCircle, Shield, Award, Users } from 'lucide-react';
 import { TAX_DEADLINES, DEADLINE_TYPE_LABELS } from '@/lib/tax/data';
 
 const SERVICES = [
@@ -30,34 +30,20 @@ export default function TaxHome() {
     <div className="max-w-5xl mx-auto px-4 py-10">
       {/* Hero */}
       <section className="text-center mb-14">
-        <div className="inline-flex items-center gap-2 bg-slate-100 text-slate-700 text-xs font-semibold px-4 py-1.5 rounded-full mb-5">
-          <Scale size={12} />
-          AIZET × 세무법인 데모
-        </div>
-        <h1 className="text-4xl md:text-6xl font-black text-slate-900 leading-tight mb-5">
-          복잡한 세금,<br />
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-slate-700 to-blue-700">
-            AI와 함께 쉽게.
-          </span>
+        <h1 className="text-4xl md:text-5xl font-black text-slate-900 leading-tight mb-5">
+          카드 내역 자동 정리로,<br />
+          기장료 부담을 줄이세요.
         </h1>
-        <p className="text-lg text-slate-500 max-w-xl mx-auto mb-8 leading-relaxed">
-          세무법인 아이젯은 AI 기반 세금 분석과 전문 세무사 상담을 결합한<br />
-          스마트 세무 서비스를 제공합니다.
+        <p className="text-lg text-slate-600 max-w-xl mx-auto mb-8 leading-relaxed">
+          카드 사용 비율이 90% 이상이라면 거래 내역이 자동 분류·장부화되어<br />
+          월 기장료(8~10만원)를 절감할 수 있습니다.
         </p>
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-          <Link
-            href="/tax/reservation"
-            className="inline-flex items-center gap-2 bg-gradient-to-r from-slate-700 to-blue-800 hover:from-slate-800 hover:to-blue-900 text-white font-bold px-7 py-3.5 rounded-2xl shadow-lg shadow-slate-200 transition-all"
-          >
-            상담 예약하기 <ArrowRight size={16} />
-          </Link>
-          <Link
-            href="/tax/chat"
-            className="inline-flex items-center gap-2 border-2 border-slate-200 text-slate-700 hover:bg-slate-50 font-semibold px-6 py-3 rounded-2xl transition-colors"
-          >
-            AI 세무 상담 ✨
-          </Link>
-        </div>
+        <Link
+          href="/tax/reservation"
+          className="inline-flex items-center gap-2 bg-slate-800 hover:bg-slate-900 text-white font-bold px-8 py-4 rounded-2xl transition-colors"
+        >
+          기장료 절감 상담받기 <ArrowRight size={16} />
+        </Link>
       </section>
 
       {/* Services */}
@@ -68,7 +54,7 @@ export default function TaxHome() {
               <s.icon size={20} />
             </div>
             <div className="font-bold text-sm text-slate-800 mb-1">{s.title}</div>
-            <div className="text-xs text-slate-500 leading-relaxed">{s.desc}</div>
+            <div className="text-xs text-slate-600 leading-relaxed">{s.desc}</div>
             <ArrowRight size={13} className="mt-3 text-slate-300 group-hover:text-slate-600 transition-colors" />
           </Link>
         ))}
@@ -94,7 +80,7 @@ export default function TaxHome() {
             return (
               <div key={d.id} className={`rounded-2xl border p-4 flex items-center gap-4 ${d.bg}`}>
                 <div className={`w-12 h-12 rounded-xl flex flex-col items-center justify-center shrink-0 bg-white shadow-sm`}>
-                  <span className="text-xs font-bold text-slate-500">{d.date.slice(5, 7)}월</span>
+                  <span className="text-xs font-bold text-slate-600">{d.date.slice(5, 7)}월</span>
                   <span className="text-lg font-black text-slate-900 leading-none">{d.date.slice(8)}</span>
                 </div>
                 <div className="flex-1 min-w-0">
@@ -109,7 +95,7 @@ export default function TaxHome() {
                     )}
                   </div>
                   <div className="font-bold text-sm text-slate-800 truncate">{d.title}</div>
-                  <div className="text-xs text-slate-500">{d.period} · {d.target}</div>
+                  <div className="text-xs text-slate-600">{d.period} · {d.target}</div>
                 </div>
                 <Link href="/tax/reservation" className="shrink-0 text-xs font-bold bg-white border border-slate-200 text-slate-700 px-3 py-1.5 rounded-xl hover:bg-slate-50 transition-colors">
                   상담 예약
@@ -130,7 +116,7 @@ export default function TaxHome() {
                 <s.icon size={20} className="text-white" />
               </div>
               <div className="font-bold text-sm mb-1">{s.title}</div>
-              <div className="text-xs opacity-70 leading-relaxed">{s.desc}</div>
+              <div className="text-xs text-slate-300 leading-relaxed">{s.desc}</div>
             </div>
           ))}
         </div>
@@ -140,7 +126,7 @@ export default function TaxHome() {
       <section className="bg-white rounded-2xl border border-slate-100 shadow-sm p-8 text-center">
         <div className="text-3xl mb-3">🤖</div>
         <h2 className="text-xl font-black text-slate-900 mb-2">세금 질문이 있으신가요?</h2>
-        <p className="text-slate-500 text-sm mb-5 max-w-md mx-auto">
+        <p className="text-slate-600 text-sm mb-5 max-w-md mx-auto">
           AI 세무 상담사가 24시간 답변합니다. 부가세, 소득세, 절세 전략까지.
         </p>
         <div className="flex flex-wrap justify-center gap-2 mb-5">
