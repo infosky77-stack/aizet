@@ -36,6 +36,14 @@ export function AddToHomeButton({ mobile = false }: Props) {
       return;
     }
 
+    // 인라인 스크립트가 React보다 먼저 캡처해 둔 이벤트가 있으면 즉시 사용
+    const w = window as Window & { __pwaPrompt?: BeforeInstallPromptEvent };
+    if (w.__pwaPrompt) {
+      setDeferredPrompt(w.__pwaPrompt);
+      setShowButton(true);
+      return;
+    }
+
     const handler = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
