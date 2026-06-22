@@ -11,6 +11,7 @@ import {
   Loader2,
   ShoppingCart,
   Upload,
+  Lightbulb,
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import {
@@ -31,6 +32,16 @@ const CATEGORIES: { id: PrintCategory; label: string }[] = [
 ];
 
 const QUANTITIES = [100, 200, 500, 1000, 2000, 5000];
+
+// 업종별 추천 용지·코팅 프리셋 (print/page.tsx ProfessionCard 데이터 기반)
+const PROFESSION_PRESETS: Record<string, { label: string; paper: PaperType; coating: CoatingType; sides: 'single' | 'double'; tip: string }> = {
+  lawyer:     { label: '변호사·법무사',        paper: 'thick-art', coating: 'matte', sides: 'double', tip: '신뢰감을 주는 다크 컬러 + 무광 코팅이 법률 전문가에 잘 어울립니다.' },
+  accountant: { label: '세무사·회계사',        paper: 'snow',      coating: 'gloss', sides: 'double', tip: '깔끔한 화이트 배경에 포인트 컬러 로고로 전문성을 강조하세요.' },
+  designer:   { label: '디자이너·크리에이터',  paper: 'kraft',     coating: 'uv',    sides: 'double', tip: '개성 있는 질감의 모조지 + UV 스팟 코팅으로 첫인상을 차별화하세요.' },
+  doctor:     { label: '의사·한의사',          paper: 'thick-art', coating: 'matte', sides: 'double', tip: '차분한 네이비/그레이 계열로 안정감을 주되 로고와 직함을 크게 강조하세요.' },
+  architect:  { label: '건축사·인테리어',      paper: 'thick-art', coating: 'matte', sides: 'double', tip: '후면에 QR 코드로 포트폴리오를 연결하면 공간 설계 역량을 즉시 보여줄 수 있습니다.' },
+  educator:   { label: '교수·강사·컨설턴트',   paper: 'snow',      coating: 'gloss', sides: 'double', tip: '강연 분야와 저서를 뒷면에 담아 전문성을 한눈에 전달하세요.' },
+};
 
 type OptionBtnProps = {
   active: boolean;
@@ -67,14 +78,16 @@ function QuoteContent() {
 
   const initCategory = (searchParams.get('category') as PrintCategory) ?? 'business-card';
   const initSize = searchParams.get('size') ?? '';
+  const profession = searchParams.get('profession') ?? '';
+  const preset = PROFESSION_PRESETS[profession] ?? null;
 
   const [category, setCategory] = useState<PrintCategory>(initCategory);
   const [size, setSize] = useState<string>(initSize);
-  const [paper, setPaper] = useState<PaperType>('art');
+  const [paper, setPaper] = useState<PaperType>(preset?.paper ?? 'art');
   const [quantity, setQuantity] = useState<number>(100);
   const [binding, setBinding] = useState<BindingType>('none');
-  const [coating, setCoating] = useState<CoatingType>('none');
-  const [sides, setSides] = useState<PrintSide>('single');
+  const [coating, setCoating] = useState<CoatingType>(preset?.coating ?? 'none');
+  const [sides, setSides] = useState<PrintSide>(preset?.sides ?? 'single');
   const [price, setPrice] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -133,6 +146,22 @@ function QuoteContent() {
       </header>
 
       <div className="max-w-3xl mx-auto w-full px-4 py-6 pb-32 flex flex-col gap-6">
+        {/* Profession preset banner */}
+        {preset && (
+          <div className="flex items-start gap-3 bg-blue-50 border border-blue-200 rounded-2xl px-4 py-3.5">
+            <Lightbulb size={16} className="text-blue-600 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-bold text-blue-900">
+                {preset.label} 명함 추천 설정 적용됨
+              </p>
+              <p className="text-xs text-blue-700 mt-0.5 leading-relaxed">{preset.tip}</p>
+              <p className="text-[10px] text-blue-500 mt-1.5">
+                추천 용지·코팅·인쇄 면이 자동으로 선택되었습니다. 직접 변경할 수 있습니다.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Category */}
         <section className="bg-white rounded-2xl border border-stone-100 shadow-sm p-5">
           <h2 className="font-bold text-stone-800 text-sm mb-3 flex items-center gap-2">
