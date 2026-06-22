@@ -547,7 +547,11 @@ function QuantityStep({
 }
 
 // ── Done step ─────────────────────────────────────────────────────────────────
-function DoneStep({ orderId }: { orderId: string }) {
+function DoneStep({ orderId, azosTaskId, menuSynced }: {
+  orderId: string;
+  azosTaskId: string | null;
+  menuSynced: boolean;
+}) {
   const router = useRouter();
   return (
     <div className="flex flex-col items-center gap-6 py-10 text-center">
@@ -556,9 +560,7 @@ function DoneStep({ orderId }: { orderId: string }) {
       </div>
       <div>
         <p className="text-xl font-bold text-stone-800 mb-1">주문이 접수되었습니다!</p>
-        <p className="text-sm text-stone-500 mb-1">
-          담당 인쇄팀이 곧 연락드립니다
-        </p>
+        <p className="text-sm text-stone-500 mb-1">담당 인쇄팀이 곧 연락드립니다</p>
         <p className="text-xs text-stone-400">주문번호 · <span className="font-mono font-semibold text-stone-600">{orderId}</span></p>
       </div>
 
@@ -574,6 +576,22 @@ function DoneStep({ orderId }: { orderId: string }) {
             <span className="font-medium text-stone-700">{v}</span>
           </div>
         ))}
+      </div>
+
+      {/* AZOS 연동 상태 */}
+      <div className="w-full max-w-xs flex flex-col gap-2">
+        <div className={`flex items-center justify-between px-4 py-2.5 rounded-xl border text-xs font-semibold ${azosTaskId ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-stone-50 border-stone-200 text-stone-400'}`}>
+          <span>AZOS 인쇄 작업</span>
+          {azosTaskId
+            ? <span className="font-mono text-[10px] text-blue-500">{azosTaskId.slice(0, 8)}…</span>
+            : <span>연결 안 됨</span>}
+        </div>
+        {menuSynced && (
+          <div className="flex items-center justify-between px-4 py-2.5 rounded-xl border bg-emerald-50 border-emerald-200 text-xs font-semibold text-emerald-700">
+            <span>홈페이지 메뉴 반영</span>
+            <Check size={13} />
+          </div>
+        )}
       </div>
 
       <div className="flex flex-col gap-2 w-full max-w-xs">
@@ -613,6 +631,8 @@ export default function MenuPrintPage() {
   const [wasEdited, setWasEdited] = useState(false);
   const [ordering, setOrdering] = useState(false);
   const [orderId, setOrderId] = useState('');
+  const [azosTaskId, setAzosTaskId] = useState<string | null>(null);
+  const [menuSynced, setMenuSynced] = useState(false);
 
   const svg = generateMenuSVG(items, RESTAURANT_NAME, style);
 
@@ -648,6 +668,29 @@ export default function MenuPrintPage() {
     setStep('editor');
   }, []);
 
+  // Phase 3: 슈퍼에디터 편집 확정 → 메뉴 동기화 + AZOS deploy-homepage 태스크
+  const handleConfirmEditor = useCallback(async () => {
+    setStep('quantity');
+    try {
+      // editItems → MenuItem[] 변환 (원본 필드 보존, 편집 필드 덮어쓰기)
+      const merged = editItems.map(ei => {
+        const orig = items.find(i => i.id === ei.id);
+        return orig
+          ? { ...orig, nameKo: ei.nameKo, price: ei.price, description: ei.description, category: ei.category, available: ei.available }
+          : { id: ei.id, name: ei.nameKo, nameKo: ei.nameKo, price: ei.price, description: ei.description, category: ei.category, available: ei.available, tags: [], allergens: [], imageUrl: '' };
+      });
+      const res = await fetch('/api/menu/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items: merged, restaurantName: editName, style }),
+      });
+      if (res.ok) setMenuSynced(true);
+    } catch {
+      // 동기화 실패는 주문 흐름에 영향 없음
+    }
+  }, [editItems, items, editName, style]);
+
+  // Phase 2: 인쇄 주문 → AZOS print-order 태스크
   const handleOrder = useCallback(async (qty: number, price: number) => {
     setOrdering(true);
     try {
@@ -675,11 +718,13 @@ export default function MenuPrintPage() {
             : `AI 자동 생성 디자인 · ${TEMPLATES[style].name} 스타일`,
         }),
       });
-      const data = await res.json() as { order: { id: string } };
+      const data = await res.json() as { order: { id: string }; azosTaskId: string | null };
       setOrderId(data.order?.id ?? 'PRN-AUTO');
+      setAzosTaskId(data.azosTaskId ?? null);
       setStep('done');
     } catch {
       setOrderId('PRN-AUTO');
+      setAzosTaskId(null);
       setStep('done');
     }
     setOrdering(false);
@@ -755,7 +800,7 @@ export default function MenuPrintPage() {
             onNameChange={setEditName}
             onColorChange={setColorEdit}
             onBack={() => setStep('preview')}
-            onConfirm={() => setStep('quantity')}
+            onConfirm={handleConfirmEditor}
           />
         )}
 
@@ -767,7 +812,7 @@ export default function MenuPrintPage() {
           />
         )}
 
-        {step === 'done' && <DoneStep orderId={orderId} />}
+        {step === 'done' && <DoneStep orderId={orderId} azosTaskId={azosTaskId} menuSynced={menuSynced} />}
       </main>
     </div>
   );

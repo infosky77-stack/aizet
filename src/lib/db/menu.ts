@@ -240,14 +240,25 @@ export const MENU_ITEMS: MenuItem[] = [
   },
 ];
 
+// Mutable overlay — super editor writes here; public /menu reads from here
+let liveItems: MenuItem[] | null = null;
+
 export function getMenuItems(): MenuItem[] {
-  return MENU_ITEMS;
+  return liveItems ?? MENU_ITEMS;
 }
 
 export function getMenuItemById(id: string): MenuItem | undefined {
-  return MENU_ITEMS.find((item) => item.id === id);
+  return getMenuItems().find((item) => item.id === id);
 }
 
 export function getMenuByCategory(category: string): MenuItem[] {
-  return MENU_ITEMS.filter((item) => item.category === category && item.available);
+  return getMenuItems().filter((item) => item.category === category && item.available);
+}
+
+export function syncMenuItems(items: MenuItem[]): void {
+  liveItems = items;
+}
+
+export function getLastSyncedAt(): string | null {
+  return liveItems ? new Date().toISOString() : null;
 }
