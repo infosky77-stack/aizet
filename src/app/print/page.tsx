@@ -313,18 +313,13 @@ export default function PrintCatalogPage() {
       {/* Header */}
       <header className="sticky top-0 z-30 bg-white/90 backdrop-blur border-b border-stone-100">
         <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
+          <div className="relative w-10 h-10 overflow-hidden rounded-xl shrink-0">
             <Image
               src="/print/fullinkey-logo.png"
-              alt="FULL IN KEY"
-              width={24}
-              height={24}
-              className="rounded-lg object-contain"
+              alt="풀린키"
+              fill
+              className="object-cover object-left"
             />
-            <div>
-              <p className="font-bold text-stone-900 text-sm leading-tight">주식회사 풀린키</p>
-              <p className="text-[10px] text-stone-400 tracking-wider">GLOBAL INTERACTIVE</p>
-            </div>
           </div>
           <nav className="hidden sm:flex items-center gap-1">
             {[
@@ -403,7 +398,7 @@ export default function PrintCatalogPage() {
           <div className="flex flex-wrap gap-2 mt-5">
             {[
               { href: '/print/files', icon: Folder, label: '거래처 파일 관리', sub: '버전 관리 · 재주문' },
-              { href: '/print/labels', icon: Tag, label: '수출 라벨 생성기', sub: 'US/EU/JP/CN/KR/AU' },
+              { href: '/print/labels', icon: Tag, label: '수출 라벨 생성기', sub: '18개국 · 인증마크 자동포함' },
             ].map(({ href, icon: Icon, label, sub }) => (
               <Link
                 key={href}

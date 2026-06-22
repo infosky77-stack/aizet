@@ -290,10 +290,10 @@ export default function LabelsPage() {
             <div className="bg-white px-6 py-5 flex flex-col justify-center gap-2">
               <p className="text-[10px] font-bold text-blue-600 uppercase tracking-widest">수출 라벨 인쇄 전문</p>
               <h2 className="text-sm font-black text-stone-900 leading-snug">
-                6개국 규격 라벨을 즉시 생성 · 출력
+                18개국 규격 라벨을 즉시 생성 · 출력
               </h2>
               <p className="text-xs text-stone-500 leading-relaxed">
-                미국·EU·일본·중국·한국·호주 — 국가별 인증 마크(CE·PSE·CCC·RCM)를 포함한
+                미국·EU·영국·캐나다·일본·중국·한국·호주·인도·동남아·중동 등 18개국 — 국가별 인증 마크(CE·UKCA·PSE·CCC·RCM·BIS 등)를 포함한
                 수출 박스 라벨을 자동으로 생성합니다. 텍스트 편집 후 바로 인쇄 발주로 연결됩니다.
               </p>
             </div>
