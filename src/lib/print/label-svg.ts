@@ -254,7 +254,7 @@ export function getDefaultOverrides(country: LabelCountry): Required<LabelOverri
     col1X: 16,
     col2X: 160,
     barcodeX: 20,
-    barcodeY: 202,
+    barcodeY: 180,
     warningText: cfg.warningText ?? '',
   };
 }
@@ -276,6 +276,14 @@ export function generateLabelSVG(data: LabelData, overrides?: LabelOverrides): s
   const bcX    = overrides?.barcodeX        ?? d.barcodeX;
   const bcY    = overrides?.barcodeY        ?? d.barcodeY;
   const warn   = overrides?.warningText     ?? d.warningText;
+
+  // Clamp bcY so barcode bottom (guard bar height 65px) + 15px gap never reaches warning text (y=260)
+  const WARN_Y = 260;
+  const BAR_H  = 65;
+  const MIN_GAP = 15;
+  const effectiveBcY = warn.trim()
+    ? Math.min(bcY, WARN_Y - MIN_GAP - BAR_H)  // = max 180
+    : bcY;
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="280" viewBox="0 0 400 280" font-family="Arial, sans-serif">
   <rect width="400" height="280" fill="#FFFFFF" rx="4"/>
@@ -305,7 +313,7 @@ export function generateLabelSVG(data: LabelData, overrides?: LabelOverrides): s
 
   <line x1="${c1x}" y1="195" x2="384" y2="195" stroke="#EEEEEE" stroke-width="1"/>
 
-  <g transform="translate(${bcX}, ${bcY})">
+  <g transform="translate(${bcX}, ${effectiveBcY})">
     ${genBarcode(barcodeValue)}
   </g>
   <text x="${bcX}" y="275" fill="#333333" font-size="8" letter-spacing="3">${barcodeValue.toUpperCase().substring(0, 20)}</text>

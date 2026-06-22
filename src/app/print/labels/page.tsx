@@ -506,7 +506,7 @@ export default function LabelsPage() {
                   <SliderControl
                     label="바코드 Y"
                     value={overrides.barcodeY ?? defaults.barcodeY}
-                    min={185} max={215}
+                    min={160} max={180}
                     onChange={v => setOverrides(p => ({ ...p, barcodeY: v }))}
                   />
                 </div>
