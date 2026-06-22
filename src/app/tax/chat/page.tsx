@@ -107,14 +107,14 @@ export default function TaxChatPage() {
             <span className="text-xl">🤖</span>
           </div>
           <div>
-            <div className="font-bold text-slate-900 text-sm">AI 세무 상담사</div>
+            <div className="font-bold text-slate-900 text-base">AI 세무 상담사</div>
             <div className="flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              <div className="text-xs text-slate-400">세금 질문 24시간 답변</div>
+              <div className="text-sm text-slate-600">세금 질문 24시간 답변</div>
             </div>
           </div>
         </div>
-        <button onClick={() => setMessages([])} className="p-2 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors">
+        <button onClick={() => setMessages([])} className="p-2 rounded-xl text-slate-600 hover:text-slate-800 hover:bg-slate-100 transition-colors">
           <RefreshCw size={15} />
         </button>
       </div>
@@ -126,12 +126,12 @@ export default function TaxChatPage() {
             <div className="w-16 h-16 bg-gradient-to-br from-slate-100 to-blue-100 rounded-3xl flex items-center justify-center mx-auto mb-4 shadow-sm">
               <span className="text-3xl">⚖️</span>
             </div>
-            <div className="text-sm font-bold text-slate-800 mb-1">세무 AI에게 질문하세요</div>
-            <div className="text-xs text-slate-400 mb-5 max-w-xs mx-auto">소득세·부가세·법인세·절세 전략 등 세금 관련 모든 질문에 답변드립니다.</div>
+            <div className="text-base font-bold text-slate-900 mb-1">세무 AI에게 질문하세요</div>
+            <div className="text-sm text-slate-600 mb-5 max-w-xs mx-auto">소득세·부가세·법인세·절세 전략 등 세금 관련 모든 질문에 답변드립니다.</div>
             <div className="grid grid-cols-2 gap-2 max-w-sm mx-auto">
               {STARTERS.map(s => (
                 <button key={s} onClick={() => sendMessage(s)}
-                  className="text-xs text-left px-3 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 transition-colors font-medium">
+                  className="text-sm text-left px-3 py-2.5 bg-white border border-slate-200 text-slate-800 rounded-xl hover:bg-slate-50 transition-colors font-medium">
                   {s}
                 </button>
               ))}
@@ -147,10 +147,10 @@ export default function TaxChatPage() {
               </div>
             )}
             <div className={clsx(
-              'max-w-[85%] rounded-2xl px-4 py-3 text-sm whitespace-pre-wrap leading-relaxed',
+              'max-w-[85%] rounded-2xl px-4 py-3 text-base whitespace-pre-wrap leading-relaxed',
               msg.role === 'user'
                 ? 'bg-slate-800 text-white rounded-br-sm'
-                : 'bg-white border border-slate-200 text-slate-800 rounded-bl-sm shadow-sm'
+                : 'bg-slate-50 border border-slate-200 text-slate-900 rounded-bl-sm shadow-sm'
             )}>
               {msg.content}
               {msg.streaming && <span className="inline-block w-2 h-4 bg-blue-400 animate-pulse ml-1 align-middle rounded" />}
@@ -170,7 +170,7 @@ export default function TaxChatPage() {
         <div className="flex gap-2 mb-2">
           {QUICK_LINKS.map(l => (
             <Link key={l.href} href={l.href}
-              className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 bg-white border border-slate-200 text-slate-600 rounded-xl hover:border-slate-400 hover:text-slate-800 transition-colors">
+              className="flex items-center gap-1.5 text-sm font-semibold px-3 py-1.5 bg-white border border-slate-200 text-slate-700 rounded-xl hover:border-slate-400 hover:text-slate-900 transition-colors">
               <l.icon size={12} />
               {l.label}
             </Link>
@@ -186,7 +186,7 @@ export default function TaxChatPage() {
           onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
           placeholder="세금 관련 질문을 입력하세요..."
           rows={1}
-          className="flex-1 resize-none outline-none text-sm text-slate-800 placeholder-slate-400 max-h-28 px-2 py-1.5"
+          className="flex-1 resize-none outline-none text-base text-slate-900 placeholder-slate-500 max-h-28 px-2 py-1.5"
           style={{ minHeight: '36px' }}
         />
         <button
@@ -197,7 +197,7 @@ export default function TaxChatPage() {
           <Send size={15} />
         </button>
       </div>
-      <p className="text-center text-[10px] text-slate-400 mt-1.5">AI 답변은 참고용입니다. 실제 세무 신고는 전문 세무사와 상담하세요.</p>
+      <p className="text-center text-sm text-slate-600 mt-1.5">AI 답변은 참고용입니다. 실제 세무 신고는 전문 세무사와 상담하세요.</p>
     </div>
   );
 }
