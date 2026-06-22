@@ -11,6 +11,12 @@ export default function manifest(): MetadataRoute.Manifest {
     theme_color: '#f97316',
     icons: [
       {
+        src: '/aizet-app-icon-charcoal-192.png',
+        sizes: '192x192',
+        type: 'image/png',
+        purpose: 'any',
+      },
+      {
         src: '/aizet-app-icon-charcoal.png',
         sizes: '512x512',
         type: 'image/png',

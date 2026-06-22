@@ -21,7 +21,14 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ko" className={`${geist.variable} h-full`}>
-      <body className="min-h-full bg-[#fafaf8] text-[#1a1a1a] antialiased">{children}</body>
+      <body className="min-h-full bg-[#fafaf8] text-[#1a1a1a] antialiased">
+        {children}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js')}`,
+          }}
+        />
+      </body>
     </html>
   );
 }
