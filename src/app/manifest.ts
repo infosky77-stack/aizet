@@ -11,7 +11,7 @@ export default function manifest(): MetadataRoute.Manifest {
     theme_color: '#f97316',
     icons: [
       {
-        src: '/aizet-app-icon.png',
+        src: '/aizet-app-icon-charcoal.png',
         sizes: '512x512',
         type: 'image/png',
         purpose: 'maskable',
