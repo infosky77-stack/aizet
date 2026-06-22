@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Geist } from 'next/font/google';
 import './globals.css';
+import { DesktopModeBanner } from '@/components/DesktopModeBanner';
 
 const geist = Geist({ subsets: ['latin'], variable: '--font-geist-sans' });
 
@@ -22,6 +23,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="ko" className={`${geist.variable} h-full`}>
       <body className="min-h-full bg-[#fafaf8] text-[#1a1a1a] antialiased">
+        <DesktopModeBanner />
         {children}
         <script
           dangerouslySetInnerHTML={{
