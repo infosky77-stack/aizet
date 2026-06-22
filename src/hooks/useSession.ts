@@ -17,7 +17,7 @@ export function useSession() {
   }, []);
 
   function signOut() {
-    fetch('/api/auth/signout', { method: 'POST' }).then(() => { window.location.href = '/'; });
+    fetch('/api/auth/signout', { method: 'POST' }).then(() => { window.location.href = '/login'; });
   }
 
   return { session, status, signOut };

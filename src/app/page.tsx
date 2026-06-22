@@ -319,18 +319,6 @@ function Navbar() {
           <a href="#industries" className="hover:text-stone-900 transition-colors">업종</a>
           <a href="#pricing" className="hover:text-stone-900 transition-colors">요금제</a>
           <a href="#demo" className="hover:text-stone-900 transition-colors">데모</a>
-          <Link href="/myspace" className="flex items-center gap-1.5 hover:text-violet-600 transition-colors">
-            <Shield size={14} />
-            나만의 공간
-          </Link>
-          <Link href="/prompts" className="flex items-center gap-1.5 hover:text-amber-600 transition-colors">
-            <BookOpen size={14} />
-            프롬프트
-          </Link>
-          <Link href="/azos" className="flex items-center gap-1.5 hover:text-amber-600 transition-colors">
-            <LayoutDashboard size={14} />
-            AZOS 대시보드
-          </Link>
         </nav>
 
         <div className="hidden md:flex items-center gap-3">
@@ -369,30 +357,6 @@ function Navbar() {
               {item}
             </a>
           ))}
-          <Link
-            href="/myspace"
-            onClick={() => setOpen(false)}
-            className="flex items-center gap-2 text-sm font-medium text-violet-600 py-2"
-          >
-            <Shield size={14} />
-            나만의 공간 (MySpace)
-          </Link>
-          <Link
-            href="/prompts"
-            onClick={() => setOpen(false)}
-            className="flex items-center gap-2 text-sm font-medium text-amber-600 py-2"
-          >
-            <BookOpen size={14} />
-            프롬프트 라이브러리
-          </Link>
-          <Link
-            href="/azos"
-            onClick={() => setOpen(false)}
-            className="flex items-center gap-2 text-sm font-medium text-stone-600 py-2"
-          >
-            <LayoutDashboard size={14} />
-            AZOS 대시보드
-          </Link>
           <AddToHomeButton mobile />
           <Link
             href="/login"
