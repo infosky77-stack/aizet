@@ -29,16 +29,10 @@ export function MenuCard({ item }: Props) {
   }, [lightboxOpen]);
 
   return (
-    <div
-      className={clsx(
-        'bg-white rounded-2xl overflow-hidden shadow-sm border transition-shadow hover:shadow-md',
-        !item.available && 'opacity-50 pointer-events-none',
-        qty > 0 && 'border-amber-400 shadow-amber-100'
-      )}
-    >
+    <div className={clsx(!item.available && 'opacity-50 pointer-events-none')}>
       {/* Image */}
       <div
-        className={clsx('h-36 relative overflow-hidden', item.imageUrl && 'cursor-zoom-in')}
+        className={clsx('aspect-[4/3] relative overflow-hidden rounded-xl', item.imageUrl && 'cursor-zoom-in')}
         onDoubleClick={() => item.imageUrl && setLightboxOpen(true)}
       >
         {item.imageUrl ? (
@@ -71,10 +65,16 @@ export function MenuCard({ item }: Props) {
             </span>
           )}
         </div>
+        {/* 담은 수량 뱃지 */}
+        {qty > 0 && (
+          <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-amber-500 text-white text-xs font-black flex items-center justify-center shadow">
+            {qty}
+          </div>
+        )}
       </div>
 
       {/* Info */}
-      <div className="p-3 flex flex-col gap-1.5">
+      <div className="pt-2 px-1 pb-0 flex flex-col gap-1">
         <div className="flex items-start justify-between gap-1">
           <h3 className="font-semibold text-sm leading-tight text-stone-800">{item.nameKo}</h3>
           <div className="flex gap-1 shrink-0 mt-0.5">
@@ -83,9 +83,7 @@ export function MenuCard({ item }: Props) {
           </div>
         </div>
 
-        <p className="text-xs text-stone-400 line-clamp-2 leading-tight">{item.description}</p>
-
-        <div className="flex items-center justify-between mt-1">
+        <div className="flex items-center justify-between">
           <span className="font-bold text-amber-700">{item.price.toLocaleString()}원</span>
 
           {qty === 0 ? (

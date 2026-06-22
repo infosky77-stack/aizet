@@ -109,7 +109,7 @@ export default function MenuPage() {
             메뉴를 불러오는 중...
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-3 pb-24">
+          <div className="grid grid-cols-2 gap-2 pb-24">
             {filtered.map((item) => (
               <MenuCard key={item.id} item={item} />
             ))}
