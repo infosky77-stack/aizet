@@ -1,7 +1,8 @@
 'use client';
 
+import NextImage from 'next/image';
 import Link from 'next/link';
-import { ArrowRight, Leaf, Shield, CheckCircle, Droplets, Flame, Wind } from 'lucide-react';
+import { ArrowRight, Leaf, Shield, CheckCircle, Droplets, Flame } from 'lucide-react';
 import { CANDY_PRODUCTS, THEME_COLORS } from '@/lib/hancandy/products';
 import { useCandyCart } from '@/store/candyCart';
 
@@ -12,11 +13,145 @@ const BRAND_PILLARS = [
   { icon: Flame, title: '무색소·무방부제', desc: '인공 첨가물 없이, 자연 그대로의 기능성 케어', color: 'text-amber-600 bg-amber-100' },
 ];
 
-const NUMBER_MAP = {
-  1: { icon: '💧', label: '구강·수분', theme: 'green' as const },
-  2: { icon: '🛡️', label: '보호·진정', theme: 'blue' as const },
-  3: { icon: '✨', label: '순환·배출', theme: 'yellow' as const },
-};
+const PRODUCT_DETAILS = [
+  {
+    no: 1,
+    themeKey: 'green' as const,
+    headline: '인위적인 신맛으로 침을 짜내지 마세요,\n스스로 차오르는 천연 수분 오아시스',
+    subheadline: '수분과 활력의 오아시스 (Aqua & Vitality)',
+    intro: '시중의 강한 산성 구강 캔디와 달리 점막 자극과 치아 부식 유발 요소를 완전히 배제. 400년 전통 생맥산의 지혜를 담아 맥문동과 금은화 중심의 천연 레시피로 메마른 입안과 목에 마르지 않는 촉촉한 샘을 선물.',
+    ingredients: [
+      { name: '맥문동', role: '구강 건조 해결 핵심 엔진' },
+      { name: '금은화', role: '염증 다스리는 천연 방어막' },
+      { name: '오미자', role: '갈증 진정, 청량한 수분감' },
+    ],
+    safetyPoint: '무설탕(ZERO SUGAR), 취침 전에도 안심',
+    scenarios: [
+      { label: '비즈니스 미팅 전', icon: '🎤' },
+      { label: '장거리 운전·야간 주행', icon: '🚗' },
+      { label: '운동·아웃도어 활동 중', icon: '🏔️' },
+    ],
+    productImg: '/images/hancandy/hancandy-1-product.png',
+    lifestyleImg: '/images/hancandy/hancandy-1-lifestyle.png',
+  },
+  {
+    no: 2,
+    themeKey: 'blue' as const,
+    headline: '식후 30분, 당신의 지친 통로를\n편안하게 감싸줄 세련된 쉼표 한 장',
+    subheadline: '보호와 진정의 쉼표 (Protect & Calm)',
+    intro: '마(산약)와 유근피의 천연 점성 성분이 통로 벽면에 촘촘한 뮤신 코팅막을 형성해 자극으로부터 속을 부드럽게 보호.',
+    ingredients: [
+      { name: '마 / 산약', role: '위 점막 보호' },
+      { name: '유근피', role: '물리적 방어막' },
+      { name: '감초', role: '자극 완화' },
+    ],
+    safetyPoint: '100% 무자극 케어',
+    scenarios: [
+      { label: '예민해진 아침', icon: '🌅' },
+      { label: '맵고 자극적인 식사 후', icon: '🍽️' },
+      { label: '잦은 야근과 스트레스 속', icon: '🌙' },
+    ],
+    productImg: '/images/hancandy/hancandy-2-product.png',
+    lifestyleImg: '/images/hancandy/hancandy-2-lifestyle.png',
+  },
+  {
+    no: 3,
+    themeKey: 'yellow' as const,
+    headline: '무겁게 고인 식적(食積)을 없애다,\n속을 따뜻하게 소통시키는 천연 분해 에너지',
+    subheadline: '순환과 배출의 에너지 (Circulation & Detox)',
+    intro: '산사자의 천연 분해력에 생강의 온기를 더해 위장 온도를 유지하고 소화 효소를 활성화.',
+    ingredients: [
+      { name: '산사자', role: '소화 운동 촉진' },
+      { name: '나복자', role: '복부 팽만감 해소' },
+      { name: '진피', role: '순환 소통, 소화 효소 보조' },
+    ],
+    safetyPoint: '인공 소화제·화학 보존제 없이 자연 성분만',
+    scenarios: [
+      { label: '과식 후 복부 팽만감', icon: '🍖' },
+      { label: '더운 날씨 소화력 저하', icon: '☀️' },
+      { label: '운동 전후', icon: '🏃' },
+    ],
+    productImg: '/images/hancandy/hancandy-3-product.png',
+    lifestyleImg: '/images/hancandy/hancandy-3-lifestyle.png',
+  },
+];
+
+function ProductDetailSection({ detail }: { detail: typeof PRODUCT_DETAILS[number] }) {
+  const tc = THEME_COLORS[detail.themeKey];
+  return (
+    <section className={`rounded-3xl overflow-hidden mb-14 border ${tc.border}`}>
+      {/* 제품샷 */}
+      <div className="relative w-full aspect-[16/9] md:aspect-[21/8] bg-gray-100">
+        <NextImage
+          src={detail.productImg}
+          alt={`한캔디 ${detail.no}호 제품샷`}
+          fill
+          className="object-cover"
+          sizes="(max-width: 768px) 100vw, 80vw"
+        />
+      </div>
+
+      {/* 텍스트 콘텐츠 */}
+      <div className={`${tc.bgLight} px-6 md:px-12 py-10`}>
+        {/* 서브헤드라인 */}
+        <p className={`text-sm font-bold ${tc.text} mb-3 tracking-wide`}>{detail.subheadline}</p>
+
+        {/* 헤드라인 */}
+        <h2 className="text-2xl md:text-3xl font-black text-gray-900 leading-tight mb-5 whitespace-pre-line">
+          {detail.headline}
+        </h2>
+
+        {/* 소개 */}
+        <p className="text-gray-600 leading-relaxed mb-10 max-w-2xl text-base">{detail.intro}</p>
+
+        {/* 핵심 성분 */}
+        <div className="mb-8">
+          <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">핵심 성분</p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {detail.ingredients.map(ing => (
+              <div key={ing.name} className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
+                <div className={`text-sm font-black ${tc.text} mb-1`}>{ing.name}</div>
+                <div className={`text-xs text-gray-500`}>{ing.role}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* 안심 포인트 */}
+        <div className="mb-10">
+          <div className={`inline-flex items-center gap-2 ${tc.badge} px-5 py-2.5 rounded-full text-sm font-semibold`}>
+            <CheckCircle size={15} />
+            {detail.safetyPoint}
+          </div>
+        </div>
+
+        {/* 활용 시나리오 */}
+        <div>
+          <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">활용 시나리오</p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {detail.scenarios.map(s => (
+              <div key={s.label} className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex flex-col gap-2">
+                <span className="text-2xl">{s.icon}</span>
+                <div className={`text-sm font-bold ${tc.text}`}>{s.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* 라이프스타일 이미지 */}
+      <div className="relative w-full aspect-[16/7] bg-gray-100">
+        <NextImage
+          src={detail.lifestyleImg}
+          alt={`한캔디 ${detail.no}호 라이프스타일`}
+          fill
+          className="object-cover"
+          sizes="(max-width: 768px) 100vw, 80vw"
+        />
+      </div>
+    </section>
+  );
+}
 
 export default function HancandyHome() {
   const addItem = useCandyCart(s => s.addItem);
@@ -104,7 +239,6 @@ export default function HancandyHome() {
             const tc = THEME_COLORS[p.themeKey];
             return (
               <div key={p.id} className={`rounded-2xl border-2 overflow-hidden bg-white hover:shadow-xl transition-all group ${tc.border}`}>
-                {/* 상단 색상 밴드 */}
                 <div className={`${p.headerBg} px-6 pt-6 pb-5`}>
                   <div className="flex items-start justify-between mb-3">
                     <span className="text-5xl">{p.image}</span>
@@ -119,11 +253,9 @@ export default function HancandyHome() {
                   <div className={`text-xs mt-1 ${tc.text} opacity-80`}>{p.slogan}</div>
                 </div>
 
-                {/* 본문 */}
                 <div className="px-6 py-5">
                   <p className="text-sm text-gray-600 leading-relaxed mb-4">{p.description}</p>
 
-                  {/* 핵심성분 미리보기 */}
                   <div className="mb-4">
                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">핵심성분</p>
                     <div className="flex flex-wrap gap-1.5">
@@ -136,13 +268,11 @@ export default function HancandyHome() {
                     </div>
                   </div>
 
-                  {/* 대표 활용 상황 */}
                   <div className="mb-5">
                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">이런 때</p>
                     <p className="text-xs text-gray-500">{p.scenarios.slice(0, 2).map(s => s.situation).join(' · ')}</p>
                   </div>
 
-                  {/* 가격 + 버튼 */}
                   <div className="flex items-center justify-between pt-4 border-t border-gray-100">
                     <div>
                       <span className="text-lg font-black text-gray-900">{p.price.toLocaleString()}원</span>
@@ -169,6 +299,15 @@ export default function HancandyHome() {
           })}
         </div>
       </section>
+
+      {/* 제품별 상세 섹션 */}
+      <div className="mb-6">
+        <h2 className="text-2xl font-black text-gray-900 mb-1">제품 상세</h2>
+        <p className="text-sm text-gray-400">각 호(號)의 성분과 활용 방법을 자세히 알아보세요</p>
+      </div>
+      {PRODUCT_DETAILS.map(detail => (
+        <ProductDetailSection key={detail.no} detail={detail} />
+      ))}
 
       {/* 상황별 추천 가이드 */}
       <section className="bg-white rounded-3xl border border-gray-100 shadow-sm p-8 mb-14">
