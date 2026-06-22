@@ -5,7 +5,8 @@ import Link from 'next/link';
 import { StatCard } from '@/components/admin/StatCard';
 import { OrderCard } from '@/components/admin/OrderCard';
 import { Order, OrderStatus } from '@/types/order';
-import { TrendingUp, ShoppingBag, Clock, CheckCircle, Trophy, Printer, Sparkles, ChevronRight } from 'lucide-react';
+import { TrendingUp, ShoppingBag, Clock, CheckCircle, Trophy, Printer, Sparkles, ChevronRight, Cloud } from 'lucide-react';
+import { useSession } from '@/hooks/useSession';
 
 interface Stats {
   todayRevenue: number;
@@ -15,6 +16,7 @@ interface Stats {
 }
 
 export default function AdminDashboard() {
+  const { session } = useSession();
   const [orders, setOrders] = useState<Order[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [lastUpdated, setLastUpdated] = useState('');
@@ -54,12 +56,33 @@ export default function AdminDashboard() {
   return (
     <div className="p-6 flex flex-col gap-6 max-w-6xl">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-stone-800">대시보드</h1>
-          <p className="text-sm text-stone-400 mt-0.5">마지막 업데이트 {lastUpdated}</p>
+          {session ? (
+            <>
+              <p className="text-sm text-stone-400 font-medium">
+                안녕하세요,{' '}
+                <span className="text-stone-700 font-semibold">{session.name}</span>님
+              </p>
+              <h1 className="text-2xl font-bold text-stone-800 mt-0.5">대시보드</h1>
+              <div className="flex items-center gap-3 mt-1">
+                <p className="text-xs text-stone-400">마지막 업데이트 {lastUpdated}</p>
+                {session.driveConnected && (
+                  <span className="flex items-center gap-1 text-[11px] font-semibold text-blue-600 bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-full">
+                    <Cloud size={10} />
+                    Drive 연동됨
+                  </span>
+                )}
+              </div>
+            </>
+          ) : (
+            <>
+              <h1 className="text-2xl font-bold text-stone-800">대시보드</h1>
+              <p className="text-sm text-stone-400 mt-0.5">마지막 업데이트 {lastUpdated}</p>
+            </>
+          )}
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 shrink-0">
           {pendingOrders.length > 0 && (
             <div className="flex items-center gap-2 bg-yellow-50 border border-yellow-200 text-yellow-700 rounded-xl px-4 py-2 text-sm font-semibold">
               <span className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse" />
