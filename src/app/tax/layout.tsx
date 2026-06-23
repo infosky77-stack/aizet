@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Scale, Home, CalendarDays, Calculator, MessageCircle, CalendarClock } from 'lucide-react';
+import { Scale, Home, CalendarDays, Calculator, MessageCircle, CalendarClock, ChevronLeft } from 'lucide-react';
 
 const NAV = [
   { href: '/tax', label: '홈', icon: Home, exact: true },
@@ -17,6 +17,12 @@ export default function TaxLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
+      <div className="bg-stone-50 border-b border-stone-100 px-4 py-2 flex items-center">
+        <Link href="/" className="flex items-center gap-1 text-xs text-stone-400 hover:text-stone-600 transition-colors">
+          <ChevronLeft size={13} />
+          메인으로 돌아가기
+        </Link>
+      </div>
       <header className="bg-white/90 backdrop-blur border-b border-slate-100 sticky top-0 z-40 shadow-sm">
         <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
           <Link href="/tax" className="flex items-center gap-2.5 font-black text-slate-800">

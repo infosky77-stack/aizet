@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { fmtBytes, type DriveState } from '@/lib/google-drive';
 import { useSession } from '@/hooks/useSession';
+import { AizetLogo } from '@/components/AizetLogo';
 import { ALL_PROMPTS, INDUSTRY_META, type PromptCategory } from '@/lib/prompts-data';
 
 /* ─── Types ─────────────────────────────────────────────── */
@@ -666,7 +667,7 @@ export default function MySpacePage() {
         <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-1.5 text-stone-500 hover:text-stone-900 transition-colors text-sm font-medium">
             <ArrowLeft size={16} />
-            AIZET
+            <AizetLogo className="font-semibold text-sm" />
           </Link>
           <div className="flex items-center gap-2">
             <span className="text-xs font-semibold bg-violet-100 text-violet-700 px-2.5 py-1 rounded-full flex items-center gap-1">

@@ -10,6 +10,7 @@ import {
   Shield, Zap,
 } from 'lucide-react';
 import { clsx } from 'clsx';
+import { AizetLogo } from '@/components/AizetLogo';
 
 /* ─── Types ─────────────────────────────────────────────── */
 type Step = 1 | 2 | 3;
@@ -430,7 +431,7 @@ export default function SignupPage() {
           <div className="w-7 h-7 rounded-lg bg-amber-600 flex items-center justify-center">
             <UtensilsCrossed size={13} className="text-white" />
           </div>
-          <span className="font-bold text-stone-900 text-base tracking-tight">AIZET</span>
+          <AizetLogo className="font-bold text-base tracking-tight" />
         </Link>
         <Link href="/" className="text-sm text-stone-500 hover:text-stone-800 transition-colors">← 홈으로</Link>
       </nav>

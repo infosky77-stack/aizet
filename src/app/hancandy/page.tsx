@@ -164,13 +164,13 @@ export default function HancandyHome() {
           <Leaf size={12} />
           AIZET × HanCandy 브랜드 데모
         </div>
-        <h1 className="text-4xl md:text-5xl font-black text-gray-900 leading-tight mb-4">
+        <h1 className="text-5xl md:text-6xl font-black text-gray-900 leading-tight mb-4">
           몸이 원하는 한약,<br />
           <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-500 via-blue-500 to-amber-500">
             캔디 하나에 담았습니다.
           </span>
         </h1>
-        <p className="text-base text-gray-500 max-w-2xl mx-auto mb-3 leading-relaxed">
+        <p className="text-xl text-gray-500 max-w-2xl mx-auto mb-3 leading-relaxed">
           한캔디는 맥문동·금은화 등 전통 본초 원료로 만든 무설탕 기능성 캔디입니다.<br />
           <strong className="text-gray-700">1호 그린(구강수분) · 2호 블루(점막보호) · 3호 옐로우(소화순환)</strong> —<br />
           상황에 맞는 호(號)를 골라 드세요.
@@ -179,13 +179,13 @@ export default function HancandyHome() {
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-10">
           <Link
             href="/hancandy/products"
-            className="inline-flex items-center gap-2 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold px-7 py-3.5 rounded-2xl shadow-lg shadow-green-200 transition-all"
+            className="inline-flex items-center gap-2 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold text-xl px-9 py-5 rounded-2xl shadow-lg shadow-green-200 transition-all"
           >
             제품 보기 <ArrowRight size={16} />
           </Link>
           <Link
             href="/hancandy/chat"
-            className="inline-flex items-center gap-2 border-2 border-green-200 text-green-700 hover:bg-green-50 font-semibold px-6 py-3 rounded-2xl transition-colors"
+            className="inline-flex items-center gap-2 border-2 border-green-200 text-green-700 hover:bg-green-50 font-semibold text-xl px-8 py-4 rounded-2xl transition-colors"
           >
             🤖 어떤 호가 맞을까요?
           </Link>

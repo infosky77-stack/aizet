@@ -30,17 +30,17 @@ export default function TaxHome() {
     <div className="max-w-5xl mx-auto px-4 py-10">
       {/* Hero */}
       <section className="text-center mb-14">
-        <h1 className="text-4xl md:text-5xl font-black text-slate-900 leading-tight mb-5">
+        <h1 className="text-5xl md:text-6xl font-black text-slate-900 leading-tight mb-5">
           카드 내역 자동 정리로,<br />
           기장료 부담을 줄이세요.
         </h1>
-        <p className="text-lg text-slate-600 max-w-xl mx-auto mb-8 leading-relaxed">
+        <p className="text-xl text-slate-600 max-w-xl mx-auto mb-8 leading-relaxed">
           카드 사용 비율이 90% 이상이라면 거래 내역이 자동 분류·장부화되어<br />
           월 기장료(8~10만원)를 절감할 수 있습니다.
         </p>
         <Link
           href="/tax/reservation"
-          className="inline-flex items-center gap-2 bg-slate-800 hover:bg-slate-900 text-white font-bold px-8 py-4 rounded-2xl transition-colors"
+          className="inline-flex items-center gap-2 bg-slate-800 hover:bg-slate-900 text-white font-bold text-xl px-10 py-5 rounded-2xl transition-colors"
         >
           기장료 절감 상담받기 <ArrowRight size={16} />
         </Link>

@@ -33,11 +33,11 @@ export default function KoreanHome() {
           <BookOpen size={14} />
           한국어 교육 플랫폼 데모
         </div>
-        <h1 className="text-4xl md:text-5xl font-black text-gray-900 mb-4">
+        <h1 className="text-5xl md:text-6xl font-black text-gray-900 mb-4">
           한국어, 이제<br />
           <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-violet-600">AI와 함께</span> 배우세요
         </h1>
-        <p className="text-lg text-gray-500 max-w-xl mx-auto mb-6">
+        <p className="text-xl text-gray-500 max-w-xl mx-auto mb-6">
           외국인 학습자를 위한 스마트 한국어 학습 플랫폼.<br />
           AI 레벨 진단부터 회화 피드백까지 완벽하게.
         </p>
@@ -54,7 +54,7 @@ export default function KoreanHome() {
 
         <Link
           href="/korean/test"
-          className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-6 py-3 rounded-xl shadow-md transition-colors"
+          className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xl px-9 py-5 rounded-xl shadow-md transition-colors"
         >
           레벨 테스트 시작하기
           <ArrowRight size={16} />

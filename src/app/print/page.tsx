@@ -12,6 +12,7 @@ import {
   Package,
   Sparkles,
   Clock,
+  ChevronLeft,
   ChevronRight,
   Star,
   CreditCard,
@@ -310,6 +311,12 @@ export default function PrintCatalogPage() {
 
   return (
     <div className="flex flex-col min-h-screen">
+      <div className="bg-stone-50 border-b border-stone-100 px-4 py-2 flex items-center">
+        <Link href="/" className="flex items-center gap-1 text-xs text-stone-400 hover:text-stone-600 transition-colors">
+          <ChevronLeft size={13} />
+          메인으로 돌아가기
+        </Link>
+      </div>
       {/* Header */}
       <header className="sticky top-0 z-30 bg-white/90 backdrop-blur border-b border-stone-100">
         <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
@@ -373,24 +380,24 @@ export default function PrintCatalogPage() {
               AI 상담 · 실시간 견적
             </span>
           </div>
-          <h1 className="text-3xl sm:text-4xl font-black tracking-tight mb-3 leading-tight">
+          <h1 className="text-4xl sm:text-5xl font-black tracking-tight mb-3 leading-tight">
             빠르고 정확한<br />맞춤 인쇄 서비스
           </h1>
-          <p className="text-blue-200 text-sm mb-7 max-w-lg">
+          <p className="text-blue-200 text-lg mb-7 max-w-lg">
             디지털 컬러·흑백 윤전기와 후가공 장비가 완전 자동화 —<br className="hidden sm:block" />
             명함부터 패키지까지 AI가 최적 옵션을 안내하고 실시간 견적을 제공합니다.
           </p>
           <div className="flex flex-wrap gap-3">
             <button
               onClick={() => router.push('/print/quote')}
-              className="flex items-center gap-2 px-5 py-2.5 bg-white text-blue-700 font-bold rounded-xl text-sm hover:bg-blue-50 transition-colors shadow-sm"
+              className="flex items-center gap-2 px-8 py-4 bg-white text-blue-700 font-bold rounded-xl text-xl hover:bg-blue-50 transition-colors shadow-sm"
             >
               <Calculator size={15} />
               견적 계산기
             </button>
             <button
               onClick={() => router.push('/print/chat')}
-              className="flex items-center gap-2 px-5 py-2.5 bg-blue-500/30 hover:bg-blue-500/40 text-white font-semibold rounded-xl text-sm transition-colors border border-white/20"
+              className="flex items-center gap-2 px-8 py-4 bg-blue-500/30 hover:bg-blue-500/40 text-white font-semibold rounded-xl text-xl transition-colors border border-white/20"
             >
               <MessageSquare size={15} />
               AI 상담하기

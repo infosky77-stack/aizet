@@ -1,10 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import NextImage from 'next/image';
 import Link from 'next/link';
 import { AddToHomeButton } from '@/components/AddToHomeButton';
 import { InAppBrowserBanner } from '@/components/InAppBrowserBanner';
+import { AizetLogo } from '@/components/AizetLogo';
 import {
   ArrowRight,
   Check,
@@ -33,6 +33,7 @@ import {
   Copy,
   LayoutDashboard,
   Printer,
+  Monitor,
   Server,
   Cpu,
   BatteryFull,
@@ -297,6 +298,54 @@ function IndustryModal({ industry, onClose }: { industry: IndustryItem; onClose:
   );
 }
 
+/* ─── Viewport Toggle ────────────────────────────────── */
+function ViewportToggle() {
+  const [mode, setMode] = useState<'mobile' | 'desktop'>('mobile');
+
+  const switchMode = (next: 'mobile' | 'desktop') => {
+    setMode(next);
+    let meta = document.querySelector('meta[name="viewport"]') as HTMLMetaElement | null;
+    if (!meta) {
+      meta = document.createElement('meta') as HTMLMetaElement;
+      meta.name = 'viewport';
+      document.head.appendChild(meta);
+    }
+    meta.content =
+      next === 'desktop'
+        ? 'width=1280'
+        : 'width=device-width, initial-scale=1';
+  };
+
+  return (
+    <div className="flex items-center gap-0.5 bg-stone-100 rounded-lg p-1 border border-stone-200">
+      <button
+        onClick={() => switchMode('mobile')}
+        title="휴대폰으로 보기"
+        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-semibold transition-all ${
+          mode === 'mobile'
+            ? 'bg-white text-stone-900 shadow-sm'
+            : 'text-stone-500 hover:text-stone-700'
+        }`}
+      >
+        <Smartphone size={13} />
+        휴대폰
+      </button>
+      <button
+        onClick={() => switchMode('desktop')}
+        title="컴퓨터로 보기"
+        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-semibold transition-all ${
+          mode === 'desktop'
+            ? 'bg-white text-stone-900 shadow-sm'
+            : 'text-stone-500 hover:text-stone-700'
+        }`}
+      >
+        <Monitor size={13} />
+        컴퓨터
+      </button>
+    </div>
+  );
+}
+
 /* ─── Navbar ──────────────────────────────────────────── */
 function Navbar() {
   const [open, setOpen] = useState(false);
@@ -304,14 +353,7 @@ function Navbar() {
     <header className="fixed top-0 inset-x-0 z-50 bg-white/80 backdrop-blur border-b border-stone-100">
       <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
         <div className="flex items-center">
-          <NextImage
-            src="/aizet-logo-charcoal.png"
-            alt="AIZET"
-            height={22}
-            width={97}
-            className="object-contain"
-            priority
-          />
+          <AizetLogo className="font-black text-2xl tracking-tight" />
         </div>
 
         <nav className="hidden md:flex items-center gap-7 text-base font-medium text-stone-700">
@@ -322,6 +364,7 @@ function Navbar() {
         </nav>
 
         <div className="hidden md:flex items-center gap-3">
+          <ViewportToggle />
           <AddToHomeButton />
           <Link
             href="/login"
@@ -391,13 +434,13 @@ function Hero() {
               AI 홈페이지 자동 생성 플랫폼
             </div>
 
-            <h1 className="text-4xl sm:text-5xl font-bold text-stone-900 leading-tight tracking-tight">
+            <h1 className="text-5xl sm:text-7xl font-black text-stone-900 leading-tight tracking-tight">
               내 가게 홈페이지,
               <br />
               <span className="text-amber-600">AI가 5분 만에</span> 완성
             </h1>
 
-            <p className="text-stone-700 text-xl leading-relaxed max-w-xl mx-auto lg:mx-0">
+            <p className="text-stone-700 text-2xl font-medium leading-relaxed max-w-xl mx-auto lg:mx-0">
               업종만 선택하면 예약·주문·결제까지 갖춘
               스마트 홈페이지를 자동으로 만들어 드립니다.
               코딩 지식 없이도 바로 오픈.
@@ -406,21 +449,21 @@ function Hero() {
             <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start">
               <Link
                 href="/signup"
-                className="flex items-center justify-center gap-2 bg-amber-600 hover:bg-amber-700 text-white font-semibold text-base px-6 py-3.5 rounded-xl transition-colors shadow-lg shadow-amber-200"
+                className="flex items-center justify-center gap-2 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xl px-8 py-5 rounded-xl transition-colors shadow-lg shadow-amber-200"
               >
                 무료로 시작하기
                 <ArrowRight size={16} />
               </Link>
               <a
                 href="#demo"
-                className="flex items-center justify-center gap-2 border border-stone-200 text-stone-700 hover:border-stone-400 font-semibold text-base px-6 py-3.5 rounded-xl transition-colors"
+                className="flex items-center justify-center gap-2 border border-stone-200 text-stone-700 hover:border-stone-400 font-bold text-xl px-8 py-5 rounded-xl transition-colors"
               >
                 <Play size={14} className="text-amber-600" />
                 라이브 데모 보기
               </a>
             </div>
 
-            <div className="flex items-center gap-5 justify-center lg:justify-start text-base text-stone-600">
+            <div className="flex items-center gap-5 justify-center lg:justify-start text-lg font-semibold text-stone-700">
               {['신용카드 불필요', '5분 내 완성', '언제든 취소 가능'].map((t) => (
                 <span key={t} className="flex items-center gap-1">
                   <Check size={12} className="text-emerald-500" />
@@ -522,8 +565,8 @@ function Stats() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
           {items.map(({ value, label }) => (
             <div key={label} className="text-center">
-              <p className="text-4xl font-bold text-amber-600">{value}</p>
-              <p className="text-base text-stone-700 mt-1">{label}</p>
+              <p className="text-6xl font-black text-amber-600">{value}</p>
+              <p className="text-xl font-semibold text-stone-700 mt-2">{label}</p>
             </div>
           ))}
         </div>
@@ -560,8 +603,8 @@ function HowItWorks() {
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-14">
           <p className="text-sm font-semibold text-amber-600 uppercase tracking-widest mb-3">How it works</p>
-          <h2 className="text-3xl sm:text-4xl font-bold text-stone-900">단 세 단계로 완성</h2>
-          <p className="text-stone-700 text-base mt-3 max-w-md mx-auto">복잡한 설정 없이 누구나 5분 안에 완성도 높은 홈페이지를 오픈할 수 있습니다.</p>
+          <h2 className="text-4xl sm:text-5xl font-black text-stone-900">단 세 단계로 완성</h2>
+          <p className="text-stone-700 text-xl mt-4 max-w-md mx-auto">복잡한 설정 없이 누구나 5분 안에 완성도 높은 홈페이지를 오픈할 수 있습니다.</p>
         </div>
 
         <div className="grid md:grid-cols-3 gap-8">
@@ -573,8 +616,8 @@ function HowItWorks() {
                 </div>
                 <span className="text-4xl font-black text-stone-100">{step.num}</span>
               </div>
-              <h3 className="font-bold text-stone-900 text-xl">{step.title}</h3>
-              <p className="text-stone-700 text-base leading-relaxed">{step.desc}</p>
+              <h3 className="font-bold text-stone-900 text-2xl">{step.title}</h3>
+              <p className="text-stone-700 text-lg leading-relaxed">{step.desc}</p>
               {i < 2 && (
                 <ChevronRight
                   size={20}
@@ -596,8 +639,8 @@ function Industries() {
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-14">
           <p className="text-sm font-semibold text-amber-600 uppercase tracking-widest mb-3">Industries</p>
-          <h2 className="text-3xl sm:text-4xl font-bold text-stone-900">어떤 업종이든 바로 시작</h2>
-          <p className="text-stone-700 text-base mt-3 max-w-md mx-auto">
+          <h2 className="text-4xl sm:text-5xl font-black text-stone-900">어떤 업종이든 바로 시작</h2>
+          <p className="text-stone-700 text-xl mt-4 max-w-md mx-auto">
             각 업종에 특화된 기능과 디자인이 자동으로 적용됩니다.{' '}
             <span className="text-amber-600 font-medium">카드를 클릭해 데모를 체험해 보세요.</span>
           </p>
@@ -614,8 +657,8 @@ function Industries() {
                 {ind.icon}
               </div>
               <div>
-                <p className="font-semibold text-stone-900 text-base">{ind.name}</p>
-                <p className="hidden sm:block text-sm text-stone-600 mt-0.5">{ind.sub}</p>
+                <p className="font-bold text-stone-900 text-xl">{ind.name}</p>
+                <p className="hidden sm:block text-base text-stone-600 mt-1">{ind.sub}</p>
               </div>
               <ChevronRight size={10} className="text-stone-500 group-hover:text-amber-500 transition-colors" />
             </Link>
@@ -672,8 +715,8 @@ function Features() {
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-14">
           <p className="text-sm font-semibold text-amber-600 uppercase tracking-widest mb-3">Features</p>
-          <h2 className="text-3xl sm:text-4xl font-bold text-stone-900">필요한 기능, 전부 포함</h2>
-          <p className="text-stone-700 text-base mt-3 max-w-md mx-auto">비싼 플러그인 없이 모든 스마트 기능이 기본 탑재됩니다.</p>
+          <h2 className="text-4xl sm:text-5xl font-black text-stone-900">필요한 기능, 전부 포함</h2>
+          <p className="text-stone-700 text-xl mt-4 max-w-md mx-auto">비싼 플러그인 없이 모든 스마트 기능이 기본 탑재됩니다.</p>
         </div>
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -683,8 +726,8 @@ function Features() {
                 {icon}
               </div>
               <div>
-                <h3 className="font-bold text-stone-900 text-lg">{title}</h3>
-                <p className="text-stone-700 text-base mt-1.5 leading-relaxed">{desc}</p>
+                <h3 className="font-bold text-stone-900 text-2xl">{title}</h3>
+                <p className="text-stone-700 text-lg mt-1.5 leading-relaxed">{desc}</p>
               </div>
             </div>
           ))}
@@ -707,7 +750,9 @@ function DashboardCTA() {
   return (
     <section className="py-20 px-4 bg-stone-900 overflow-hidden relative">
       <div className="absolute inset-0 bg-gradient-to-br from-stone-900 via-stone-900 to-amber-950/30" />
-      <div className="absolute top-0 right-0 w-96 h-96 bg-amber-500/5 rounded-full blur-3xl pointer-events-none" />
+      <Bot size={170} className="absolute right-0 top-0 text-amber-400/[0.07] -rotate-12 pointer-events-none" />
+      <BarChart3 size={88} className="absolute right-44 top-20 text-amber-300/[0.05] rotate-6 pointer-events-none" />
+      <Zap size={60} className="absolute right-20 top-44 text-amber-500/[0.06] -rotate-6 pointer-events-none" />
 
       <div className="max-w-6xl mx-auto relative">
         <div className="flex flex-col lg:flex-row items-center gap-14">
@@ -717,12 +762,12 @@ function DashboardCTA() {
               <LayoutDashboard size={12} />
               AZOS 대시보드
             </div>
-            <h2 className="text-3xl sm:text-4xl font-bold text-white leading-tight">
+            <h2 className="text-4xl sm:text-5xl font-black text-white leading-tight">
               매출·주문·예약을
               <br />
               <span className="text-amber-400">한 화면</span>에서 관리
             </h2>
-            <p className="text-stone-400 text-base leading-relaxed max-w-md mx-auto lg:mx-0">
+            <p className="text-stone-400 text-xl leading-relaxed max-w-md mx-auto lg:mx-0">
               AI가 실시간으로 분석한 통계와 인사이트로
               더 스마트하게 업체를 운영하세요.
               서빙 로봇·결제·예약이 하나로 연결됩니다.
@@ -730,14 +775,14 @@ function DashboardCTA() {
             <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start">
               <Link
                 href="/admin"
-                className="inline-flex items-center justify-center gap-2 bg-amber-600 hover:bg-amber-700 text-white font-semibold text-base px-6 py-3.5 rounded-xl transition-colors"
+                className="inline-flex items-center justify-center gap-2 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xl px-8 py-5 rounded-xl transition-colors"
               >
                 <LayoutDashboard size={15} />
                 대시보드 체험하기
               </Link>
               <Link
                 href="/login"
-                className="inline-flex items-center justify-center gap-2 border border-stone-700 text-stone-300 hover:border-stone-500 hover:text-white font-semibold text-base px-6 py-3.5 rounded-xl transition-colors"
+                className="inline-flex items-center justify-center gap-2 border border-stone-700 text-stone-300 hover:border-stone-500 hover:text-white font-bold text-xl px-8 py-5 rounded-xl transition-colors"
               >
                 로그인하기
                 <ArrowRight size={14} />
@@ -834,24 +879,24 @@ function DemoPreview() {
       <div className="max-w-6xl mx-auto flex flex-col gap-6">
         <div className="text-center mb-2">
           <p className="text-sm font-semibold text-amber-600 uppercase tracking-widest mb-3">Live Demo</p>
-          <h2 className="text-3xl sm:text-4xl font-bold text-stone-900">실제 데모를 직접 체험해 보세요</h2>
-          <p className="text-stone-700 text-base mt-3 max-w-md mx-auto">AIZET가 자동 생성한 업종별 데모입니다. 모든 기능이 실제로 작동합니다.</p>
+          <h2 className="text-4xl sm:text-5xl font-black text-stone-900">실제 데모를 직접 체험해 보세요</h2>
+          <p className="text-stone-700 text-xl mt-4 max-w-md mx-auto">AIZET가 자동 생성한 업종별 데모입니다. 모든 기능이 실제로 작동합니다.</p>
         </div>
 
         {/* Restaurant demo */}
         <div className="bg-gradient-to-r from-amber-600 to-amber-700 rounded-3xl p-8 md:p-12 flex flex-col md:flex-row items-center gap-8 overflow-hidden relative">
-          <div className="absolute -right-16 -top-16 w-64 h-64 bg-white/5 rounded-full" />
+          <UtensilsCrossed size={220} className="absolute -right-10 -top-10 text-white/[0.07] rotate-12 pointer-events-none" />
           <div className="flex-1 relative">
             <p className="text-amber-200 text-xs font-semibold uppercase tracking-widest mb-2">식당·카페 데모</p>
-            <h3 className="text-white text-2xl sm:text-3xl font-bold mb-3 leading-tight">
+            <h3 className="text-white text-3xl sm:text-4xl font-black mb-4 leading-tight">
               AI가 만든 식당 홈페이지를<br />직접 체험해 보세요
             </h3>
-            <p className="text-amber-100 text-base leading-relaxed mb-6 max-w-md">
+            <p className="text-amber-100 text-xl leading-relaxed mb-6 max-w-md">
               주문·결제·AI 챗봇·서빙 로봇까지 — 실제 식당 데모입니다.
             </p>
             <Link
               href="/demo"
-              className="inline-flex items-center gap-2 bg-white text-amber-700 font-bold text-base px-6 py-3 rounded-xl hover:bg-amber-50 transition-colors shadow-lg"
+              className="inline-flex items-center gap-2 bg-white text-amber-700 font-bold text-xl px-8 py-4 rounded-xl hover:bg-amber-50 transition-colors shadow-lg"
             >
               <Play size={15} />
               식당 데모 체험하기
@@ -881,18 +926,18 @@ function DemoPreview() {
 
         {/* Print demo */}
         <div className="bg-gradient-to-r from-blue-700 to-indigo-800 rounded-3xl p-8 md:p-12 flex flex-col md:flex-row items-center gap-8 overflow-hidden relative">
-          <div className="absolute -right-16 -top-16 w-64 h-64 bg-white/5 rounded-full" />
+          <Printer size={200} className="absolute -right-8 -top-8 text-white/[0.07] -rotate-6 pointer-events-none" />
           <div className="flex-1 relative">
             <p className="text-blue-200 text-xs font-semibold uppercase tracking-widest mb-2">인쇄·출력 데모</p>
-            <h3 className="text-white text-2xl sm:text-3xl font-bold mb-3 leading-tight">
+            <h3 className="text-white text-3xl sm:text-4xl font-black mb-4 leading-tight">
               인쇄소 홈페이지를<br />직접 체험해 보세요
             </h3>
-            <p className="text-blue-100 text-base leading-relaxed mb-6 max-w-md">
+            <p className="text-blue-100 text-xl leading-relaxed mb-6 max-w-md">
               실시간 견적 계산기·AI 상담·파일 업로드·제작 현황 추적까지 — 완전한 인쇄 플랫폼 데모입니다.
             </p>
             <Link
               href="/print"
-              className="inline-flex items-center gap-2 bg-white text-blue-700 font-bold text-base px-6 py-3 rounded-xl hover:bg-blue-50 transition-colors shadow-lg"
+              className="inline-flex items-center gap-2 bg-white text-blue-700 font-bold text-xl px-8 py-4 rounded-xl hover:bg-blue-50 transition-colors shadow-lg"
             >
               <Printer size={15} />
               인쇄소 데모 체험하기
@@ -928,18 +973,18 @@ function DemoPreview() {
 
         {/* Korean learning demo */}
         <div className="bg-gradient-to-r from-indigo-600 to-violet-700 rounded-3xl p-8 md:p-12 flex flex-col md:flex-row items-center gap-8 overflow-hidden relative">
-          <div className="absolute -right-16 -top-16 w-64 h-64 bg-white/5 rounded-full" />
+          <BookOpen size={210} className="absolute -right-10 -top-6 text-white/[0.07] rotate-6 pointer-events-none" />
           <div className="flex-1 relative">
             <p className="text-indigo-200 text-xs font-semibold uppercase tracking-widest mb-2">한국어 교육 데모</p>
-            <h3 className="text-white text-2xl sm:text-3xl font-bold mb-3 leading-tight">
+            <h3 className="text-white text-3xl sm:text-4xl font-black mb-4 leading-tight">
               외국인을 위한 한국어 학습<br />플랫폼을 체험해 보세요
             </h3>
-            <p className="text-indigo-100 text-base leading-relaxed mb-6 max-w-md">
+            <p className="text-indigo-100 text-xl leading-relaxed mb-6 max-w-md">
               AI 레벨 진단·4개국어 학습·AI 회화 챗봇·진도 대시보드까지 — 완전한 한국어 교육 데모입니다.
             </p>
             <Link
               href="/korean"
-              className="inline-flex items-center gap-2 bg-white text-indigo-700 font-bold text-base px-6 py-3 rounded-xl hover:bg-indigo-50 transition-colors shadow-lg"
+              className="inline-flex items-center gap-2 bg-white text-indigo-700 font-bold text-xl px-8 py-4 rounded-xl hover:bg-indigo-50 transition-colors shadow-lg"
             >
               <BookOpen size={15} />
               한국어 학습 데모 체험하기
@@ -975,18 +1020,18 @@ function DemoPreview() {
 
         {/* Tax demo */}
         <div className="bg-gradient-to-r from-slate-700 to-blue-900 rounded-3xl p-8 md:p-12 flex flex-col md:flex-row items-center gap-8 overflow-hidden relative">
-          <div className="absolute -right-16 -top-16 w-64 h-64 bg-white/5 rounded-full" />
+          <Scale size={200} className="absolute -right-8 -top-8 text-white/[0.07] -rotate-12 pointer-events-none" />
           <div className="flex-1 relative">
             <p className="text-slate-300 text-xs font-semibold uppercase tracking-widest mb-2">세무사 사무소 데모</p>
-            <h3 className="text-white text-2xl sm:text-3xl font-bold mb-3 leading-tight">
+            <h3 className="text-white text-3xl sm:text-4xl font-black mb-4 leading-tight">
               AI 세무 상담부터 신고 기한까지<br />세무법인 플랫폼을 체험해 보세요
             </h3>
-            <p className="text-slate-300 text-base leading-relaxed mb-6 max-w-md">
+            <p className="text-slate-300 text-xl leading-relaxed mb-6 max-w-md">
               신고 캘린더·세금 계산기·AI 상담 챗봇·상담 예약·관리자 대시보드까지 — 완전한 세무법인 데모입니다.
             </p>
             <Link
               href="/tax"
-              className="inline-flex items-center gap-2 bg-white text-slate-800 font-bold text-base px-6 py-3 rounded-xl hover:bg-slate-100 transition-colors shadow-lg"
+              className="inline-flex items-center gap-2 bg-white text-slate-800 font-bold text-xl px-8 py-4 rounded-xl hover:bg-slate-100 transition-colors shadow-lg"
             >
               <Scale size={15} />
               세무법인 데모 체험하기
@@ -1022,18 +1067,18 @@ function DemoPreview() {
 
         {/* HanCandy demo */}
         <div className="bg-gradient-to-r from-green-600 to-emerald-700 rounded-3xl p-8 md:p-12 flex flex-col md:flex-row items-center gap-8 overflow-hidden relative">
-          <div className="absolute -right-16 -top-16 w-64 h-64 bg-white/5 rounded-full" />
+          <Leaf size={220} className="absolute -right-10 -top-10 text-white/[0.07] rotate-12 pointer-events-none" />
           <div className="flex-1 relative">
             <p className="text-green-200 text-xs font-semibold uppercase tracking-widest mb-2">건강 식품 쇼핑몰 데모</p>
-            <h3 className="text-white text-2xl sm:text-3xl font-bold mb-3 leading-tight">
+            <h3 className="text-white text-3xl sm:text-4xl font-black mb-4 leading-tight">
               무설탕 건강 캔디 브랜드<br />한캔디를 체험해 보세요
             </h3>
-            <p className="text-green-100 text-base leading-relaxed mb-6 max-w-md">
+            <p className="text-green-100 text-xl leading-relaxed mb-6 max-w-md">
               제품 카탈로그·장바구니·결제·AI 상담 챗봇·관리자 대시보드까지 — 완전한 건강식품 쇼핑몰 데모입니다.
             </p>
             <Link
               href="/hancandy"
-              className="inline-flex items-center gap-2 bg-white text-green-700 font-bold text-base px-6 py-3 rounded-xl hover:bg-green-50 transition-colors shadow-lg"
+              className="inline-flex items-center gap-2 bg-white text-green-700 font-bold text-xl px-8 py-4 rounded-xl hover:bg-green-50 transition-colors shadow-lg"
             >
               <Leaf size={15} />
               한캔디 쇼핑몰 데모 체험하기
@@ -1099,13 +1144,13 @@ function MySpaceSection() {
               </span>
             </div>
 
-            <h2 className="text-3xl sm:text-4xl font-bold text-stone-900 leading-tight">
+            <h2 className="text-4xl sm:text-5xl font-black text-stone-900 leading-tight">
               유튜브·SNS가 부담스러울 때,
               <br />
               <span className="text-violet-600">나만의 조용한 공간</span>
             </h2>
 
-            <p className="text-stone-700 text-base leading-relaxed max-w-lg">
+            <p className="text-stone-700 text-xl leading-relaxed max-w-lg">
               알고리즘 노출 없이, 댓글 없이, 좋아요 없이. 동영상과 이미지를 내가 원하는 사람에게만
               공유하는 <strong className="text-stone-800">프라이버시 중심 개인 미디어 공간</strong>입니다.
               구글 드라이브와 연동해 원본 화질 그대로 보관하세요.
@@ -1126,7 +1171,7 @@ function MySpaceSection() {
             <div className="flex flex-col sm:flex-row gap-3">
               <Link
                 href="/myspace"
-                className="inline-flex items-center justify-center gap-2 bg-violet-600 hover:bg-violet-700 text-white font-semibold text-base px-6 py-3.5 rounded-xl transition-colors shadow-lg shadow-violet-200"
+                className="inline-flex items-center justify-center gap-2 bg-violet-600 hover:bg-violet-700 text-white font-bold text-xl px-8 py-5 rounded-xl transition-colors shadow-lg shadow-violet-200"
               >
                 <Shield size={15} />
                 나만의 공간 체험하기
@@ -1134,7 +1179,7 @@ function MySpaceSection() {
               </Link>
               <Link
                 href="/signup"
-                className="inline-flex items-center justify-center gap-2 border border-stone-200 text-stone-700 hover:border-violet-300 hover:text-violet-700 font-semibold text-base px-6 py-3.5 rounded-xl transition-colors"
+                className="inline-flex items-center justify-center gap-2 border border-stone-200 text-stone-700 hover:border-violet-300 hover:text-violet-700 font-bold text-xl px-8 py-5 rounded-xl transition-colors"
               >
                 무료로 시작
               </Link>
@@ -1224,18 +1269,18 @@ function PromptLibraryCTA() {
             <BookOpen size={12} />
             프롬프트 라이브러리
           </div>
-          <h2 className="text-3xl sm:text-4xl font-bold text-stone-900 leading-tight">
+          <h2 className="text-4xl sm:text-5xl font-black text-stone-900 leading-tight">
             AI 마케팅 콘텐츠,
             <br />
             <span className="text-amber-600">복사 한 번</span>으로 시작
           </h2>
-          <p className="text-stone-700 text-base leading-relaxed max-w-md">
+          <p className="text-stone-700 text-xl leading-relaxed max-w-md">
             식당·카페·미용실 등 8개 업종에 맞는 이미지·영상·SNS 프롬프트를 무료로 제공합니다.
             Midjourney, DALL·E, Runway에 바로 붙여 쓰세요.
           </p>
           <Link
             href="/prompts"
-            className="inline-flex items-center gap-2 bg-amber-600 hover:bg-amber-700 text-white font-semibold text-base px-6 py-3.5 rounded-xl transition-colors self-start shadow-lg shadow-amber-200"
+            className="inline-flex items-center gap-2 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xl px-8 py-5 rounded-xl transition-colors self-start shadow-lg shadow-amber-200"
           >
             <BookOpen size={15} />
             프롬프트 라이브러리 보기
@@ -1298,7 +1343,7 @@ function Testimonials() {
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-14">
           <p className="text-sm font-semibold text-amber-600 uppercase tracking-widest mb-3">Reviews</p>
-          <h2 className="text-3xl sm:text-4xl font-bold text-stone-900">실제 사용 후기</h2>
+          <h2 className="text-4xl sm:text-5xl font-black text-stone-900">실제 사용 후기</h2>
         </div>
 
         <div className="grid md:grid-cols-3 gap-6">
@@ -1309,10 +1354,10 @@ function Testimonials() {
                   <Star key={i} size={14} className="text-amber-400 fill-amber-400" />
                 ))}
               </div>
-              <p className="text-stone-600 text-base leading-relaxed flex-1">"{text}"</p>
+              <p className="text-stone-600 text-lg leading-relaxed flex-1">"{text}"</p>
               <div>
-                <p className="font-semibold text-stone-800 text-base">{name}</p>
-                <p className="text-sm text-stone-600 mt-0.5">{role} · {location}</p>
+                <p className="font-bold text-stone-800 text-xl">{name}</p>
+                <p className="text-base text-stone-600 mt-0.5">{role} · {location}</p>
               </div>
             </div>
           ))}
@@ -1354,11 +1399,11 @@ function SR05Section() {
           </div>
           <div>
             <p className="text-xs font-semibold text-cyan-400 uppercase tracking-widest mb-2">Hardware · New Product</p>
-            <h2 className="text-3xl sm:text-4xl font-bold text-white leading-tight mb-3">
+            <h2 className="text-4xl sm:text-5xl font-black text-white leading-tight mb-4">
               AIZET<span className="text-cyan-400">-SR-05</span><br />
               스마트폰이 <span className="text-cyan-400">서버</span>가 됩니다
             </h2>
-            <p className="text-slate-400 text-base leading-relaxed max-w-lg">
+            <p className="text-slate-400 text-xl leading-relaxed max-w-lg">
               갤럭시 S26 울트라를 분산 노드로 묶고 리벨리온 국산 NPU로 가속한 초저전력 AI 추론 클러스터. GPU 서버실·별도 항온항습실 없이 사무공간에 바로 설치.
             </p>
           </div>
@@ -1372,7 +1417,7 @@ function SR05Section() {
           </div>
           <Link
             href="/products/sr05"
-            className="self-start inline-flex items-center gap-2 bg-cyan-600 hover:bg-cyan-700 text-white font-semibold text-base px-6 py-3 rounded-xl transition-colors shadow-lg shadow-cyan-900/40"
+            className="self-start inline-flex items-center gap-2 bg-cyan-600 hover:bg-cyan-700 text-white font-bold text-xl px-8 py-4 rounded-xl transition-colors shadow-lg shadow-cyan-900/40"
           >
             <Server size={15} />
             SR-05 제품 상세 보기
@@ -1455,8 +1500,8 @@ function Pricing() {
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-14">
           <p className="text-sm font-semibold text-amber-600 uppercase tracking-widest mb-3">Pricing</p>
-          <h2 className="text-3xl sm:text-4xl font-bold text-stone-900">합리적인 요금제</h2>
-          <p className="text-stone-700 text-base mt-3">초기 비용 없이 시작, 성장에 맞게 업그레이드하세요.</p>
+          <h2 className="text-4xl sm:text-5xl font-black text-stone-900">합리적인 요금제</h2>
+          <p className="text-stone-700 text-xl mt-4">초기 비용 없이 시작, 성장에 맞게 업그레이드하세요.</p>
         </div>
 
         <div className="grid md:grid-cols-3 gap-6 items-start">
@@ -1468,22 +1513,22 @@ function Pricing() {
                 </span>
               )}
               <div>
-                <h3 className="font-bold text-stone-900 text-xl">{name}</h3>
-                <p className="text-stone-600 text-sm mt-1">{desc}</p>
+                <h3 className="font-black text-stone-900 text-2xl">{name}</h3>
+                <p className="text-stone-600 text-base mt-1">{desc}</p>
               </div>
               <div className="flex items-end gap-0.5">
-                <span className="text-4xl font-black text-stone-900">{price}</span>
-                {period && <span className="text-stone-600 text-base mb-1">{period}</span>}
+                <span className="text-5xl font-black text-stone-900">{price}</span>
+                {period && <span className="text-stone-600 text-lg mb-1">{period}</span>}
               </div>
               <ul className="flex flex-col gap-2.5">
                 {features.map((f) => (
-                  <li key={f} className="flex items-center gap-2.5 text-base text-stone-600">
+                  <li key={f} className="flex items-center gap-2.5 text-lg text-stone-600">
                     <Check size={14} className="text-emerald-500 shrink-0" />
                     {f}
                   </li>
                 ))}
               </ul>
-              <button className={`mt-auto w-full py-3 rounded-xl font-semibold text-base transition-colors ${ctaStyle}`}>
+              <button className={`mt-auto w-full py-4 rounded-xl font-bold text-xl transition-colors ${ctaStyle}`}>
                 {cta}
               </button>
             </div>
@@ -1503,18 +1548,18 @@ function FinalCTA() {
           <Sparkles size={12} />
           지금 무료로 시작
         </div>
-        <h2 className="text-3xl sm:text-4xl font-bold text-white leading-tight">
+        <h2 className="text-4xl sm:text-5xl font-black text-white leading-tight">
           내 업종으로
           <span className="text-amber-400"> 지금 바로</span> 시작하세요
         </h2>
-        <p className="text-stone-400 leading-relaxed">
+        <p className="text-stone-400 text-xl leading-relaxed">
           신용카드 없이 무료로 시작. 5분이면 완성된 홈페이지가 준비됩니다.
           <br />만족하지 않으면 언제든 취소할 수 있습니다.
         </p>
 
         <Link
           href="/signup"
-          className="inline-flex items-center gap-2 bg-amber-600 hover:bg-amber-700 text-white font-semibold text-base px-8 py-4 rounded-xl transition-colors"
+          className="inline-flex items-center gap-2 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xl px-10 py-5 rounded-xl transition-colors"
         >
           무료로 시작하기
           <ArrowRight size={15} />
@@ -1539,7 +1584,7 @@ function Footer() {
               <div className="w-7 h-7 rounded-lg bg-amber-600 flex items-center justify-center">
                 <UtensilsCrossed size={13} className="text-white" />
               </div>
-              <span className="font-bold text-white text-sm">AIZET</span>
+              <AizetLogo className="font-bold text-sm" zetColor="#ffffff" />
             </div>
             <p className="text-sm leading-relaxed">AI가 만드는 스마트 홈페이지 플랫폼</p>
           </div>

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { ShoppingCart, Home, Package, MessageCircle, Leaf } from 'lucide-react';
+import { ShoppingCart, Home, Package, MessageCircle, Leaf, ChevronLeft } from 'lucide-react';
 import { useCandyCart } from '@/store/candyCart';
 
 export default function HancandyLayout({ children }: { children: React.ReactNode }) {
@@ -17,6 +17,12 @@ export default function HancandyLayout({ children }: { children: React.ReactNode
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-emerald-50">
+      <div className="bg-stone-50 border-b border-stone-100 px-4 py-2 flex items-center">
+        <Link href="/" className="flex items-center gap-1 text-xs text-stone-400 hover:text-stone-600 transition-colors">
+          <ChevronLeft size={13} />
+          메인으로 돌아가기
+        </Link>
+      </div>
       <header className="bg-white/90 backdrop-blur border-b border-green-100 sticky top-0 z-40 shadow-sm">
         <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
           <Link href="/hancandy" className="flex items-center gap-2.5 font-black text-green-700">

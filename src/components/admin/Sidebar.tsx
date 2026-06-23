@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useSession } from '@/hooks/useSession';
+import { AizetLogo } from '@/components/AizetLogo';
 import type { UserPlan } from '@/types/auth';
 
 const NAV = [
@@ -184,7 +185,7 @@ export function Sidebar() {
               <UtensilsCrossed size={15} className="text-white" />
             </div>
             <div>
-              <p className="font-bold text-sm tracking-tight">AIZET</p>
+              <AizetLogo className="font-bold text-sm tracking-tight" />
               <p className="text-[10px] text-stone-500">관리자 모드</p>
             </div>
           </div>

@@ -87,13 +87,13 @@ export default function LandingPage() {
             </div>
             <span className="text-xs font-semibold tracking-widest text-amber-200 uppercase">Jungwha Gajeong</span>
           </div>
-          <h1 className="text-4xl font-black tracking-tight drop-shadow-lg">중화가정</h1>
-          <p className="text-sm text-white/85 leading-relaxed max-w-xs">
+          <h1 className="text-5xl sm:text-6xl font-black tracking-tight drop-shadow-lg">중화가정</h1>
+          <p className="text-lg text-white/85 leading-relaxed max-w-xs">
             가정집의 주방처럼, 어머니의 요리처럼<br />맛있고 신선하고 정성이 깃든 중화가정입니다
           </p>
           <a
             href="#order"
-            className="mt-2 flex items-center gap-1.5 px-5 py-2.5 rounded-full bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold transition-colors shadow-lg pointer-events-auto"
+            className="mt-2 flex items-center gap-1.5 px-8 py-4 rounded-full bg-amber-500 hover:bg-amber-600 text-white text-xl font-bold transition-colors shadow-lg pointer-events-auto"
             onDoubleClick={(e) => e.stopPropagation()}
           >
             지금 주문하기
