@@ -46,6 +46,23 @@ if [[ "$BUILD_ID" != "$DIST_BUILD_ID" ]]; then
 fi
 ok "복사 완료 (BUILD_ID 일치: $BUILD_ID)"
 
+# 네이티브 모듈 심볼릭 링크 절대경로 수정
+# cp -r 이 상대경로 심볼릭 링크를 그대로 복사해 DIST_DIR에서 경로가 깨지는 문제 방지
+if [[ -d "$DIST_DIR/node_modules" ]]; then
+  for link in "$DIST_DIR/node_modules/"*; do
+    if [[ -L "$link" ]]; then
+      rel_target=$(readlink "$link")
+      mod_name=$(basename "$link")
+      # .next/node_modules/ 안의 원본 심볼릭 링크 대상(절대경로)으로 교체
+      abs_target=$(realpath -m "$BUILD_OUT/node_modules/$mod_name" 2>/dev/null || echo "")
+      if [[ -n "$abs_target" && -e "$abs_target" ]]; then
+        rm "$link"
+        ln -s "$abs_target" "$link"
+      fi
+    fi
+  done
+fi
+
 # ── Step 3: PM2 재시작 ────────────────────────────────────
 info "Step 3/3 | PM2 '$PM2_APP' 재시작 중..."
 pm2 restart "$PM2_APP" --update-env 2>&1 | grep -E "(restarted|error|online)" || true
