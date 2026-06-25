@@ -45,7 +45,8 @@ db.exec(`
     ['address',        "TEXT NOT NULL DEFAULT ''"],
     ['business_hours', "TEXT NOT NULL DEFAULT ''"],
     ['slug',           'TEXT'],
-    ['site_config',    "TEXT NOT NULL DEFAULT '{}'"],
+    ['site_config',      "TEXT NOT NULL DEFAULT '{}'"],
+    ['drive_folder_id',  'TEXT'],
   ];
   for (const [col, def] of toAdd) {
     if (!existing.includes(col)) {

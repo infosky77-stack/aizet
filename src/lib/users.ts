@@ -18,6 +18,7 @@ export interface UserRecord {
   business_hours: string;
   slug: string | null;
   site_config: string;
+  drive_folder_id: string | null;
   created_at: number;
   updated_at: number;
 }
@@ -113,6 +114,17 @@ export function updateSiteConfig(userId: string, config: SiteConfig): void {
   db.prepare<{ config: string; id: string; now: number }>(
     'UPDATE users SET site_config = @config, updated_at = @now WHERE id = @id'
   ).run({ config: JSON.stringify(config), id: userId, now });
+}
+
+export function getDriveFolderId(userId: string): string | null {
+  const row = db.prepare<[string]>('SELECT drive_folder_id FROM users WHERE id = ?').get(userId) as { drive_folder_id: string | null } | null;
+  return row?.drive_folder_id ?? null;
+}
+
+export function updateDriveFolderId(userId: string, folderId: string): void {
+  db.prepare<{ folderId: string; id: string }>(
+    'UPDATE users SET drive_folder_id = @folderId WHERE id = @id'
+  ).run({ folderId, id: userId });
 }
 
 /** slug 후보 생성: shop_name 영문/숫자만 남기고, 없으면 industry-{userId 앞 8자} */

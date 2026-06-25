@@ -61,6 +61,7 @@ export default function AdminSettingsPage() {
   const [genPhase, setGenPhase] = useState<GenPhase>('idle');
   const [imageList, setImageList] = useState<ImageItem[]>([]);
   const [genError, setGenError] = useState('');
+  const [driveLink, setDriveLink] = useState<string | null>(null);
   const [siteConfig, setSiteConfig] = useState<SiteConfig>({});
   const [configSaving, setConfigSaving] = useState(false);
   const [configStatus, setConfigStatus] = useState<'idle' | 'ok' | 'error'>('idle');
@@ -166,6 +167,7 @@ export default function AdminSettingsPage() {
     setGenPhase('running');
     setImageList([]);
     setGenError('');
+    setDriveLink(null);
 
     try {
       const res = await fetch('/api/admin/generate-images', { method: 'POST' });
@@ -203,6 +205,7 @@ export default function AdminSettingsPage() {
                 item.key === ev.key ? { ...item, status: ev.status } : item
               ));
             } else if (ev.type === 'complete') {
+              if (ev.driveWebViewLink) setDriveLink(ev.driveWebViewLink);
               setGenPhase('done');
             }
           } catch { /* 파싱 실패 무시 */ }
@@ -611,21 +614,34 @@ export default function AdminSettingsPage() {
                     <CheckCircle size={18} />
                     완성되었습니다! ({succeeded}/{total}장 성공)
                   </div>
-                  <a
-                    href={`/site/${form.slug}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-5 py-2.5 rounded-xl text-sm transition-colors"
-                  >
-                    <ExternalLink size={14} />
-                    내 홈페이지 보기
-                  </a>
-                  <button
-                    onClick={() => { setGenPhase('idle'); setImageList([]); }}
-                    className="ml-3 text-sm text-stone-400 hover:text-stone-600 transition-colors"
-                  >
-                    다시 생성
-                  </button>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <a
+                      href={`/site/${form.slug}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-5 py-2.5 rounded-xl text-sm transition-colors"
+                    >
+                      <ExternalLink size={14} />
+                      내 홈페이지 보기
+                    </a>
+                    {driveLink && (
+                      <a
+                        href={driveLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 font-semibold px-4 py-2.5 rounded-xl text-sm transition-colors"
+                      >
+                        <ExternalLink size={14} />
+                        구글 드라이브에서 보기
+                      </a>
+                    )}
+                    <button
+                      onClick={() => { setGenPhase('idle'); setImageList([]); setDriveLink(null); }}
+                      className="text-sm text-stone-400 hover:text-stone-600 transition-colors"
+                    >
+                      다시 생성
+                    </button>
+                  </div>
                 </div>
               );
             })()}

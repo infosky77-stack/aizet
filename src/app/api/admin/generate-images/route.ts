@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { writeFile, mkdir } from 'fs/promises';
+import { writeFile, mkdir, readFile } from 'fs/promises';
 import { existsSync } from 'fs';
 import path from 'path';
 import { getSessionFromRequest } from '@/lib/auth';
-import { getUser } from '@/lib/users';
+import { getUser, getDriveFolderId, updateDriveFolderId } from '@/lib/users';
 import { getTemplateForIndustry } from '@/lib/ai/imageTemplates';
+import { getValidAccessToken } from '@/lib/drive-auth';
+import { ensureAizetFolder } from '@/lib/drive-folder';
+import { uploadSiteImageToDrive } from '@/lib/drive-upload';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -58,6 +61,57 @@ async function generateOneImage(prompt: string, seed: number): Promise<Buffer> {
   throw lastError;
 }
 
+/** 이미지 생성 완료 후 Drive에 비공개 백업. 실패해도 예외 전파 안 함. */
+async function backupToDrive(
+  session: Awaited<ReturnType<typeof getSessionFromRequest>>,
+  userId: string,
+  saveDir: string,
+  succeededKeys: string[],
+): Promise<string | null> {
+  if (!session) return null;
+  if (succeededKeys.length === 0) return null;
+
+  let accessToken: string;
+  try {
+    accessToken = await getValidAccessToken(session);
+  } catch (e) {
+    console.warn('[Drive] 토큰 갱신 실패 — 백업 생략:', e instanceof Error ? e.message : e);
+    return null;
+  }
+
+  // AIZET 폴더 ID: DB 캐시 우선, 없으면 Drive에서 조회/생성
+  let folderId = getDriveFolderId(userId);
+  if (!folderId) {
+    try {
+      folderId = await ensureAizetFolder(accessToken);
+      updateDriveFolderId(userId, folderId);
+    } catch (e) {
+      console.warn('[Drive] 폴더 생성 실패 — 백업 생략:', e instanceof Error ? e.message : e);
+      return null;
+    }
+  }
+
+  // 성공한 이미지들 순차 업로드 (개별 실패 시 skip)
+  let folderWebViewLink: string | null = null;
+  for (const key of succeededKeys) {
+    const filename = `${key}.jpg`;
+    const filePath = path.join(saveDir, filename);
+    try {
+      const buffer = await readFile(filePath);
+      const result = await uploadSiteImageToDrive(accessToken, folderId, filename, buffer);
+      // webViewLink는 파일 링크이므로 폴더 링크로 변환
+      if (!folderWebViewLink) {
+        folderWebViewLink = `https://drive.google.com/drive/folders/${folderId}`;
+      }
+      console.log(`[Drive] 업로드 완료: ${filename} → ${result.id}`);
+    } catch (e) {
+      console.warn(`[Drive] ${filename} 업로드 실패 (skip):`, e instanceof Error ? e.message : e);
+    }
+  }
+
+  return folderWebViewLink;
+}
+
 export async function POST(req: NextRequest) {
   const session = getSessionFromRequest(req);
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -84,6 +138,7 @@ export async function POST(req: NextRequest) {
         }));
 
         let succeeded = 0;
+        const succeededKeys: string[] = [];
 
         for (let i = 0; i < template.images.length; i++) {
           const img = template.images[i];
@@ -101,6 +156,7 @@ export async function POST(req: NextRequest) {
             const fileName = `${img.key}.jpg`;
             await writeFile(path.join(saveDir, fileName), buffer);
             succeeded++;
+            succeededKeys.push(img.key);
 
             // 3. 완료 알림
             controller.enqueue(sse({
@@ -118,8 +174,16 @@ export async function POST(req: NextRequest) {
           }
         }
 
-        // 5. 전체 완료
-        controller.enqueue(sse({ type: 'complete', succeeded, total: template.images.length }));
+        // 5. Drive 백업 (실패해도 complete 이벤트는 반드시 전송)
+        const driveWebViewLink = await backupToDrive(session, user.id, saveDir, succeededKeys);
+
+        // 6. 전체 완료
+        controller.enqueue(sse({
+          type: 'complete',
+          succeeded,
+          total: template.images.length,
+          driveWebViewLink,
+        }));
       } finally {
         controller.close();
       }
