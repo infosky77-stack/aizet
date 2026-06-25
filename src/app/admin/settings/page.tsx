@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useSession } from '@/hooks/useSession';
 import {
   Store, Phone, MapPin, Clock, Tag, Plus, Trash2,
-  Save, ExternalLink, CheckCircle, AlertCircle, Loader2, Info,
+  Save, ExternalLink, CheckCircle, AlertCircle, Loader2, Info, Sparkles,
 } from 'lucide-react';
 
 interface MenuItem { name: string; price: number }
@@ -36,6 +36,9 @@ export default function AdminSettingsPage() {
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState<'idle' | 'ok' | 'error'>('idle');
   const [errorMsg, setErrorMsg] = useState('');
+  const [generating, setGenerating] = useState(false);
+  const [genStatus, setGenStatus] = useState<'idle' | 'ok' | 'error'>('idle');
+  const [genMsg, setGenMsg] = useState('');
 
   useEffect(() => {
     fetch('/api/user/profile')
@@ -97,6 +100,33 @@ export default function AdminSettingsPage() {
       setStatus('error');
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleGenerateImages() {
+    if (!form.slug) {
+      setGenMsg('먼저 가게 정보를 저장하고 슬러그를 확정해 주세요.');
+      setGenStatus('error');
+      return;
+    }
+    setGenerating(true);
+    setGenStatus('idle');
+    setGenMsg('');
+    try {
+      const res = await fetch('/api/admin/generate-images', { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) {
+        setGenMsg(data.error ?? '이미지 생성 실패');
+        setGenStatus('error');
+      } else {
+        setGenMsg(`이미지 생성 완료 (${data.succeeded}/${data.total}장)`);
+        setGenStatus('ok');
+      }
+    } catch {
+      setGenMsg('네트워크 오류');
+      setGenStatus('error');
+    } finally {
+      setGenerating(false);
     }
   }
 
@@ -297,6 +327,45 @@ export default function AdminSettingsPage() {
       <p className="mt-4 text-xs text-stone-400">
         저장 후 홈페이지에 즉시 반영됩니다. 메뉴 항목은 전체 교체 방식으로 저장됩니다.
       </p>
+
+      {/* AI 이미지 생성 */}
+      <div className="mt-8 border-t border-stone-100 pt-8">
+        <div className="mb-3">
+          <h2 className="text-base font-bold text-stone-800 flex items-center gap-2">
+            <Sparkles size={16} className="text-violet-500" />
+            AI 이미지 자동 생성
+          </h2>
+          <p className="text-xs text-stone-400 mt-1">
+            업종과 가게명을 기반으로 홈페이지용 이미지를 Gemini AI로 생성합니다. 가게 정보 저장 후 사용하세요.
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleGenerateImages}
+            disabled={generating || !form.slug}
+            className="flex items-center gap-2 bg-violet-600 hover:bg-violet-700 disabled:opacity-50 text-white font-bold px-6 py-3 rounded-xl transition-colors"
+          >
+            {generating ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
+            {generating ? '이미지 생성 중...' : 'AI로 이미지 자동 생성'}
+          </button>
+
+          {genStatus === 'ok' && (
+            <div className="flex items-center gap-1.5 text-emerald-600 text-sm font-semibold">
+              <CheckCircle size={16} />
+              {genMsg}
+            </div>
+          )}
+          {genStatus === 'error' && (
+            <div className="flex items-center gap-1.5 text-red-500 text-sm">
+              <AlertCircle size={16} />
+              {genMsg}
+            </div>
+          )}
+        </div>
+        {!form.slug && (
+          <p className="mt-2 text-xs text-amber-600">슬러그(홈페이지 주소)를 먼저 저장해야 합니다.</p>
+        )}
+      </div>
     </div>
   );
 }
