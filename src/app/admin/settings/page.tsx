@@ -395,7 +395,7 @@ export default function AdminSettingsPage() {
         {/* 진행 체크리스트 (running / done 상태) */}
         {(genPhase === 'running' || genPhase === 'done') && imageList.length > 0 && (
           <div className="bg-stone-50 border border-stone-200 rounded-2xl p-5">
-            <div className="space-y-2 mb-4">
+            <div className="space-y-2 mb-4 max-h-80 overflow-y-auto pr-1">
               {imageList.map(item => (
                 <div key={item.key} className="flex items-center gap-3">
                   {/* 상태 아이콘 */}
