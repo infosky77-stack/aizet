@@ -7,16 +7,19 @@ import { getUser } from '@/lib/users';
 import { getTemplateForIndustry } from '@/lib/ai/imageTemplates';
 
 export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 export const maxDuration = 300;
 
-// Pollinations.ai — 인증 없는 무료 FLUX 이미지 생성
-// GET https://image.pollinations.ai/prompt/{encoded}?width=…&height=…&model=flux&nologo=true&seed=…
 const REQUEST_TIMEOUT_MS = 90_000;
 const MAX_RETRIES = 2;
 
+const enc = new TextEncoder();
+function sse(data: object): Uint8Array {
+  return enc.encode(`data: ${JSON.stringify(data)}\n\n`);
+}
+
 function pollinationsUrl(prompt: string, seed: number): string {
-  const encoded = encodeURIComponent(prompt);
-  return `https://image.pollinations.ai/prompt/${encoded}?width=1280&height=720&model=flux&nologo=true&seed=${seed}`;
+  return `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1280&height=720&model=flux&nologo=true&seed=${seed}`;
 }
 
 async function generateOneImage(prompt: string, seed: number): Promise<Buffer> {
@@ -30,19 +33,15 @@ async function generateOneImage(prompt: string, seed: number): Promise<Buffer> {
       const res = await fetch(pollinationsUrl(prompt, seed), { signal: controller.signal });
       clearTimeout(timer);
 
-      // 503 / 429 = 서버 부하 — 대기 후 재시도
       if (res.status === 503 || res.status === 429) {
-        const waitMs = 20_000;
-        console.log(`[Pollinations] ${res.status} — ${waitMs / 1000}초 대기 후 재시도 (attempt ${attempt + 1})`);
-        await new Promise(r => setTimeout(r, waitMs));
+        console.log(`[Pollinations] ${res.status} — 20s 대기 후 재시도`);
+        await new Promise(r => setTimeout(r, 20_000));
         lastError = new Error(`HTTP ${res.status}`);
         continue;
       }
 
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
-      const arrayBuf = await res.arrayBuffer();
-      return Buffer.from(arrayBuf);
+      return Buffer.from(await res.arrayBuffer());
 
     } catch (e) {
       clearTimeout(timer);
@@ -50,7 +49,7 @@ async function generateOneImage(prompt: string, seed: number): Promise<Buffer> {
       if (lastError.name === 'AbortError') lastError = new Error(`타임아웃 (${REQUEST_TIMEOUT_MS / 1000}s 초과)`);
 
       if (attempt < MAX_RETRIES) {
-        console.log(`[Pollinations] 오류: ${lastError.message} — 5초 후 재시도 (${attempt + 1}/${MAX_RETRIES})`);
+        console.log(`[Pollinations] 오류: ${lastError.message} — 5s 후 재시도 (${attempt + 1}/${MAX_RETRIES})`);
         await new Promise(r => setTimeout(r, 5_000));
       }
     }
@@ -70,35 +69,68 @@ export async function POST(req: NextRequest) {
   const template = getTemplateForIndustry(user.industry);
   const slug = user.slug;
   const shopName = user.shop_name || '가게';
-
   const saveDir = path.join(process.cwd(), 'data', 'site-images', slug);
-  if (!existsSync(saveDir)) {
-    await mkdir(saveDir, { recursive: true });
-  }
 
-  const results: { key: string; label: string; path: string; error?: string }[] = [];
+  const stream = new ReadableStream({
+    async start(controller) {
+      try {
+        if (!existsSync(saveDir)) await mkdir(saveDir, { recursive: true });
 
-  for (let i = 0; i < template.images.length; i++) {
-    const img = template.images[i];
-    const prompt = img.prompt.replace('{name}', shopName);
-    // seed를 이미지마다 다르게 → 다양한 결과
-    const seed = Math.floor(Math.random() * 1_000_000) + i;
-    try {
-      const buffer = await generateOneImage(prompt, seed);
-      const fileName = `${img.key}.jpg`;
-      await writeFile(path.join(saveDir, fileName), buffer);
-      results.push({ key: img.key, label: img.label, path: `/api/images/${slug}/${fileName}` });
-    } catch (e) {
-      results.push({ key: img.key, label: img.label, path: '', error: String(e) });
-    }
-  }
+        // 1. 전체 목록 전송
+        controller.enqueue(sse({
+          type: 'start',
+          images: template.images.map(img => ({ key: img.key, label: img.label })),
+          total: template.images.length,
+        }));
 
-  const succeeded = results.filter(r => r.path && !r.error);
-  return NextResponse.json({
-    ok: true,
-    slug,
-    total: template.images.length,
-    succeeded: succeeded.length,
-    results,
+        let succeeded = 0;
+
+        for (let i = 0; i < template.images.length; i++) {
+          const img = template.images[i];
+          const prompt = img.prompt.replace('{name}', shopName);
+          const seed = Math.floor(Math.random() * 1_000_000) + i;
+
+          // 2. 생성 시작 알림
+          controller.enqueue(sse({
+            type: 'progress', key: img.key, label: img.label,
+            status: 'generating', index: i, total: template.images.length,
+          }));
+
+          try {
+            const buffer = await generateOneImage(prompt, seed);
+            const fileName = `${img.key}.jpg`;
+            await writeFile(path.join(saveDir, fileName), buffer);
+            succeeded++;
+
+            // 3. 완료 알림
+            controller.enqueue(sse({
+              type: 'progress', key: img.key, label: img.label,
+              status: 'done', index: i, total: template.images.length,
+              path: `/api/images/${slug}/${fileName}`,
+            }));
+          } catch (e) {
+            // 4. 실패 알림 — 나머지 계속 진행
+            controller.enqueue(sse({
+              type: 'progress', key: img.key, label: img.label,
+              status: 'error', index: i, total: template.images.length,
+              error: e instanceof Error ? e.message : String(e),
+            }));
+          }
+        }
+
+        // 5. 전체 완료
+        controller.enqueue(sse({ type: 'complete', succeeded, total: template.images.length }));
+      } finally {
+        controller.close();
+      }
+    },
+  });
+
+  return new Response(stream, {
+    headers: {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+    },
   });
 }

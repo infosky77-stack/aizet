@@ -4,8 +4,11 @@ import { useEffect, useState } from 'react';
 import { useSession } from '@/hooks/useSession';
 import {
   Store, Phone, MapPin, Clock, Tag, Plus, Trash2,
-  Save, ExternalLink, CheckCircle, AlertCircle, Loader2, Info, Sparkles,
+  Save, ExternalLink, CheckCircle, AlertCircle, Loader2, Info, Sparkles, XCircle,
 } from 'lucide-react';
+
+type ImageItem = { key: string; label: string; status: 'pending' | 'generating' | 'done' | 'error' }
+type GenPhase = 'idle' | 'running' | 'done'
 
 interface MenuItem { name: string; price: number }
 
@@ -36,9 +39,9 @@ export default function AdminSettingsPage() {
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState<'idle' | 'ok' | 'error'>('idle');
   const [errorMsg, setErrorMsg] = useState('');
-  const [generating, setGenerating] = useState(false);
-  const [genStatus, setGenStatus] = useState<'idle' | 'ok' | 'error'>('idle');
-  const [genMsg, setGenMsg] = useState('');
+  const [genPhase, setGenPhase] = useState<GenPhase>('idle');
+  const [imageList, setImageList] = useState<ImageItem[]>([]);
+  const [genError, setGenError] = useState('');
 
   useEffect(() => {
     fetch('/api/user/profile')
@@ -104,29 +107,55 @@ export default function AdminSettingsPage() {
   }
 
   async function handleGenerateImages() {
-    if (!form.slug) {
-      setGenMsg('먼저 가게 정보를 저장하고 슬러그를 확정해 주세요.');
-      setGenStatus('error');
-      return;
-    }
-    setGenerating(true);
-    setGenStatus('idle');
-    setGenMsg('');
+    if (!form.slug) return;
+    setGenPhase('running');
+    setImageList([]);
+    setGenError('');
+
     try {
       const res = await fetch('/api/admin/generate-images', { method: 'POST' });
-      const data = await res.json();
+
+      // 인증 오류 등 JSON 에러 응답
       if (!res.ok) {
-        setGenMsg(data.error ?? '이미지 생성 실패');
-        setGenStatus('error');
-      } else {
-        setGenMsg(`이미지 생성 완료 (${data.succeeded}/${data.total}장)`);
-        setGenStatus('ok');
+        const data = await res.json().catch(() => ({}));
+        setGenError(data.error ?? `오류 (${res.status})`);
+        setGenPhase('idle');
+        return;
+      }
+
+      const reader = res.body!.getReader();
+      const decoder = new TextDecoder();
+      let buf = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buf += decoder.decode(value, { stream: true });
+        const lines = buf.split('\n');
+        buf = lines.pop() ?? '';
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          try {
+            const ev = JSON.parse(line.slice(6));
+            if (ev.type === 'start') {
+              setImageList(ev.images.map((img: { key: string; label: string }) => ({
+                key: img.key, label: img.label, status: 'pending' as const,
+              })));
+            } else if (ev.type === 'progress') {
+              setImageList(prev => prev.map(item =>
+                item.key === ev.key ? { ...item, status: ev.status } : item
+              ));
+            } else if (ev.type === 'complete') {
+              setGenPhase('done');
+            }
+          } catch { /* 파싱 실패 무시 */ }
+        }
       }
     } catch {
-      setGenMsg('네트워크 오류');
-      setGenStatus('error');
-    } finally {
-      setGenerating(false);
+      setGenError('네트워크 오류');
+      setGenPhase('idle');
     }
   }
 
@@ -330,40 +359,121 @@ export default function AdminSettingsPage() {
 
       {/* AI 이미지 생성 */}
       <div className="mt-8 border-t border-stone-100 pt-8">
-        <div className="mb-3">
+        <div className="mb-4">
           <h2 className="text-base font-bold text-stone-800 flex items-center gap-2">
             <Sparkles size={16} className="text-violet-500" />
             AI 이미지 자동 생성
           </h2>
           <p className="text-xs text-stone-400 mt-1">
-            업종과 가게명을 기반으로 홈페이지용 이미지를 Gemini AI로 생성합니다. 가게 정보 저장 후 사용하세요.
+            업종과 가게명을 기반으로 홈페이지용 이미지를 AI로 생성합니다. 가게 정보 저장 후 사용하세요.
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={handleGenerateImages}
-            disabled={generating || !form.slug}
-            className="flex items-center gap-2 bg-violet-600 hover:bg-violet-700 disabled:opacity-50 text-white font-bold px-6 py-3 rounded-xl transition-colors"
-          >
-            {generating ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
-            {generating ? '이미지 생성 중...' : 'AI로 이미지 자동 생성'}
-          </button>
 
-          {genStatus === 'ok' && (
-            <div className="flex items-center gap-1.5 text-emerald-600 text-sm font-semibold">
-              <CheckCircle size={16} />
-              {genMsg}
+        {/* 시작 버튼 (idle 상태) */}
+        {genPhase === 'idle' && (
+          <div>
+            <button
+              onClick={handleGenerateImages}
+              disabled={!form.slug}
+              className="flex items-center gap-2 bg-violet-600 hover:bg-violet-700 disabled:opacity-50 text-white font-bold px-6 py-3 rounded-xl transition-colors"
+            >
+              <Sparkles size={16} />
+              AI로 이미지 자동 생성
+            </button>
+            {!form.slug && (
+              <p className="mt-2 text-xs text-amber-600">슬러그(홈페이지 주소)를 먼저 저장해야 합니다.</p>
+            )}
+            {genError && (
+              <div className="flex items-center gap-1.5 mt-2 text-red-500 text-sm">
+                <AlertCircle size={14} />
+                {genError}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* 진행 체크리스트 (running / done 상태) */}
+        {(genPhase === 'running' || genPhase === 'done') && imageList.length > 0 && (
+          <div className="bg-stone-50 border border-stone-200 rounded-2xl p-5">
+            <div className="space-y-2 mb-4">
+              {imageList.map(item => (
+                <div key={item.key} className="flex items-center gap-3">
+                  {/* 상태 아이콘 */}
+                  <span className="shrink-0 w-5 h-5 flex items-center justify-center">
+                    {item.status === 'done' && <CheckCircle size={18} className="text-emerald-500" />}
+                    {item.status === 'generating' && <Loader2 size={18} className="animate-spin text-violet-500" />}
+                    {item.status === 'error' && <XCircle size={18} className="text-red-400" />}
+                    {item.status === 'pending' && (
+                      <span className="w-4 h-4 rounded-full border-2 border-stone-300 block" />
+                    )}
+                  </span>
+
+                  {/* 라벨 */}
+                  <span className={[
+                    'text-sm',
+                    item.status === 'done' ? 'text-stone-700 font-medium' : '',
+                    item.status === 'generating' ? 'text-violet-700 font-semibold' : '',
+                    item.status === 'error' ? 'text-red-500' : '',
+                    item.status === 'pending' ? 'text-stone-400' : '',
+                  ].join(' ')}>
+                    {item.label} 사진
+                    {item.status === 'generating' && ' 생성 중...'}
+                    {item.status === 'done' && ' 완료'}
+                    {item.status === 'error' && ' 생성 실패'}
+                  </span>
+                </div>
+              ))}
             </div>
-          )}
-          {genStatus === 'error' && (
-            <div className="flex items-center gap-1.5 text-red-500 text-sm">
-              <AlertCircle size={16} />
-              {genMsg}
-            </div>
-          )}
-        </div>
-        {!form.slug && (
-          <p className="mt-2 text-xs text-amber-600">슬러그(홈페이지 주소)를 먼저 저장해야 합니다.</p>
+
+            {/* 완료 메시지 */}
+            {genPhase === 'done' && (() => {
+              const succeeded = imageList.filter(i => i.status === 'done').length;
+              const total = imageList.length;
+              return (
+                <div className="border-t border-stone-200 pt-4">
+                  <div className="flex items-center gap-2 text-emerald-600 font-bold mb-3">
+                    <CheckCircle size={18} />
+                    완성되었습니다! ({succeeded}/{total}장 성공)
+                  </div>
+                  <a
+                    href={`/site/${form.slug}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-5 py-2.5 rounded-xl text-sm transition-colors"
+                  >
+                    <ExternalLink size={14} />
+                    내 홈페이지 보기
+                  </a>
+                  <button
+                    onClick={() => { setGenPhase('idle'); setImageList([]); }}
+                    className="ml-3 text-sm text-stone-400 hover:text-stone-600 transition-colors"
+                  >
+                    다시 생성
+                  </button>
+                </div>
+              );
+            })()}
+
+            {/* 생성 중 진행률 표시 */}
+            {genPhase === 'running' && (() => {
+              const done = imageList.filter(i => i.status === 'done' || i.status === 'error').length;
+              const total = imageList.length;
+              return (
+                <div className="border-t border-stone-200 pt-3">
+                  <div className="flex items-center justify-between text-xs text-stone-400 mb-1.5">
+                    <span>{done}/{total}장 완료</span>
+                    <span>{Math.round((done / total) * 100)}%</span>
+                  </div>
+                  <div className="w-full bg-stone-200 rounded-full h-1.5">
+                    <div
+                      className="bg-violet-500 h-1.5 rounded-full transition-all duration-500"
+                      style={{ width: `${(done / total) * 100}%` }}
+                    />
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
         )}
       </div>
     </div>
