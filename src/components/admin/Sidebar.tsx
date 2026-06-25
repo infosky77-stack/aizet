@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard, ClipboardList, UtensilsCrossed, CalendarClock, Bot,
   ArrowLeft, CreditCard, Printer, BookOpen, Leaf, Scale, BarChart3,
-  Menu, X, Cloud, LogOut, ChevronDown, Shield, Zap, Crown, Globe, Settings,
+  Menu, X, Cloud, LogOut, ChevronDown, Shield, Zap, Crown, Globe, Settings, Wand2,
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useSession } from '@/hooks/useSession';
@@ -25,6 +25,7 @@ const NAV = [
   { href: '/admin/korean', label: '한국어 학습', icon: BookOpen },
   { href: '/admin/hancandy', label: 'HanCandy', icon: Leaf },
   { href: '/admin/tax', label: '세무법인', icon: Scale },
+  { href: '/admin/editor', label: '홈페이지 편집', icon: Wand2 },
   { href: '/admin/domain', label: '도메인 관리', icon: Globe },
   { href: '/admin/settings', label: '가게 정보 설정', icon: Settings },
 ];

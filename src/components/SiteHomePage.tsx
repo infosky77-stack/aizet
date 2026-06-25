@@ -166,6 +166,7 @@ export default function SiteHomePage({ user, menuItems, generatedImages, siteCon
     ? { ...baseMeta, ...THEME_OVERRIDES[cfg.theme] }
     : baseMeta;
   const tagline = cfg.tagline?.trim() || meta.tagline;
+  const heroDesc = cfg.hero_description?.trim() || '';
   const ctaText = cfg.cta_text?.trim() || '문의 · 예약';
   const hidden = new Set(cfg.sections_hidden ?? []);
   const shopName = user.shop_name || user.name + '님의 가게';
@@ -181,6 +182,9 @@ export default function SiteHomePage({ user, menuItems, generatedImages, siteCon
           </div>
           <h1 className="text-4xl md:text-6xl font-black mb-4 leading-tight">{shopName}</h1>
           <p className="text-white/80 text-lg md:text-xl">{tagline}</p>
+          {heroDesc && (
+            <p className="text-white/65 text-sm md:text-base mt-3 max-w-xl leading-relaxed whitespace-pre-line">{heroDesc}</p>
+          )}
 
           {(user.phone || user.address) && (
             <div className="flex flex-wrap gap-4 mt-8">

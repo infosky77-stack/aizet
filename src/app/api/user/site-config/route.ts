@@ -29,6 +29,7 @@ export async function PUT(req: NextRequest) {
   const config: SiteConfig = {};
 
   if (typeof body.tagline === 'string') config.tagline = body.tagline.slice(0, 100);
+  if (typeof body.hero_description === 'string') config.hero_description = body.hero_description.slice(0, 300);
   if (typeof body.cta_text === 'string') config.cta_text = body.cta_text.slice(0, 50);
   if (typeof body.theme === 'string' && ALLOWED_THEMES.includes(body.theme)) config.theme = body.theme;
   if (Array.isArray(body.sections_hidden)) {
