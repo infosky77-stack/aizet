@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
   const slug = user.slug;
   const shopName = user.shop_name || '가게';
 
-  const saveDir = path.join(process.cwd(), 'public', 'site-generated', slug);
+  const saveDir = path.join(process.cwd(), 'data', 'site-images', slug);
   if (!existsSync(saveDir)) {
     await mkdir(saveDir, { recursive: true });
   }
@@ -87,7 +87,7 @@ export async function POST(req: NextRequest) {
       const buffer = await generateOneImage(prompt, seed);
       const fileName = `${img.key}.jpg`;
       await writeFile(path.join(saveDir, fileName), buffer);
-      results.push({ key: img.key, label: img.label, path: `/site-generated/${slug}/${fileName}` });
+      results.push({ key: img.key, label: img.label, path: `/api/images/${slug}/${fileName}` });
     } catch (e) {
       results.push({ key: img.key, label: img.label, path: '', error: String(e) });
     }

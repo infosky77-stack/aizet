@@ -14,7 +14,7 @@ export default async function SitePage({ params }: { params: Promise<{ slug: str
 
   const menuItems = getMenuItems(user.id);
 
-  const imageDir = path.join(process.cwd(), 'public', 'site-generated', slug);
+  const imageDir = path.join(process.cwd(), 'data', 'site-images', slug);
   let generatedImages: { key: string; label: string; path: string }[] = [];
 
   if (existsSync(imageDir)) {
@@ -23,7 +23,7 @@ export default async function SitePage({ params }: { params: Promise<{ slug: str
     const files = readdirSync(imageDir).filter(f => f.endsWith('.png') || f.endsWith('.jpg'));
     generatedImages = files.map(f => {
       const key = f.replace(/\.(png|jpg)$/, '');
-      return { key, label: keyToLabel[key] ?? key, path: `/site-generated/${slug}/${f}` };
+      return { key, label: keyToLabel[key] ?? key, path: `/api/images/${slug}/${f}` };
     });
   }
 
