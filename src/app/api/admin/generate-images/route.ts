@@ -127,6 +127,12 @@ export async function POST(req: NextRequest) {
 
   const stream = new ReadableStream({
     async start(controller) {
+      // nginx proxy_read_timeout(기본 60s) 방어: 15초마다 SSE 코멘트를 보내
+      // 이미지 생성 중 Pollinations 429 대기(20s) 또는 타임아웃(90s) 중에도 커넥션 유지.
+      const heartbeat = setInterval(() => {
+        try { controller.enqueue(enc.encode(': keepalive\n\n')); } catch { /* stream closed */ }
+      }, 15_000);
+
       try {
         if (!existsSync(saveDir)) await mkdir(saveDir, { recursive: true });
 
@@ -185,6 +191,7 @@ export async function POST(req: NextRequest) {
           driveWebViewLink,
         }));
       } finally {
+        clearInterval(heartbeat);
         controller.close();
       }
     },
@@ -195,6 +202,7 @@ export async function POST(req: NextRequest) {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache',
       'Connection': 'keep-alive',
+      'X-Accel-Buffering': 'no',  // nginx proxy_buffering 비활성화 (SSE 실시간 전달)
     },
   });
 }

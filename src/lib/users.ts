@@ -127,13 +127,13 @@ export function updateDriveFolderId(userId: string, folderId: string): void {
   ).run({ folderId, id: userId });
 }
 
-/** slug 후보 생성: shop_name 영문/숫자만 남기고, 없으면 industry-{userId 앞 8자} */
+/** slug 후보 생성: 영문·숫자만 남기고, 없으면 industry-{userId 앞 8자} */
 export function generateSlug(shopName: string, industry: string, userId: string): string {
   const fromName = shopName
     .toLowerCase()
-    .replace(/[^a-z0-9가-힣]/g, '-')
+    .replace(/[^a-z0-9]/g, '-')  // 한글·특수문자 전부 하이픈 (URL-safe)
     .replace(/-+/g, '-')
     .replace(/^-|-$/g, '')
     .slice(0, 30);
-  return fromName || `${industry}-${userId.slice(0, 8)}`;
+  return fromName || `${industry || 'store'}-${userId.slice(0, 8)}`;
 }

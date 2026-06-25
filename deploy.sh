@@ -5,7 +5,7 @@
 set -euo pipefail
 
 SRC_DIR="/root/aizet"
-DIST_DIR="/root/aizet/home/aizet/.aizet-next"
+DIST_DIR="/home/aizet/.aizet-next"
 BUILD_OUT="$SRC_DIR/.next"
 PM2_APP="aizet"
 

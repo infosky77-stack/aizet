@@ -183,6 +183,7 @@ export default function AdminSettingsPage() {
       const reader = res.body!.getReader();
       const decoder = new TextDecoder();
       let buf = '';
+      let receivedComplete = false;
 
       while (true) {
         const { done, value } = await reader.read();
@@ -206,10 +207,17 @@ export default function AdminSettingsPage() {
               ));
             } else if (ev.type === 'complete') {
               if (ev.driveWebViewLink) setDriveLink(ev.driveWebViewLink);
+              receivedComplete = true;
               setGenPhase('done');
             }
           } catch { /* 파싱 실패 무시 */ }
         }
+      }
+
+      // complete 이벤트 없이 스트림이 닫힌 경우 (서버 오류·연결 끊김)
+      if (!receivedComplete) {
+        setGenError('연결이 끊겼습니다. 다시 시도해 주세요.');
+        setGenPhase('idle');
       }
     } catch {
       setGenError('네트워크 오류');
@@ -568,6 +576,14 @@ export default function AdminSettingsPage() {
                 {genError}
               </div>
             )}
+          </div>
+        )}
+
+        {/* 목록 수신 대기 스피너 (running이지만 아직 start 이벤트 못 받은 구간) */}
+        {genPhase === 'running' && imageList.length === 0 && (
+          <div className="flex items-center gap-2 text-violet-600 text-sm font-semibold py-3">
+            <Loader2 size={18} className="animate-spin" />
+            AI 이미지 생성 준비 중...
           </div>
         )}
 

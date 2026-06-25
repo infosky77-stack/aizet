@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createSession, COOKIE_NAME, COOKIE_MAX_AGE } from '@/lib/auth';
+import { createSession, getSessionFromRequest, COOKIE_NAME, COOKIE_MAX_AGE } from '@/lib/auth';
 import { upsertUser } from '@/lib/users';
 import type { UserPlan } from '@/types/auth';
 
@@ -55,15 +55,19 @@ export async function GET(req: NextRequest) {
     industry: state.industry || '',
   });
 
+  // select_account 재로그인 시 구글이 refresh_token을 새로 보내지 않으므로 기존 토큰 보존.
+  const prevSession = getSessionFromRequest(req);
+  const refreshToken = tokens.refresh_token ?? prevSession?.refreshToken ?? null;
+
   const sessionId = createSession({
     sub: record.id,
     email: record.email,
     name: record.name,
     picture: record.picture,
     accessToken: tokens.access_token,
-    refreshToken: tokens.refresh_token,
+    refreshToken,
     expiresAt: Date.now() + (tokens.expires_in ?? 3600) * 1000,
-    plan: record.plan,       // use stored plan, not OAuth state
+    plan: record.plan,
     industry: record.industry,
   });
 
