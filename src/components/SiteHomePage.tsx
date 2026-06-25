@@ -8,6 +8,8 @@ import {
   PawPrint, Briefcase, Star,
 } from 'lucide-react';
 import type { UserRecord, MenuItem } from '@/lib/users';
+import type { SiteConfig } from '@/lib/siteConfig';
+import { parseSiteConfig } from '@/lib/siteConfig';
 
 // ── 업종별 메타 ────────────────────────────────────────────────────────────────
 const INDUSTRY_META: Record<string, {
@@ -139,14 +141,33 @@ const FALLBACK_META = {
   tagline: '최고의 서비스를 제공합니다',
 };
 
+// 테마 키 → gradient/accent 오버라이드 (업종 기본값과 독립적으로 선택 가능)
+const THEME_OVERRIDES: Record<string, Pick<typeof FALLBACK_META, 'gradient' | 'accent' | 'accentText' | 'accentBg'>> = {
+  amber:   { gradient: 'from-amber-600 to-orange-700',   accent: 'amber',   accentText: 'text-amber-700',   accentBg: 'bg-amber-50 border-amber-200'   },
+  rose:    { gradient: 'from-rose-500 to-pink-700',      accent: 'rose',    accentText: 'text-rose-700',    accentBg: 'bg-rose-50 border-rose-200'     },
+  violet:  { gradient: 'from-violet-600 to-purple-700',  accent: 'violet',  accentText: 'text-violet-700',  accentBg: 'bg-violet-50 border-violet-200' },
+  emerald: { gradient: 'from-emerald-600 to-teal-700',   accent: 'emerald', accentText: 'text-emerald-700', accentBg: 'bg-emerald-50 border-emerald-200'},
+  blue:    { gradient: 'from-blue-600 to-indigo-700',    accent: 'blue',    accentText: 'text-blue-700',    accentBg: 'bg-blue-50 border-blue-200'     },
+  orange:  { gradient: 'from-orange-500 to-amber-700',   accent: 'orange',  accentText: 'text-orange-700',  accentBg: 'bg-orange-50 border-orange-200' },
+  slate:   { gradient: 'from-slate-600 to-gray-700',     accent: 'slate',   accentText: 'text-slate-700',   accentBg: 'bg-slate-50 border-slate-200'   },
+};
+
 interface Props {
   user: UserRecord;
   menuItems: MenuItem[];
   generatedImages?: { key: string; label: string; path: string }[];
+  siteConfig?: SiteConfig;
 }
 
-export default function SiteHomePage({ user, menuItems, generatedImages }: Props) {
-  const meta = INDUSTRY_META[user.industry] ?? FALLBACK_META;
+export default function SiteHomePage({ user, menuItems, generatedImages, siteConfig }: Props) {
+  const cfg: SiteConfig = siteConfig ?? parseSiteConfig(user.site_config);
+  const baseMeta = INDUSTRY_META[user.industry] ?? FALLBACK_META;
+  const meta = cfg.theme && THEME_OVERRIDES[cfg.theme]
+    ? { ...baseMeta, ...THEME_OVERRIDES[cfg.theme] }
+    : baseMeta;
+  const tagline = cfg.tagline?.trim() || meta.tagline;
+  const ctaText = cfg.cta_text?.trim() || '문의 · 예약';
+  const hidden = new Set(cfg.sections_hidden ?? []);
   const shopName = user.shop_name || user.name + '님의 가게';
 
   return (
@@ -159,7 +180,7 @@ export default function SiteHomePage({ user, menuItems, generatedImages }: Props
             <span className="text-sm font-semibold uppercase tracking-widest">{meta.label}</span>
           </div>
           <h1 className="text-4xl md:text-6xl font-black mb-4 leading-tight">{shopName}</h1>
-          <p className="text-white/80 text-lg md:text-xl">{meta.tagline}</p>
+          <p className="text-white/80 text-lg md:text-xl">{tagline}</p>
 
           {(user.phone || user.address) && (
             <div className="flex flex-wrap gap-4 mt-8">
@@ -225,7 +246,7 @@ export default function SiteHomePage({ user, menuItems, generatedImages }: Props
       </section>
 
       {/* ── AI 생성 이미지 갤러리 ─────────────────────────────── */}
-      {generatedImages && generatedImages.length > 0 && (
+      {!hidden.has('gallery') && generatedImages && generatedImages.length > 0 && (
         <section className="max-w-4xl mx-auto px-4 mb-16">
           <div className="text-center mb-8">
             <div className={`inline-flex items-center gap-2 text-xs font-semibold px-4 py-1.5 rounded-full mb-3 border ${meta.accentBg} ${meta.accentText}`}>
@@ -252,7 +273,7 @@ export default function SiteHomePage({ user, menuItems, generatedImages }: Props
       )}
 
       {/* ── 메뉴·서비스 ───────────────────────────────────────── */}
-      {menuItems.length > 0 && (
+      {!hidden.has('menu') && menuItems.length > 0 && (
         <section className="max-w-4xl mx-auto px-4 mb-16">
           <div className="text-center mb-8">
             <div className={`inline-flex items-center gap-2 text-xs font-semibold px-4 py-1.5 rounded-full mb-3 border ${meta.accentBg} ${meta.accentText}`}>
@@ -299,10 +320,10 @@ export default function SiteHomePage({ user, menuItems, generatedImages }: Props
       )}
 
       {/* ── 하단 연락 CTA ──────────────────────────────────────── */}
-      {user.phone && (
+      {!hidden.has('cta') && user.phone && (
         <section className={`bg-gradient-to-br ${meta.gradient}`}>
           <div className="max-w-4xl mx-auto px-4 py-12 text-center text-white">
-            <h2 className="text-2xl font-black mb-2">문의 · 예약</h2>
+            <h2 className="text-2xl font-black mb-2">{ctaText}</h2>
             <p className="text-white/80 text-sm mb-6">언제든지 편하게 연락주세요.</p>
             <a
               href={`tel:${user.phone.replace(/[^0-9]/g, '')}`}

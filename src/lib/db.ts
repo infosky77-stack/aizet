@@ -45,6 +45,7 @@ db.exec(`
     ['address',        "TEXT NOT NULL DEFAULT ''"],
     ['business_hours', "TEXT NOT NULL DEFAULT ''"],
     ['slug',           'TEXT'],
+    ['site_config',    "TEXT NOT NULL DEFAULT '{}'"],
   ];
   for (const [col, def] of toAdd) {
     if (!existing.includes(col)) {

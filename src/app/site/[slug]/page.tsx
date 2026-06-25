@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation';
 import { existsSync, readdirSync } from 'fs';
 import path from 'path';
-import { getUserBySlug, getMenuItems } from '@/lib/users';
+import { getUserBySlug, getMenuItems, parseSiteConfig } from '@/lib/users';
 import SiteHomePage from '@/components/SiteHomePage';
 import { getTemplateForIndustry } from '@/lib/ai/imageTemplates';
 
@@ -27,5 +27,7 @@ export default async function SitePage({ params }: { params: Promise<{ slug: str
     });
   }
 
-  return <SiteHomePage user={user} menuItems={menuItems} generatedImages={generatedImages} />;
+  const siteConfig = parseSiteConfig(user.site_config);
+
+  return <SiteHomePage user={user} menuItems={menuItems} generatedImages={generatedImages} siteConfig={siteConfig} />;
 }

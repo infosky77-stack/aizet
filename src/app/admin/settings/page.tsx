@@ -5,7 +5,9 @@ import { useSession } from '@/hooks/useSession';
 import {
   Store, Phone, MapPin, Clock, Tag, Plus, Trash2,
   Save, ExternalLink, CheckCircle, AlertCircle, Loader2, Info, Sparkles, XCircle,
+  Palette, Eye, EyeOff,
 } from 'lucide-react';
+import type { SiteConfig } from '@/lib/siteConfig';
 
 type ImageItem = { key: string; label: string; status: 'pending' | 'generating' | 'done' | 'error' }
 type GenPhase = 'idle' | 'running' | 'done'
@@ -32,6 +34,23 @@ const HOURS_PRESETS = [
   '24시간 운영',
 ];
 
+const THEME_OPTIONS: { key: string; label: string; color: string }[] = [
+  { key: '',        label: '업종 기본',  color: 'bg-stone-400'   },
+  { key: 'amber',   label: '앰버',       color: 'bg-amber-500'   },
+  { key: 'rose',    label: '로즈',       color: 'bg-rose-500'    },
+  { key: 'violet',  label: '바이올렛',   color: 'bg-violet-500'  },
+  { key: 'emerald', label: '에메랄드',   color: 'bg-emerald-500' },
+  { key: 'blue',    label: '블루',       color: 'bg-blue-500'    },
+  { key: 'orange',  label: '오렌지',     color: 'bg-orange-500'  },
+  { key: 'slate',   label: '슬레이트',   color: 'bg-slate-500'   },
+];
+
+const SECTION_LABELS: { key: string; label: string }[] = [
+  { key: 'gallery', label: '갤러리 (AI 이미지)' },
+  { key: 'menu',    label: '메뉴 · 서비스' },
+  { key: 'cta',     label: '하단 전화 버튼' },
+];
+
 export default function AdminSettingsPage() {
   const { session } = useSession();
   const [form, setForm] = useState<FormState>(EMPTY);
@@ -42,6 +61,9 @@ export default function AdminSettingsPage() {
   const [genPhase, setGenPhase] = useState<GenPhase>('idle');
   const [imageList, setImageList] = useState<ImageItem[]>([]);
   const [genError, setGenError] = useState('');
+  const [siteConfig, setSiteConfig] = useState<SiteConfig>({});
+  const [configSaving, setConfigSaving] = useState(false);
+  const [configStatus, setConfigStatus] = useState<'idle' | 'ok' | 'error'>('idle');
 
   useEffect(() => {
     fetch('/api/user/profile')
@@ -60,7 +82,40 @@ export default function AdminSettingsPage() {
         }
       })
       .finally(() => setLoading(false));
+    fetch('/api/user/site-config')
+      .then(r => r.json())
+      .then(data => { if (data.config) setSiteConfig(data.config); });
   }, []);
+
+  async function handleSaveConfig() {
+    setConfigSaving(true);
+    setConfigStatus('idle');
+    try {
+      const res = await fetch('/api/user/site-config', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(siteConfig),
+      });
+      setConfigStatus(res.ok ? 'ok' : 'error');
+    } catch {
+      setConfigStatus('error');
+    } finally {
+      setConfigSaving(false);
+    }
+  }
+
+  function toggleSection(key: string) {
+    setSiteConfig(prev => {
+      const hidden = prev.sections_hidden ?? [];
+      return {
+        ...prev,
+        sections_hidden: hidden.includes(key)
+          ? hidden.filter(k => k !== key)
+          : [...hidden, key],
+      };
+    });
+    setConfigStatus('idle');
+  }
 
   function set<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm(f => ({ ...f, [key]: value }));
@@ -356,6 +411,127 @@ export default function AdminSettingsPage() {
       <p className="mt-4 text-xs text-stone-400">
         저장 후 홈페이지에 즉시 반영됩니다. 메뉴 항목은 전체 교체 방식으로 저장됩니다.
       </p>
+
+      {/* 홈페이지 꾸미기 */}
+      <div className="mt-8 border-t border-stone-100 pt-8">
+        <div className="mb-4">
+          <h2 className="text-base font-bold text-stone-800 flex items-center gap-2">
+            <Palette size={16} className="text-amber-500" />
+            홈페이지 꾸미기
+          </h2>
+          <p className="text-xs text-stone-400 mt-1">슬로건, 색상 테마, 섹션 표시 여부를 조정합니다.</p>
+        </div>
+
+        <div className="space-y-5">
+          {/* 슬로건 */}
+          <div>
+            <label className="block text-sm font-semibold text-stone-700 mb-1.5">슬로건</label>
+            <input
+              value={siteConfig.tagline ?? ''}
+              onChange={e => { setSiteConfig(p => ({ ...p, tagline: e.target.value })); setConfigStatus('idle'); }}
+              placeholder="예: 당신에게 어울리는 스타일을 찾아드립니다 (비워두면 업종 기본값 사용)"
+              className="w-full border border-stone-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-300 transition"
+              maxLength={100}
+            />
+          </div>
+
+          {/* 색상 테마 */}
+          <div>
+            <label className="block text-sm font-semibold text-stone-700 mb-2">색상 테마</label>
+            <div className="flex flex-wrap gap-2">
+              {THEME_OPTIONS.map(opt => (
+                <button
+                  key={opt.key}
+                  type="button"
+                  onClick={() => { setSiteConfig(p => ({ ...p, theme: opt.key || undefined })); setConfigStatus('idle'); }}
+                  className={[
+                    'flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-colors',
+                    (siteConfig.theme ?? '') === opt.key
+                      ? 'border-stone-700 bg-stone-900 text-white'
+                      : 'border-stone-200 bg-white text-stone-600 hover:bg-stone-50',
+                  ].join(' ')}
+                >
+                  <span className={`w-3 h-3 rounded-full ${opt.color}`} />
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* CTA 버튼 텍스트 */}
+          <div>
+            <label className="block text-sm font-semibold text-stone-700 mb-1.5">하단 버튼 제목</label>
+            <input
+              value={siteConfig.cta_text ?? ''}
+              onChange={e => { setSiteConfig(p => ({ ...p, cta_text: e.target.value })); setConfigStatus('idle'); }}
+              placeholder="문의 · 예약 (기본값)"
+              className="w-full border border-stone-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-300 transition"
+              maxLength={50}
+            />
+          </div>
+
+          {/* 섹션 표시 토글 */}
+          <div>
+            <label className="block text-sm font-semibold text-stone-700 mb-2">섹션 표시</label>
+            <div className="space-y-2">
+              {SECTION_LABELS.map(sec => {
+                const isVisible = !(siteConfig.sections_hidden ?? []).includes(sec.key);
+                return (
+                  <div key={sec.key} className="flex items-center justify-between bg-stone-50 border border-stone-200 rounded-xl px-4 py-2.5">
+                    <span className="text-sm text-stone-700">{sec.label}</span>
+                    <button
+                      type="button"
+                      onClick={() => toggleSection(sec.key)}
+                      className={[
+                        'flex items-center gap-1.5 text-xs font-semibold px-3 py-1 rounded-lg transition-colors',
+                        isVisible
+                          ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
+                          : 'bg-stone-200 text-stone-500 hover:bg-stone-300',
+                      ].join(' ')}
+                    >
+                      {isVisible ? <Eye size={13} /> : <EyeOff size={13} />}
+                      {isVisible ? '표시' : '숨김'}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* 저장 버튼 */}
+        <div className="mt-5 flex items-center gap-3">
+          <button
+            onClick={handleSaveConfig}
+            disabled={configSaving}
+            className="flex items-center gap-2 bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white font-bold px-5 py-2.5 rounded-xl text-sm transition-colors"
+          >
+            {configSaving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+            {configSaving ? '저장 중...' : '꾸미기 저장'}
+          </button>
+          {configStatus === 'ok' && (
+            <span className="flex items-center gap-1.5 text-emerald-600 text-sm font-semibold">
+              <CheckCircle size={14} /> 저장됐습니다
+            </span>
+          )}
+          {configStatus === 'error' && (
+            <span className="flex items-center gap-1.5 text-red-500 text-sm">
+              <AlertCircle size={14} /> 저장 실패
+            </span>
+          )}
+          {form.slug && (
+            <a
+              href={`/site/${form.slug}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="ml-auto flex items-center gap-1.5 text-xs text-amber-700 hover:underline font-semibold"
+            >
+              <ExternalLink size={12} />
+              미리보기
+            </a>
+          )}
+        </div>
+      </div>
 
       {/* AI 이미지 생성 */}
       <div className="mt-8 border-t border-stone-100 pt-8">

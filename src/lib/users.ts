@@ -1,5 +1,9 @@
 import db from './db';
 import type { UserPlan } from '@/types/auth';
+import type { SiteConfig } from './siteConfig';
+
+export type { SiteConfig } from './siteConfig';
+export { parseSiteConfig } from './siteConfig';
 
 export interface UserRecord {
   id: string;
@@ -13,6 +17,7 @@ export interface UserRecord {
   address: string;
   business_hours: string;
   slug: string | null;
+  site_config: string;
   created_at: number;
   updated_at: number;
 }
@@ -96,6 +101,18 @@ export function replaceMenuItems(userId: string, items: Array<{ name: string; pr
     deleteStmt.run(userId);
     items.forEach((item, i) => insertStmt.run({ user_id: userId, name: item.name, price: item.price, sort_order: i }));
   })();
+}
+
+export function getSiteConfig(userId: string): SiteConfig {
+  const row = db.prepare<[string]>('SELECT site_config FROM users WHERE id = ?').get(userId) as { site_config: string } | null;
+  try { return row?.site_config ? JSON.parse(row.site_config) : {}; } catch { return {}; }
+}
+
+export function updateSiteConfig(userId: string, config: SiteConfig): void {
+  const now = Date.now();
+  db.prepare<{ config: string; id: string; now: number }>(
+    'UPDATE users SET site_config = @config, updated_at = @now WHERE id = @id'
+  ).run({ config: JSON.stringify(config), id: userId, now });
 }
 
 /** slug 후보 생성: shop_name 영문/숫자만 남기고, 없으면 industry-{userId 앞 8자} */
