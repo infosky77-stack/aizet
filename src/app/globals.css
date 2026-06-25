@@ -21,7 +21,9 @@ html {
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), Arial, sans-serif;
+  /* Noto Sans KR을 앞에 배치 — 한국어 unicode 범위는 Noto Sans KR이 처리,
+     라틴/숫자/기호는 Geist가 처리하므로 폰트 스택 순서로 자동 분리됨 */
+  font-family: var(--font-noto-sans-kr), var(--font-geist-sans), Arial, sans-serif;
   overflow-x: hidden;
 }
 

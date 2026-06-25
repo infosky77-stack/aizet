@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { anthropic } from '@/lib/ai/claude';
+import { gemini } from '@/lib/ai/gemini';
 
 export const runtime = 'nodejs';
 
@@ -8,7 +8,7 @@ function send(data: object) {
   return encoder.encode(`data: ${JSON.stringify(data)}\n\n`);
 }
 
-const SYSTEM_PROMPT = `You are "세무 AI", a knowledgeable and friendly tax consultant for 세무법인 아이젯 (Tax Law Firm AIZET).
+const SYSTEM_PROMPT = `You are "세무 AI", a knowledgeable and friendly tax consultant for 세무법인 에이젯 (Tax Law Firm AIZET).
 
 Your expertise covers Korean tax law:
 - 종합소득세 (Comprehensive Income Tax): filing deadlines (May 31 annually), tax brackets 6%~45%, deductions
@@ -39,19 +39,28 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
   const messages: Array<{ role: 'user' | 'assistant'; content: string }> = body.messages ?? [];
 
+  const model = gemini.getGenerativeModel({
+    model: 'gemini-2.5-flash',
+    systemInstruction: SYSTEM_PROMPT,
+  });
+
+  const history = messages.slice(0, -1).map(m => ({
+    role: m.role === 'assistant' ? 'model' : 'user',
+    parts: [{ text: m.content }],
+  }));
+
+  const lastMessage = messages[messages.length - 1]?.content ?? '';
+
   const stream = new ReadableStream({
     async start(controller) {
       try {
-        const response = await anthropic.messages.stream({
-          model: 'claude-haiku-4-5-20251001',
-          max_tokens: 800,
-          system: SYSTEM_PROMPT,
-          messages: messages.map(m => ({ role: m.role, content: m.content })),
-        });
+        const chat = model.startChat({ history });
+        const result = await chat.sendMessageStream(lastMessage);
 
-        for await (const event of response) {
-          if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
-            controller.enqueue(send({ type: 'delta', text: event.delta.text }));
+        for await (const chunk of result.stream) {
+          const text = chunk.text();
+          if (text) {
+            controller.enqueue(send({ type: 'delta', text }));
           }
         }
         controller.enqueue(send({ type: 'done' }));

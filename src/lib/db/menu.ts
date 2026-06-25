@@ -1,5 +1,8 @@
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
+import { join } from 'path';
 import { MenuItem } from '@/types/menu';
 
+// ── 정적 기본 메뉴 (동기화 없을 때 폴백) ─────────────────────────────────────
 export const MENU_ITEMS: MenuItem[] = [
   // ── 면류 ──────────────────────────────────────────────
   {
@@ -240,9 +243,42 @@ export const MENU_ITEMS: MenuItem[] = [
   },
 ];
 
-// Mutable overlay — super editor writes here; public /menu reads from here
-let liveItems: MenuItem[] | null = null;
+// ── JSON 파일 영속성 ──────────────────────────────────────────────────────────
+const DATA_DIR  = join(process.cwd(), 'data');
+const DATA_FILE = join(DATA_DIR, 'menu-sync.json');
 
+interface PersistedMenuState {
+  items: MenuItem[];
+  syncedAt: string;
+}
+
+function loadFromDisk(): PersistedMenuState | null {
+  if (existsSync(DATA_FILE)) {
+    try {
+      return JSON.parse(readFileSync(DATA_FILE, 'utf-8')) as PersistedMenuState;
+    } catch {
+      // 파일 파손 시 기본 메뉴로 폴백
+    }
+  }
+  return null;
+}
+
+function persist(items: MenuItem[], syncedAt: string): void {
+  try {
+    mkdirSync(DATA_DIR, { recursive: true });
+    writeFileSync(DATA_FILE, JSON.stringify({ items, syncedAt }, null, 2), 'utf-8');
+    console.log('[menu] persisted to', DATA_FILE);
+  } catch (err) {
+    console.error('[menu] persist failed:', err);
+  }
+}
+
+// ── 메모리 상태 (서버 기동 시 파일에서 초기화) ───────────────────────────────
+const savedState = loadFromDisk();
+let liveItems: MenuItem[] | null = savedState?.items ?? null;
+let lastSyncedAt: string | null = savedState?.syncedAt ?? null;
+
+// ── 공개 API ─────────────────────────────────────────────────────────────────
 export function getMenuItems(): MenuItem[] {
   return liveItems ?? MENU_ITEMS;
 }
@@ -257,8 +293,10 @@ export function getMenuByCategory(category: string): MenuItem[] {
 
 export function syncMenuItems(items: MenuItem[]): void {
   liveItems = items;
+  lastSyncedAt = new Date().toISOString();
+  persist(items, lastSyncedAt);
 }
 
 export function getLastSyncedAt(): string | null {
-  return liveItems ? new Date().toISOString() : null;
+  return lastSyncedAt;
 }

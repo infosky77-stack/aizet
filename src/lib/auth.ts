@@ -1,34 +1,56 @@
 import { randomUUID } from 'crypto';
 import { NextRequest } from 'next/server';
+import db from './db';
 import type { SessionData, UserPlan } from '@/types/auth';
-
-// In-memory session store (resets on restart; replace with Redis/DB in production)
-const store = new Map<string, SessionData>();
 
 export const COOKIE_NAME = 'aizet_session';
 export const COOKIE_MAX_AGE = 30 * 24 * 60 * 60; // 30 days in seconds
 const SESSION_TTL_MS = COOKIE_MAX_AGE * 1000;
 
+type SessionRow = {
+  id: string; sub: string; email: string; name: string; picture: string;
+  accessToken: string; refreshToken: string | null; expiresAt: number;
+  plan: string; industry: string; createdAt: number;
+};
+
+function rowToSession(row: SessionRow): SessionData {
+  return {
+    id: row.id, sub: row.sub, email: row.email, name: row.name,
+    picture: row.picture, accessToken: row.accessToken,
+    refreshToken: row.refreshToken ?? undefined,
+    expiresAt: row.expiresAt, plan: row.plan as UserPlan,
+    industry: row.industry, createdAt: row.createdAt,
+  };
+}
+
 export function createSession(data: Omit<SessionData, 'id' | 'createdAt'>): string {
   const id = randomUUID();
-  store.set(id, { ...data, id, createdAt: Date.now() });
+  const createdAt = Date.now();
+  db.prepare<SessionRow>(`
+    INSERT INTO sessions (id, sub, email, name, picture, accessToken, refreshToken, expiresAt, plan, industry, createdAt)
+    VALUES (@id, @sub, @email, @name, @picture, @accessToken, @refreshToken, @expiresAt, @plan, @industry, @createdAt)
+  `).run({ ...data, id, createdAt, refreshToken: data.refreshToken ?? null });
   return id;
 }
 
 export function getSession(id: string): SessionData | null {
-  const s = store.get(id);
-  if (!s) return null;
-  if (Date.now() - s.createdAt > SESSION_TTL_MS) { store.delete(id); return null; }
-  return s;
+  const row = db.prepare<[string], SessionRow>('SELECT * FROM sessions WHERE id = ?').get(id);
+  if (!row) return null;
+  if (Date.now() - row.createdAt > SESSION_TTL_MS) {
+    db.prepare('DELETE FROM sessions WHERE id = ?').run(id);
+    return null;
+  }
+  return rowToSession(row);
 }
 
-export function updateSession(id: string, patch: Partial<Pick<SessionData, 'plan' | 'industry' | 'accessToken'>>): void {
-  const s = store.get(id);
-  if (s) store.set(id, { ...s, ...patch });
+export function updateSession(id: string, patch: Partial<Pick<SessionData, 'plan' | 'industry' | 'accessToken' | 'expiresAt'>>): void {
+  const fields = Object.keys(patch).map(k => `${k} = @${k}`).join(', ');
+  if (!fields) return;
+  db.prepare(`UPDATE sessions SET ${fields} WHERE id = @id`).run({ ...patch, id });
 }
 
 export function deleteSession(id: string): void {
-  store.delete(id);
+  db.prepare('DELETE FROM sessions WHERE id = ?').run(id);
 }
 
 export function getSessionFromRequest(req: NextRequest): SessionData | null {

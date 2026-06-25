@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createSession, COOKIE_NAME, COOKIE_MAX_AGE } from '@/lib/auth';
+import { upsertUser } from '@/lib/users';
 import type { UserPlan } from '@/types/auth';
 
 export async function GET(req: NextRequest) {
@@ -44,16 +45,26 @@ export async function GET(req: NextRequest) {
   const user = await userRes.json();
   if (!user.id) return NextResponse.redirect(loginUrl('user_info'));
 
-  const sessionId = createSession({
-    sub: user.id,
+  // Persist user to SQLite (insert on first login, update profile on subsequent logins)
+  const record = upsertUser({
+    id: user.id,
     email: user.email,
     name: user.name,
     picture: user.picture,
+    plan: (state.plan as UserPlan) || 'free',
+    industry: state.industry || '',
+  });
+
+  const sessionId = createSession({
+    sub: record.id,
+    email: record.email,
+    name: record.name,
+    picture: record.picture,
     accessToken: tokens.access_token,
     refreshToken: tokens.refresh_token,
     expiresAt: Date.now() + (tokens.expires_in ?? 3600) * 1000,
-    plan: (state.plan as UserPlan) || 'free',
-    industry: state.industry || '',
+    plan: record.plan,       // use stored plan, not OAuth state
+    industry: record.industry,
   });
 
   const dest = state.callbackUrl.startsWith('/') ? `${origin}${state.callbackUrl}` : state.callbackUrl;

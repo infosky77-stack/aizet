@@ -1,0 +1,3 @@
+{
+  "/api/reservations/predict-wait/route": "app/api/reservations/predict-wait/route.js"
+}

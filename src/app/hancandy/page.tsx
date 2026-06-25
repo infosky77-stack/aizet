@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ArrowRight, Leaf, Shield, CheckCircle, Droplets, Flame } from 'lucide-react';
 import { CANDY_PRODUCTS, THEME_COLORS } from '@/lib/hancandy/products';
 import { useCandyCart } from '@/store/candyCart';
+import { AdminModeButton } from '@/components/AdminModeButton';
 
 const BRAND_PILLARS = [
   { icon: Shield, title: '무설탕·무자극', desc: '자일리톨·스테비아 감미, 인공 산미 없이 점막을 보호합니다', color: 'text-green-600 bg-green-100' },
@@ -158,6 +159,7 @@ export default function HancandyHome() {
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-10">
+      <AdminModeButton href="/admin/hancandy" />
       {/* Hero */}
       <section className="text-center mb-14">
         <div className="inline-flex items-center gap-2 bg-green-100 text-green-700 text-xs font-semibold px-4 py-1.5 rounded-full mb-5">
@@ -385,7 +387,7 @@ export default function HancandyHome() {
       {/* Disclaimer */}
       <div className="mt-8 flex items-start gap-2 bg-gray-50 rounded-xl p-4 text-xs text-gray-400">
         <CheckCircle size={14} className="shrink-0 mt-0.5 text-gray-300" />
-        <p>본 페이지는 AIZET의 쇼핑몰 플랫폼 데모입니다. 표시된 제품 및 가격은 기획안 기반 데이터이며 실제 판매가 이루어지지 않습니다. 본 제품은 의약품이 아니며 질병의 예방·치료를 목적으로 하지 않습니다. 주식회사 아이젯(aizet.co.kr) / HanCandy(hancandy.co.kr)</p>
+        <p>본 페이지는 AIZET의 쇼핑몰 플랫폼 데모입니다. 표시된 제품 및 가격은 기획안 기반 데이터이며 실제 판매가 이루어지지 않습니다. 본 제품은 의약품이 아니며 질병의 예방·치료를 목적으로 하지 않습니다. 주식회사 에이젯(aizet.co.kr) / HanCandy(hancandy.co.kr)</p>
       </div>
     </div>
   );

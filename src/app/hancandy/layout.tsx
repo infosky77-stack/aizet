@@ -75,7 +75,7 @@ export default function HancandyLayout({ children }: { children: React.ReactNode
           <div className="flex items-center justify-center gap-2 font-bold text-green-700 mb-2">
             <Leaf size={14} />
             <span>HanCandy</span>
-            <span className="font-normal text-gray-400">by 주식회사 아이젯</span>
+            <span className="font-normal text-gray-400">by 주식회사 에이젯</span>
           </div>
           <p>사업자 정보: <span className="font-medium text-gray-500">준비중</span> | 통신판매업 신고: <span className="font-medium text-gray-500">준비중</span></p>
           <p>aizet.co.kr · hancandy.co.kr</p>

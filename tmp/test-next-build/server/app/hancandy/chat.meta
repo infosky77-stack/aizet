@@ -1,0 +1,16 @@
+{
+  "headers": {
+    "x-nextjs-stale-time": "300",
+    "x-nextjs-prerender": "1",
+    "x-next-cache-tags": "_N_T_/layout,_N_T_/hancandy/layout,_N_T_/hancandy/chat/layout,_N_T_/hancandy/chat/page,_N_T_/hancandy/chat"
+  },
+  "segmentPaths": [
+    "/_tree",
+    "/_full",
+    "/hancandy/chat/__PAGE__",
+    "/hancandy/chat",
+    "/hancandy",
+    "/_index",
+    "/_head"
+  ]
+}

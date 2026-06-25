@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { BookOpen, TestTube, GraduationCap, MessageCircle, LayoutDashboard, Globe, Star, ArrowRight, Users } from 'lucide-react';
+import { AdminModeButton } from '@/components/AdminModeButton';
 
 const LANG_FLAGS = [
   { flag: '🇺🇸', lang: 'English', code: 'en' },
@@ -27,6 +28,7 @@ const FEATURES = [
 export default function KoreanHome() {
   return (
     <div className="max-w-5xl mx-auto px-4 py-12">
+      <AdminModeButton href="/admin/korean" />
       {/* Hero */}
       <div className="text-center mb-12">
         <div className="inline-flex items-center gap-2 bg-indigo-100 text-indigo-700 text-sm font-medium px-4 py-1.5 rounded-full mb-4">

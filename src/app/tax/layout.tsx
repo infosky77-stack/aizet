@@ -29,7 +29,7 @@ export default function TaxLayout({ children }: { children: React.ReactNode }) {
             <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-slate-700 to-blue-800 flex items-center justify-center shadow-sm">
               <Scale size={15} className="text-white" />
             </div>
-            <span className="text-base tracking-tight">세무법인 아이젯</span>
+            <span className="text-base tracking-tight">세무법인 에이젯</span>
             <span className="text-sm font-normal text-slate-600 hidden sm:inline">AI 세무 서비스</span>
           </Link>
           <nav className="flex items-center gap-0.5">
@@ -58,8 +58,8 @@ export default function TaxLayout({ children }: { children: React.ReactNode }) {
         <div className="max-w-6xl mx-auto px-4 py-8 text-center text-sm text-slate-600 space-y-1">
           <div className="flex items-center justify-center gap-2 font-bold text-slate-700 mb-2">
             <Scale size={14} />
-            <span>세무법인 아이젯</span>
-            <span className="font-normal text-slate-600">by 주식회사 아이젯 (aizet.co.kr)</span>
+            <span>세무법인 에이젯</span>
+            <span className="font-normal text-slate-600">by 주식회사 에이젯 (aizet.co.kr)</span>
           </div>
           <p>사업자등록번호: 준비중 | 세무사 등록번호: 준비중</p>
           <p className="text-sm text-slate-500 mt-2">본 페이지는 AIZET 플랫폼 데모입니다. 실제 세무 서비스를 제공하지 않습니다. 세금 계산 결과는 참고용이며 실제 납부세액과 다를 수 있습니다.</p>

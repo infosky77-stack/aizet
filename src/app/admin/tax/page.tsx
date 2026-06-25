@@ -59,7 +59,7 @@ export default function AdminTaxPage() {
             <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-slate-700 to-blue-800 flex items-center justify-center">
               <Scale size={14} className="text-white" />
             </div>
-            <h1 className="text-xl font-bold text-gray-900">세무법인 아이젯 관리</h1>
+            <h1 className="text-xl font-bold text-gray-900">세무법인 에이젯 관리</h1>
           </div>
           <p className="text-sm text-gray-400">고객 상담 · 신고 기한 · 통계</p>
         </div>

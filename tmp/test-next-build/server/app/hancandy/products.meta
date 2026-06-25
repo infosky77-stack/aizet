@@ -1,0 +1,16 @@
+{
+  "headers": {
+    "x-nextjs-stale-time": "300",
+    "x-nextjs-prerender": "1",
+    "x-next-cache-tags": "_N_T_/layout,_N_T_/hancandy/layout,_N_T_/hancandy/products/layout,_N_T_/hancandy/products/page,_N_T_/hancandy/products"
+  },
+  "segmentPaths": [
+    "/_tree",
+    "/_full",
+    "/hancandy/products/__PAGE__",
+    "/hancandy/products",
+    "/hancandy",
+    "/_index",
+    "/_head"
+  ]
+}

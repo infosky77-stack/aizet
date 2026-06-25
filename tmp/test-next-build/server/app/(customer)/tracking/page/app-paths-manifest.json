@@ -1,0 +1,3 @@
+{
+  "/(customer)/tracking/page": "app/(customer)/tracking/page.js"
+}

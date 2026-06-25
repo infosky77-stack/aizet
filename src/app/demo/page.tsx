@@ -8,6 +8,7 @@ import { UtensilsCrossed, Truck, MapPin, Clock, ChevronDown, X, ChevronLeft } fr
 import { clsx } from 'clsx';
 import Image from 'next/image';
 import { OrderType } from '@/types/order';
+import { AdminModeButton } from '@/components/AdminModeButton';
 
 type LightboxMedia = { type: 'image' | 'video'; src: string } | null;
 
@@ -22,10 +23,15 @@ export default function LandingPage() {
 
   useEffect(() => {
     if (!lightbox) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setLightbox(null); };
+    // 폰 하드웨어 백 버튼이 히스토리 이동 대신 라이트박스를 닫도록 더미 항목 추가
+    history.pushState({ lightboxOpen: true }, '');
+    const closeLightbox = () => setLightbox(null);
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') history.back(); };
     document.body.style.overflow = 'hidden';
+    window.addEventListener('popstate', closeLightbox);
     window.addEventListener('keydown', onKey);
     return () => {
+      window.removeEventListener('popstate', closeLightbox);
       window.removeEventListener('keydown', onKey);
       document.body.style.overflow = '';
     };
@@ -54,6 +60,7 @@ export default function LandingPage() {
 
   return (
     <main className="min-h-screen bg-[#fafaf8] flex flex-col">
+      <AdminModeButton href="/admin" />
       {/* 메인 랜딩으로 나가기 */}
       <div className="bg-stone-50 border-b border-stone-100 px-4 py-2 flex items-center">
         <Link
@@ -267,11 +274,11 @@ export default function LandingPage() {
       {lightbox && (
         <div
           className="fixed inset-0 z-50 bg-black/92 flex items-center justify-center"
-          onClick={() => setLightbox(null)}
+          onClick={() => history.back()}
         >
           <button
             className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center text-white transition-colors"
-            onClick={() => setLightbox(null)}
+            onClick={() => history.back()}
           >
             <X size={20} />
           </button>

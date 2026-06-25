@@ -33,6 +33,7 @@ import {
 import { PRINT_PRODUCTS } from '@/lib/db/print';
 import { PrintCategory } from '@/types/print';
 import { clsx } from 'clsx';
+import { AdminModeButton } from '@/components/AdminModeButton';
 
 const CATEGORIES: { id: PrintCategory | 'all'; label: string; icon: React.ElementType; color: string }[] = [
   { id: 'all', label: '전체', icon: Layers, color: 'bg-stone-100 text-stone-600' },
@@ -311,6 +312,7 @@ export default function PrintCatalogPage() {
 
   return (
     <div className="flex flex-col min-h-screen">
+      <AdminModeButton href="/admin/print" />
       <div className="bg-stone-50 border-b border-stone-100 px-4 py-2 flex items-center">
         <Link href="/" className="flex items-center gap-1 text-xs text-stone-400 hover:text-stone-600 transition-colors">
           <ChevronLeft size={13} />
@@ -367,76 +369,94 @@ export default function PrintCatalogPage() {
           muted
           loop
           playsInline
-          poster="/print/print-facility-wide.jpg"
+          poster="/images/print/06_factory_wide.png"
           className="absolute inset-0 w-full h-full object-cover object-center"
         >
           <source src="/print/print-walkthrough.mp4" type="video/mp4" />
         </video>
         <div className="absolute inset-0 bg-gradient-to-br from-blue-900/88 via-blue-800/80 to-indigo-900/75" />
-        <div className="relative z-10 max-w-5xl mx-auto">
-          <div className="flex items-center gap-2 mb-4">
-            <span className="bg-white/20 text-white text-xs font-semibold px-3 py-1 rounded-full flex items-center gap-1">
-              <Sparkles size={11} />
-              AI 상담 · 실시간 견적
-            </span>
-          </div>
-          <h1 className="text-4xl sm:text-5xl font-black tracking-tight mb-3 leading-tight">
-            빠르고 정확한<br />맞춤 인쇄 서비스
-          </h1>
-          <p className="text-blue-200 text-lg mb-7 max-w-lg">
-            디지털 컬러·흑백 윤전기와 후가공 장비가 완전 자동화 —<br className="hidden sm:block" />
-            명함부터 패키지까지 AI가 최적 옵션을 안내하고 실시간 견적을 제공합니다.
-          </p>
-          <div className="flex flex-wrap gap-3">
-            <button
-              onClick={() => router.push('/print/quote')}
-              className="flex items-center gap-2 px-8 py-4 bg-white text-blue-700 font-bold rounded-xl text-xl hover:bg-blue-50 transition-colors shadow-sm"
-            >
-              <Calculator size={15} />
-              견적 계산기
-            </button>
-            <button
-              onClick={() => router.push('/print/chat')}
-              className="flex items-center gap-2 px-8 py-4 bg-blue-500/30 hover:bg-blue-500/40 text-white font-semibold rounded-xl text-xl transition-colors border border-white/20"
-            >
-              <MessageSquare size={15} />
-              AI 상담하기
-            </button>
-          </div>
-
-          {/* New feature quick links */}
-          <div className="flex flex-wrap gap-2 mt-5">
-            {[
-              { href: '/print/files', icon: Folder, label: '거래처 파일 관리', sub: '버전 관리 · 재주문' },
-              { href: '/print/labels', icon: Tag, label: '수출 라벨 생성기', sub: '18개국 · 인증마크 자동포함' },
-            ].map(({ href, icon: Icon, label, sub }) => (
-              <Link
-                key={href}
-                href={href}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white text-sm transition-colors"
+        <div className="relative z-10 max-w-5xl mx-auto flex flex-col lg:flex-row items-center gap-10">
+          {/* 텍스트 영역 */}
+          <div className="flex-1">
+            <div className="flex items-center gap-2 mb-4">
+              <span className="bg-white/20 text-white text-xs font-semibold px-3 py-1 rounded-full flex items-center gap-1">
+                <Sparkles size={11} />
+                AI 상담 · 실시간 견적
+              </span>
+            </div>
+            <h1 className="text-4xl sm:text-5xl font-black tracking-tight mb-3 leading-tight">
+              빠르고 정확한<br />맞춤 인쇄 서비스
+            </h1>
+            <p className="text-blue-200 text-lg mb-7 max-w-lg">
+              디지털 컬러·흑백 윤전기와 후가공 장비가 완전 자동화 —<br className="hidden sm:block" />
+              명함부터 패키지까지 AI가 최적 옵션을 안내하고 실시간 견적을 제공합니다.
+            </p>
+            <div className="flex flex-wrap gap-3">
+              <button
+                onClick={() => router.push('/print/quote')}
+                className="flex items-center gap-2 px-8 py-4 bg-white text-blue-700 font-bold rounded-xl text-xl hover:bg-blue-50 transition-colors shadow-sm"
               >
-                <Icon size={14} className="text-blue-200" />
-                <div>
-                  <p className="font-semibold text-xs leading-tight">{label}</p>
-                  <p className="text-[10px] text-blue-300">{sub}</p>
+                <Calculator size={15} />
+                견적 계산기
+              </button>
+              <button
+                onClick={() => router.push('/print/chat')}
+                className="flex items-center gap-2 px-8 py-4 bg-blue-500/30 hover:bg-blue-500/40 text-white font-semibold rounded-xl text-xl transition-colors border border-white/20"
+              >
+                <MessageSquare size={15} />
+                AI 상담하기
+              </button>
+            </div>
+
+            {/* New feature quick links */}
+            <div className="flex flex-wrap gap-2 mt-5">
+              {[
+                { href: '/print/files', icon: Folder, label: '거래처 파일 관리', sub: '버전 관리 · 재주문' },
+                { href: '/print/labels', icon: Tag, label: '수출 라벨 생성기', sub: '18개국 · 인증마크 자동포함' },
+              ].map(({ href, icon: Icon, label, sub }) => (
+                <Link
+                  key={href}
+                  href={href}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white text-sm transition-colors"
+                >
+                  <Icon size={14} className="text-blue-200" />
+                  <div>
+                    <p className="font-semibold text-xs leading-tight">{label}</p>
+                    <p className="text-[10px] text-blue-300">{sub}</p>
+                  </div>
+                </Link>
+              ))}
+            </div>
+
+            {/* Feature badges */}
+            <div className="flex flex-wrap gap-3 mt-5">
+              {[
+                { icon: Clock, text: '당일 납기 가능' },
+                { icon: Star, text: '업계 최저가 보장' },
+                { icon: Sparkles, text: 'AI 파일 검수' },
+                { icon: Package, text: '전국 무료 배송 (5만원↑)' },
+              ].map(({ icon: Icon, text }) => (
+                <div key={text} className="flex items-center gap-1.5 bg-white/10 text-blue-100 text-xs px-3 py-1.5 rounded-full">
+                  <Icon size={11} />
+                  {text}
                 </div>
-              </Link>
-            ))}
+              ))}
+            </div>
           </div>
 
-          {/* Feature badges */}
-          <div className="flex flex-wrap gap-3 mt-5">
-            {[
-              { icon: Clock, text: '당일 납기 가능' },
-              { icon: Star, text: '업계 최저가 보장' },
-              { icon: Sparkles, text: 'AI 파일 검수' },
-              { icon: Package, text: '전국 무료 배송 (5만원↑)' },
-            ].map(({ icon: Icon, text }) => (
-              <div key={text} className="flex items-center gap-1.5 bg-white/10 text-blue-100 text-xs px-3 py-1.5 rounded-full">
-                <Icon size={11} />
-                {text}
-              </div>
-            ))}
+          {/* 데스크톱 오른쪽 보조 이미지 — 인쇄기 클로즈업 */}
+          <div className="hidden lg:block relative w-80 h-72 rounded-2xl overflow-hidden shadow-2xl border border-white/20 shrink-0">
+            <Image
+              src="/images/print/02_press_closeup.png"
+              alt="디지털 인쇄기 클로즈업"
+              fill
+              className="object-cover"
+              priority
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-blue-900/50 to-transparent" />
+            <div className="absolute bottom-4 left-4 right-4">
+              <p className="text-white text-xs font-semibold leading-snug drop-shadow">최신 디지털 윤전기 · 직접 운용</p>
+            </div>
           </div>
         </div>
       </section>
@@ -458,8 +478,8 @@ export default function PrintCatalogPage() {
             <div className="rounded-2xl overflow-hidden border border-stone-100 shadow-sm">
               <div className="relative h-52">
                 <Image
-                  src="/print/print-digital-press.jpg"
-                  alt="디지털 윤전기"
+                  src="/images/print/01_press_overview.png"
+                  alt="디지털 윤전기 전체 뷰"
                   fill
                   className="object-cover"
                 />
@@ -475,7 +495,7 @@ export default function PrintCatalogPage() {
             <div className="rounded-2xl overflow-hidden border border-stone-100 shadow-sm">
               <div className="relative h-52">
                 <Image
-                  src="/print/print-finishing-line.jpg"
+                  src="/images/print/03_finishing_line.png"
                   alt="후가공 자동화 라인"
                   fill
                   className="object-cover"
@@ -498,8 +518,8 @@ export default function PrintCatalogPage() {
           <div className="rounded-2xl overflow-hidden border border-stone-100 shadow-sm flex flex-col sm:flex-row">
             <div className="relative sm:w-[55%] h-56 sm:h-auto shrink-0">
               <Image
-                src="/print/print-products-flatlay.jpg"
-                alt="완성 인쇄물 플랫레이"
+                src="/images/print/04_quality_check.png"
+                alt="인쇄 품질 검사"
                 fill
                 className="object-cover"
               />
@@ -521,6 +541,39 @@ export default function PrintCatalogPage() {
                 견적 받기
               </button>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 신뢰도 배너 — 수출 라벨 이미지를 배경으로 실적 지표 표시 */}
+      <section className="relative overflow-hidden">
+        <div className="absolute inset-0">
+          <Image
+            src="/images/print/05_export_labels.png"
+            alt="수출 라벨 인쇄 현장"
+            fill
+            className="object-cover object-center"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-950/92 via-blue-900/85 to-blue-950/80" />
+        </div>
+        <div className="relative z-10 max-w-5xl mx-auto px-4 py-12">
+          <p className="text-xs font-bold text-blue-300 uppercase tracking-widest mb-1.5">납품 실적</p>
+          <h2 className="text-xl sm:text-2xl font-black text-white mb-7 leading-tight">
+            18개국 수출 라벨 · 국내 주요 유통사<br className="hidden sm:block" />직납 인증 설비
+          </h2>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-5">
+            {[
+              { value: '18+', label: '수출 대상국', sub: '인증마크 자동포함' },
+              { value: '500+', label: '월 거래처', sub: '중소기업·대기업' },
+              { value: '99.8%', label: '납기 준수율', sub: '2024년 기준' },
+              { value: '당일', label: '빠른 납기', sub: '소량 주문도 가능' },
+            ].map(({ value, label, sub }) => (
+              <div key={label} className="text-center">
+                <p className="text-3xl sm:text-4xl font-black text-white leading-none">{value}</p>
+                <p className="text-sm font-bold text-blue-200 mt-1.5">{label}</p>
+                <p className="text-[11px] text-blue-400 mt-0.5">{sub}</p>
+              </div>
+            ))}
           </div>
         </div>
       </section>

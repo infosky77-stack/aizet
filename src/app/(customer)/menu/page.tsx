@@ -48,7 +48,7 @@ export default function MenuPage() {
         <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <button
-              onClick={() => router.replace('/demo')}
+              onClick={() => router.back()}
               className="w-8 h-8 rounded-full hover:bg-stone-100 flex items-center justify-center transition-colors"
             >
               <ArrowLeft size={18} className="text-stone-600" />

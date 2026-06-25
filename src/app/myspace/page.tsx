@@ -27,6 +27,8 @@ interface MediaItem {
   driveLinked: boolean;
   color: string;
   emoji: string;
+  imageUrl?: string;
+  driveFileId?: string;
 }
 
 interface Profile {
@@ -150,8 +152,13 @@ function MediaCard({
   return (
     <div className="group relative bg-white rounded-2xl border border-stone-100 overflow-hidden shadow-sm hover:shadow-md transition-all">
       {/* Thumbnail */}
-      <div className={`relative h-44 bg-gradient-to-br ${item.color} flex items-center justify-center`}>
-        <span className="text-5xl select-none">{item.emoji}</span>
+      <div className={`relative h-44 ${item.imageUrl ? 'bg-stone-100' : `bg-gradient-to-br ${item.color}`} flex items-center justify-center overflow-hidden`}>
+        {item.imageUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={item.imageUrl} alt={item.title} className="w-full h-full object-cover" />
+        ) : (
+          <span className="text-5xl select-none">{item.emoji}</span>
+        )}
         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
 
         {item.type === 'video' && (
@@ -234,11 +241,60 @@ function UploadModal({
   const [driveLinked, setDriveLinked] = useState(editing?.driveLinked ?? false);
   const [color] = useState(editing?.color ?? COLORS[Math.floor(Math.random() * COLORS.length)]);
   const [emoji, setEmoji] = useState(editing?.emoji ?? EMOJIS[Math.floor(Math.random() * EMOJIS.length)]);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(editing?.imageUrl ?? null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  function handleSubmit() {
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0] ?? null;
+    setSelectedFile(f);
+    setUploadError(null);
+    if (f) {
+      setPreviewUrl(URL.createObjectURL(f));
+      if (!title.trim()) setTitle(f.name.replace(/\.[^.]+$/, ''));
+    }
+  }
+
+  async function handleSubmit() {
     if (!title.trim()) return;
-    onSave({ title: title.trim(), type, privacy, password: privacy === 'password' ? password : undefined, driveLinked, color, emoji });
+    setUploading(true);
+    setUploadError(null);
+
+    let imageUrl = editing?.imageUrl;
+    let driveFileId = editing?.driveFileId;
+
+    if (selectedFile && drive?.connected) {
+      const fd = new FormData();
+      fd.append('file', selectedFile);
+      fd.append('name', selectedFile.name);
+      try {
+        const res = await fetch('/api/drive/upload', { method: 'POST', body: fd });
+        if (!res.ok) throw new Error('upload_failed');
+        const { file } = await res.json() as { file: { id: string; publicUrl: string } };
+        imageUrl = file.publicUrl;
+        driveFileId = file.id;
+      } catch {
+        setUploadError('Drive 업로드 실패. Drive 연동 상태를 확인해 주세요.');
+        setUploading(false);
+        return;
+      }
+    }
+
+    onSave({
+      title: title.trim(),
+      type,
+      privacy,
+      password: privacy === 'password' ? password : undefined,
+      driveLinked: drive?.connected ? driveLinked : false,
+      color,
+      emoji,
+      imageUrl,
+      driveFileId,
+    });
     onClose();
+    setUploading(false);
   }
 
   return (
@@ -255,9 +311,48 @@ function UploadModal({
         </div>
 
         <div className="px-6 py-5 flex flex-col gap-5 max-h-[70vh] overflow-y-auto">
+
+          {/* 파일 선택 */}
+          <div>
+            <p className="text-xs font-semibold text-stone-500 mb-2">파일 선택</p>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*,video/*"
+              onChange={handleFileChange}
+              className="hidden"
+            />
+            {previewUrl ? (
+              <div className="relative rounded-xl overflow-hidden border border-stone-200 bg-stone-50 h-36">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={previewUrl} alt="미리보기" className="w-full h-full object-cover" />
+                <button
+                  onClick={() => { setSelectedFile(null); setPreviewUrl(editing?.imageUrl ?? null); fileInputRef.current && (fileInputRef.current.value = ''); }}
+                  className="absolute top-2 right-2 w-6 h-6 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80"
+                >
+                  <X size={12} />
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="w-full h-24 rounded-xl border-2 border-dashed border-stone-200 hover:border-amber-400 flex flex-col items-center justify-center gap-2 text-stone-400 hover:text-amber-600 transition-all"
+              >
+                <Upload size={18} />
+                <span className="text-xs font-semibold">이미지 또는 동영상 선택</span>
+              </button>
+            )}
+            {!drive?.connected && (
+              <p className="text-xs text-stone-400 mt-1.5">Drive 연동 시 파일이 내 구글 드라이브에 저장됩니다</p>
+            )}
+            {uploadError && (
+              <p className="text-xs text-rose-500 mt-1.5">{uploadError}</p>
+            )}
+          </div>
+
           {/* Emoji picker */}
           <div>
-            <p className="text-xs font-semibold text-stone-500 mb-2">썸네일 이모지</p>
+            <p className="text-xs font-semibold text-stone-500 mb-2">썸네일 이모지 (파일 없을 때 표시)</p>
             <div className="flex flex-wrap gap-1.5">
               {EMOJIS.map((e) => (
                 <button
@@ -380,10 +475,10 @@ function UploadModal({
           </button>
           <button
             onClick={handleSubmit}
-            disabled={!title.trim()}
+            disabled={!title.trim() || uploading}
             className="flex-1 py-3 rounded-xl bg-amber-600 hover:bg-amber-700 disabled:bg-stone-200 disabled:text-stone-400 text-white font-semibold text-sm transition-colors"
           >
-            {editing ? '저장' : '업로드'}
+            {uploading ? 'Drive 업로드 중...' : editing ? '저장' : '업로드'}
           </button>
         </div>
       </div>

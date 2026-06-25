@@ -1,0 +1,37 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run *)",
+      "Skill(run)",
+      "Bash(chromium-cli *)",
+      "Bash(npm install *)",
+      "Bash(npx playwright *)",
+      "Bash(node *)",
+      "Bash(npm root *)",
+      "Bash(echo \"PID=$!\")",
+      "Bash(curl -s http://localhost:3000)",
+      "Bash(echo \"PID: $!\")",
+      "Bash(curl -s http://localhost:3000/)",
+      "Bash(curl -s http://localhost:3000/api/robots)",
+      "Bash(python3 -m json.tool)",
+      "Bash(curl -s http://localhost:3000/api/orders)",
+      "Bash(curl -s http://localhost:3000/admin/robots)",
+      "Bash(curl -s http://localhost:3000/admin/payments)",
+      "Bash(curl -s http://localhost:3000/payment)",
+      "Bash(curl -s http://localhost:3000/tracking)",
+      "Bash(cp /root/aizet/src/app/page.tsx /root/aizet/src/app/demo/page.tsx)",
+      "Bash(mkdir -p /root/aizet/src/app/demo)",
+      "Bash(curl -s http://localhost:3000/demo)",
+      "Bash(curl -s http://localhost:3000/signup)",
+      "Bash(git *)",
+      "Bash(npx tsc *)",
+      "Bash(curl -s http://localhost:3001/prompts)",
+      "Bash(curl -s http://localhost:3000/prompts)",
+      "Read(//root/**)",
+      "Bash(rustc --version)",
+      "Bash(cargo new *)",
+      "Bash(cargo build *)",
+      "Bash(AZOS_ADDR=127.0.0.1:8090 cargo run)"
+    ]
+  }
+}

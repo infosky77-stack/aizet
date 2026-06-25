@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -59,7 +59,7 @@ function ItemRow({
 }) {
   const [open, setOpen] = useState(false);
   return (
-    <div className={clsx('border rounded-xl overflow-hidden transition-opacity', !item.available && 'opacity-50')}>
+    <div className={clsx('border rounded-xl overflow-hidden transition-opacity shrink-0', !item.available && 'opacity-50')}>
       <div className="flex items-center gap-1.5 px-2 py-1.5">
         <button
           onClick={() => onChange({ ...item, available: !item.available })}
@@ -187,6 +187,22 @@ function EditorStep({
   onConfirm: () => void;
 }) {
   const [tab, setTab] = useState<'menu' | 'style'>('menu');
+  const listRef = useRef<HTMLDivElement>(null);
+  const prevLenRef = useRef(items.length);
+
+  // After a new item is appended: scroll to bottom and focus the new name input
+  useEffect(() => {
+    if (items.length > prevLenRef.current && listRef.current) {
+      const container = listRef.current;
+      container.scrollTop = container.scrollHeight;
+      // Defer past the click event so focus isn't stolen back by the button
+      setTimeout(() => {
+        const nameInputs = container.querySelectorAll<HTMLInputElement>('[placeholder="메뉴 이름"]');
+        nameInputs[nameInputs.length - 1]?.focus();
+      }, 0);
+    }
+    prevLenRef.current = items.length;
+  }, [items.length]);
 
   const svgItems: MenuItem[] = items.map(i => ({
     id: i.id,
@@ -258,7 +274,7 @@ function EditorStep({
               <p className="text-[11px] font-semibold text-stone-400 uppercase tracking-wider mb-1.5">
                 메뉴 항목 ({items.filter(i => i.available).length}/{items.length} 표시)
               </p>
-              <div className="flex flex-col gap-2 max-h-80 overflow-y-auto pr-0.5">
+              <div ref={listRef} className="flex flex-col gap-2 max-h-80 overflow-y-auto pr-0.5">
                 {items.map(item => (
                   <ItemRow
                     key={item.id}

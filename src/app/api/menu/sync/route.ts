@@ -1,8 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { syncMenuItems } from '@/lib/db/menu';
+import { syncMenuItems, getMenuItems, getLastSyncedAt } from '@/lib/db/menu';
 import { MenuItem } from '@/types/menu';
 
+export const dynamic = 'force-dynamic';
+
 const AZOS_URL = process.env.AZOS_URL ?? 'http://localhost:8080';
+
+export async function GET() {
+  const items = getMenuItems();
+  return NextResponse.json({
+    synced: items.length,
+    lastSyncedAt: getLastSyncedAt(),
+    _b: 'BUILD-A',
+  });
+}
 
 export async function POST(req: NextRequest) {
   const { items, restaurantName, style } = await req.json() as {
@@ -46,5 +57,6 @@ export async function POST(req: NextRequest) {
     synced: items.length,
     azosTaskId,
     syncedAt: new Date().toISOString(),
+    _b: 'BUILD-A',
   });
 }

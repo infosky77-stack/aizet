@@ -1,0 +1,16 @@
+{
+  "headers": {
+    "x-nextjs-stale-time": "300",
+    "x-nextjs-prerender": "1",
+    "x-next-cache-tags": "_N_T_/layout,_N_T_/korean/layout,_N_T_/korean/learn/layout,_N_T_/korean/learn/page,_N_T_/korean/learn"
+  },
+  "segmentPaths": [
+    "/_tree",
+    "/_full",
+    "/korean/learn/__PAGE__",
+    "/korean/learn",
+    "/korean",
+    "/_index",
+    "/_head"
+  ]
+}

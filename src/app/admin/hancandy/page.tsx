@@ -89,7 +89,7 @@ export default function AdminHancandyPage() {
           <div className="font-bold text-amber-800 text-sm mb-1">법인 설립 준비 중</div>
           <div className="text-xs text-amber-700 leading-relaxed space-y-0.5">
             <p>사업자등록번호: 준비중 | 통신판매업 신고번호: 준비중 | 대표자: 준비중</p>
-            <p>회사명: 주식회사 아이젯 (aizet.co.kr) | 브랜드: 한캔디 (hancandy.co.kr)</p>
+            <p>회사명: 주식회사 에이젯 (aizet.co.kr) | 브랜드: 한캔디 (hancandy.co.kr)</p>
             <p>식품 영업 허가 및 건강기능식품 신고 절차 진행 예정</p>
           </div>
         </div>
