@@ -6,11 +6,12 @@ import { useSession } from '@/hooks/useSession';
 import {
   Store, Phone, MapPin, Clock, Tag, Plus, Trash2,
   Save, ExternalLink, CheckCircle, AlertCircle, Loader2, Info, Sparkles,
-  Palette, Eye, EyeOff, RefreshCw,
+  Palette, Eye, EyeOff, RefreshCw, Globe,
 } from 'lucide-react';
 import type { SiteConfig } from '@/lib/siteConfig';
 
 type GalleryImage = { key: string; label: string; url: string | null; exists: boolean }
+type DomainResult = { name: string; full: string; available: boolean | null }
 
 interface MenuItem { name: string; price: number; description: string }
 
@@ -71,6 +72,9 @@ export default function AdminSettingsPage() {
   const [regenLoading, setRegenLoading] = useState<string | null>(null);
   const [regenError, setRegenError] = useState('');
   const [descLoading, setDescLoading] = useState<number | null>(null);
+  const [domainResults, setDomainResults] = useState<DomainResult[]>([]);
+  const [domainLoading, setDomainLoading] = useState(false);
+  const [domainError, setDomainError] = useState('');
 
   async function loadGallery() {
     try {
@@ -179,6 +183,29 @@ export default function AdminSettingsPage() {
       setStatus('error');
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleSuggestDomain() {
+    setDomainLoading(true);
+    setDomainError('');
+    setDomainResults([]);
+    try {
+      const res = await fetch('/api/admin/suggest-domain', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ shopName: form.shop_name, industry: session?.industry ?? '' }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setDomainError(data.error ?? '추천 실패');
+      } else {
+        setDomainResults(data.domains ?? []);
+      }
+    } catch {
+      setDomainError('네트워크 오류');
+    } finally {
+      setDomainLoading(false);
     }
   }
 
@@ -767,6 +794,86 @@ export default function AdminSettingsPage() {
             {regenCount >= REGEN_LIMIT && (
               <p className="mt-2 text-xs text-red-500">재생성 한도(3회)에 도달했습니다.</p>
             )}
+          </div>
+        )}
+      </div>
+
+      {/* 도메인 이름 추천 */}
+      <div className="mt-8 border-t border-stone-100 pt-8">
+        <div className="mb-4">
+          <h2 className="text-base font-bold text-stone-800 flex items-center gap-2">
+            <Globe size={16} className="text-amber-500" />
+            도메인 이름 추천
+          </h2>
+          <p className="text-xs text-stone-400 mt-1">
+            가게명과 업종을 바탕으로 사용 가능한 .co.kr 도메인을 AI가 추천해 드립니다.
+          </p>
+        </div>
+
+        <button
+          onClick={handleSuggestDomain}
+          disabled={domainLoading || !form.shop_name.trim()}
+          className="flex items-center gap-2 bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white font-bold px-6 py-3 rounded-xl transition-colors"
+        >
+          {domainLoading ? <Loader2 size={16} className="animate-spin" /> : <Globe size={16} />}
+          {domainLoading ? '추천 중...' : '도메인 추천받기'}
+        </button>
+
+        {!form.shop_name.trim() && (
+          <p className="mt-2 text-xs text-amber-600">가게명을 먼저 입력해야 합니다.</p>
+        )}
+        {domainLoading && (
+          <p className="mt-2 text-xs text-stone-400">도메인 추천 및 사용 가능 여부 확인 중...</p>
+        )}
+        {domainError && (
+          <div className="flex items-center gap-1.5 mt-3 text-red-500 text-sm">
+            <AlertCircle size={14} />
+            {domainError}
+          </div>
+        )}
+
+        {domainResults.length > 0 && (
+          <div className="mt-5 space-y-3">
+            {domainResults.map(d => (
+              <div
+                key={d.name}
+                className="flex items-center justify-between bg-stone-50 border border-stone-200 rounded-xl px-4 py-3 gap-3"
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <span className="text-sm font-bold text-stone-800 truncate">{d.full}</span>
+                  <span className={[
+                    'shrink-0 text-xs font-semibold px-2 py-0.5 rounded-full',
+                    d.available === true
+                      ? 'bg-emerald-100 text-emerald-700'
+                      : d.available === false
+                      ? 'bg-red-100 text-red-600'
+                      : 'bg-stone-200 text-stone-500',
+                  ].join(' ')}>
+                    {d.available === true ? '사용 가능' : d.available === false ? '사용 중' : '확인 불가'}
+                  </span>
+                </div>
+                {d.available !== false && (
+                  <a
+                    href={`https://www.gabia.com/domain/search?query=${encodeURIComponent(d.name)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="shrink-0 flex items-center gap-1.5 text-xs font-semibold text-amber-700 hover:text-amber-900 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-lg transition-colors"
+                  >
+                    <ExternalLink size={11} />
+                    가비아에서 구매
+                  </a>
+                )}
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={handleSuggestDomain}
+              disabled={domainLoading}
+              className="mt-1 flex items-center gap-1.5 text-sm text-amber-600 hover:text-amber-800 font-semibold transition-colors disabled:opacity-50"
+            >
+              <RefreshCw size={14} />
+              다른 이름 추천받기
+            </button>
           </div>
         )}
       </div>
