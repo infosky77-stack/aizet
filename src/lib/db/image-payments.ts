@@ -14,13 +14,17 @@ export interface ImagePayment {
   paid_at:    number | null;
 }
 
-export function createImagePayment(userId: string, amount: number): ImagePayment {
+export function createImagePayment(
+  userId: string,
+  amount: number,
+  itemType: string = 'image_generation',
+): ImagePayment {
   const id  = randomUUID();
   const now = Date.now();
   db.prepare(`
     INSERT INTO image_payments (id, user_id, amount, item_type, status, created_at)
-    VALUES (?, ?, ?, 'image_generation', 'pending', ?)
-  `).run(id, userId, amount, now);
+    VALUES (?, ?, ?, ?, 'pending', ?)
+  `).run(id, userId, amount, itemType, now);
   return getImagePayment(id)!;
 }
 
@@ -47,10 +51,10 @@ export function completeImagePayment(id: string): void {
 }
 
 /** 결제 완료(paid)됐지만 아직 completed 처리 안 된 최신 레코드 반환 */
-export function getActivePaidPayment(userId: string): ImagePayment | null {
+export function getActivePaidPayment(userId: string, itemType: string = 'image_generation'): ImagePayment | null {
   return db
-    .prepare<[string], ImagePayment>(
-      `SELECT * FROM image_payments WHERE user_id=? AND status='paid' ORDER BY paid_at DESC LIMIT 1`
+    .prepare<[string, string], ImagePayment>(
+      `SELECT * FROM image_payments WHERE user_id=? AND item_type=? AND status='paid' ORDER BY paid_at DESC LIMIT 1`
     )
-    .get(userId) ?? null;
+    .get(userId, itemType) ?? null;
 }

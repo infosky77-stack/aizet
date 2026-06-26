@@ -61,7 +61,8 @@ export default function AdminSettingsPage() {
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState<'idle' | 'ok' | 'error'>('idle');
   const [errorMsg, setErrorMsg] = useState('');
-  const [genError, setGenError] = useState('');
+  const [genError,      setGenError]      = useState('');
+  const [logoGenError,  setLogoGenError]  = useState('');
   const [siteConfig, setSiteConfig] = useState<SiteConfig>({});
   const [configSaving, setConfigSaving] = useState(false);
   const [configStatus, setConfigStatus] = useState<'idle' | 'ok' | 'error'>('idle');
@@ -178,6 +179,24 @@ export default function AdminSettingsPage() {
       setStatus('error');
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleGenerateLogo() {
+    setLogoGenError('');
+    try {
+      const res  = await fetch('/api/admin/logo-payment', { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) { setLogoGenError(data.error ?? '결제 초기화 실패'); return; }
+      if (data.resumable) {
+        router.push(
+          `/admin/logo-payment/success?paymentKey=${data.paymentKey}&orderId=${data.orderId}&amount=${data.amount}`
+        );
+      } else {
+        router.push(`/admin/logo-payment?orderId=${data.orderId}`);
+      }
+    } catch {
+      setLogoGenError('네트워크 오류');
     }
   }
 
@@ -606,6 +625,37 @@ export default function AdminSettingsPage() {
               <ExternalLink size={12} />
               미리보기
             </a>
+          )}
+        </div>
+      </div>
+
+      {/* 로고 / 명함 생성 */}
+      <div className="mt-8 border-t border-stone-100 pt-8">
+        <div className="mb-4">
+          <h2 className="text-base font-bold text-stone-800 flex items-center gap-2">
+            <Sparkles size={16} className="text-violet-500" />
+            AI 로고 / 명함 자동 생성
+          </h2>
+          <p className="text-xs text-stone-400 mt-1">
+            가게명과 업종을 기반으로 로고 3가지를 생성하고, 선택한 로고로 명함을 만들어 드립니다.
+          </p>
+        </div>
+        <div>
+          <button
+            onClick={handleGenerateLogo}
+            className="flex items-center gap-2 bg-violet-600 hover:bg-violet-700 text-white font-bold px-6 py-3 rounded-xl transition-colors"
+          >
+            <Sparkles size={16} />
+            로고 / 명함 자동 생성
+          </button>
+          <p className="mt-2 text-xs text-stone-400">
+            결제({(5000).toLocaleString()}원) 후 로고 3종이 생성됩니다. 명함은 무료 포함.
+          </p>
+          {logoGenError && (
+            <div className="flex items-center gap-1.5 mt-2 text-red-500 text-sm">
+              <AlertCircle size={14} />
+              {logoGenError}
+            </div>
           )}
         </div>
       </div>
