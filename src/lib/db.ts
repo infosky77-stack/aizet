@@ -158,6 +158,21 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_tax_document_edits_doc ON tax_document_edits(document_id);
 `);
 
+// ── 이미지 생성 결제 테이블 ──────────────────────────────────────────────────────
+db.exec(`
+  CREATE TABLE IF NOT EXISTS image_payments (
+    id          TEXT    PRIMARY KEY,
+    user_id     TEXT    NOT NULL,
+    amount      INTEGER NOT NULL,
+    item_type   TEXT    NOT NULL DEFAULT 'image_generation',
+    toss_key    TEXT,
+    status      TEXT    NOT NULL DEFAULT 'pending',
+    created_at  INTEGER NOT NULL,
+    paid_at     INTEGER
+  );
+  CREATE INDEX IF NOT EXISTS idx_image_payments_user ON image_payments(user_id);
+`);
+
 // ── 메뉴 아이템 테이블 ─────────────────────────────────────────────────────────
 db.exec(`
   CREATE TABLE IF NOT EXISTS menu_items (
