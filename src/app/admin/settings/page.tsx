@@ -5,14 +5,15 @@ import { useSession } from '@/hooks/useSession';
 import {
   Store, Phone, MapPin, Clock, Tag, Plus, Trash2,
   Save, ExternalLink, CheckCircle, AlertCircle, Loader2, Info, Sparkles, XCircle,
-  Palette, Eye, EyeOff,
+  Palette, Eye, EyeOff, RefreshCw,
 } from 'lucide-react';
 import type { SiteConfig } from '@/lib/siteConfig';
 
 type ImageItem = { key: string; label: string; status: 'pending' | 'generating' | 'done' | 'error' }
 type GenPhase = 'idle' | 'running' | 'done'
+type GalleryImage = { key: string; label: string; url: string | null; exists: boolean }
 
-interface MenuItem { name: string; price: number }
+interface MenuItem { name: string; price: number; description: string }
 
 interface FormState {
   shop_name: string;
@@ -26,6 +27,8 @@ interface FormState {
 const EMPTY: FormState = {
   shop_name: '', phone: '', address: '', business_hours: '', slug: '', menu_items: [],
 };
+
+const REGEN_LIMIT = 3;
 
 const HOURS_PRESETS = [
   '평일 09:00–18:00 / 주말 휴무',
@@ -65,6 +68,22 @@ export default function AdminSettingsPage() {
   const [siteConfig, setSiteConfig] = useState<SiteConfig>({});
   const [configSaving, setConfigSaving] = useState(false);
   const [configStatus, setConfigStatus] = useState<'idle' | 'ok' | 'error'>('idle');
+  const [galleryImages, setGalleryImages] = useState<GalleryImage[]>([]);
+  const [regenCount, setRegenCount] = useState(0);
+  const [regenLoading, setRegenLoading] = useState<string | null>(null);
+  const [regenError, setRegenError] = useState('');
+  const [descLoading, setDescLoading] = useState<number | null>(null);
+
+  async function loadGallery() {
+    try {
+      const res = await fetch('/api/user/images');
+      if (res.ok) {
+        const data = await res.json();
+        setGalleryImages(data.images ?? []);
+        setRegenCount(data.regenCount ?? 0);
+      }
+    } catch { /* 조용히 무시 */ }
+  }
 
   useEffect(() => {
     fetch('/api/user/profile')
@@ -78,7 +97,9 @@ export default function AdminSettingsPage() {
             address: u.address ?? '',
             business_hours: u.business_hours ?? '',
             slug: u.slug ?? '',
-            menu_items: (data.menuItems ?? []).map((m: { name: string; price: number }) => ({ name: m.name, price: m.price })),
+            menu_items: (data.menuItems ?? []).map((m: { name: string; price: number; description?: string }) => ({
+              name: m.name, price: m.price, description: m.description ?? '',
+            })),
           });
         }
       })
@@ -86,6 +107,7 @@ export default function AdminSettingsPage() {
     fetch('/api/user/site-config')
       .then(r => r.json())
       .then(data => { if (data.config) setSiteConfig(data.config); });
+    loadGallery();
   }, []);
 
   async function handleSaveConfig() {
@@ -124,9 +146,9 @@ export default function AdminSettingsPage() {
   }
 
   function addMenuItem() {
-    set('menu_items', [...form.menu_items, { name: '', price: 0 }]);
+    set('menu_items', [...form.menu_items, { name: '', price: 0, description: '' }]);
   }
-  function updateMenuItem(i: number, field: 'name' | 'price', val: string) {
+  function updateMenuItem(i: number, field: 'name' | 'price' | 'description', val: string) {
     const next = form.menu_items.map((m, idx) =>
       idx === i ? { ...m, [field]: field === 'price' ? parseInt(val) || 0 : val } : m
     );
@@ -218,10 +240,82 @@ export default function AdminSettingsPage() {
       if (!receivedComplete) {
         setGenError('연결이 끊겼습니다. 다시 시도해 주세요.');
         setGenPhase('idle');
+      } else {
+        await loadGallery();
       }
     } catch {
       setGenError('네트워크 오류');
       setGenPhase('idle');
+    }
+  }
+
+  async function handleRegenImage(imageKey: string) {
+    if (regenCount >= REGEN_LIMIT || regenLoading !== null) return;
+    setRegenLoading(imageKey);
+    setRegenError('');
+    try {
+      const res = await fetch('/api/admin/regen-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageKey }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setRegenError(data.error ?? `오류 (${res.status})`);
+        return;
+      }
+      const reader = res.body!.getReader();
+      const decoder = new TextDecoder();
+      let buf = '';
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += decoder.decode(value, { stream: true });
+        const lines = buf.split('\n');
+        buf = lines.pop() ?? '';
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          try {
+            const ev = JSON.parse(line.slice(6));
+            if (ev.type === 'done') {
+              setGalleryImages(prev => prev.map(img =>
+                img.key === ev.key ? { ...img, url: ev.url, exists: true } : img
+              ));
+              setRegenCount(ev.newRegenCount);
+            } else if (ev.type === 'error') {
+              setRegenError(ev.error ?? '생성 실패');
+            }
+          } catch { /* 파싱 실패 무시 */ }
+        }
+      }
+    } catch {
+      setRegenError('네트워크 오류');
+    } finally {
+      setRegenLoading(null);
+    }
+  }
+
+  async function handleGenerateDescription(index: number) {
+    const item = form.menu_items[index];
+    if (!item.name.trim() || descLoading !== null) return;
+    setDescLoading(index);
+    try {
+      const res = await fetch('/api/admin/generate-description', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          menuName: item.name,
+          shopName: form.shop_name,
+          industry: session?.industry ?? '',
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.description) {
+        updateMenuItem(index, 'description', data.description);
+      }
+    } catch { /* 오류 시 조용히 무시 */ }
+    finally {
+      setDescLoading(null);
     }
   }
 
@@ -354,32 +448,52 @@ export default function AdminSettingsPage() {
             <Tag size={14} className="text-amber-600" />
             대표 메뉴 / 서비스 (가격 포함)
           </label>
-          <div className="space-y-2">
+          <div className="space-y-3">
             {form.menu_items.map((item, i) => (
-              <div key={i} className="flex gap-2 items-center">
-                <input
-                  value={item.name}
-                  onChange={e => updateMenuItem(i, 'name', e.target.value)}
-                  placeholder="항목명 (예: 커트)"
-                  className="flex-1 border border-stone-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-300 transition"
-                />
-                <div className="flex items-center border border-stone-200 rounded-xl overflow-hidden">
+              <div key={i} className="space-y-1.5">
+                <div className="flex gap-2 items-center">
                   <input
-                    type="number"
-                    value={item.price || ''}
-                    onChange={e => updateMenuItem(i, 'price', e.target.value)}
-                    placeholder="가격"
-                    className="w-24 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-300 transition text-right"
+                    value={item.name}
+                    onChange={e => updateMenuItem(i, 'name', e.target.value)}
+                    placeholder="항목명 (예: 커트)"
+                    className="flex-1 border border-stone-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-300 transition"
                   />
-                  <span className="pr-3 text-xs text-stone-400">원</span>
+                  <button
+                    type="button"
+                    onClick={() => handleGenerateDescription(i)}
+                    disabled={!item.name.trim() || descLoading !== null}
+                    title="AI로 설명 자동 생성"
+                    className="flex items-center gap-1 text-xs font-semibold px-2.5 py-2 rounded-xl border border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-100 disabled:opacity-40 transition-colors whitespace-nowrap"
+                  >
+                    {descLoading === i
+                      ? <Loader2 size={13} className="animate-spin" />
+                      : <Sparkles size={13} />}
+                    AI 설명
+                  </button>
+                  <div className="flex items-center border border-stone-200 rounded-xl overflow-hidden">
+                    <input
+                      type="number"
+                      value={item.price || ''}
+                      onChange={e => updateMenuItem(i, 'price', e.target.value)}
+                      placeholder="가격"
+                      className="w-24 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-300 transition text-right"
+                    />
+                    <span className="pr-3 text-xs text-stone-400">원</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => removeMenuItem(i)}
+                    className="p-2 text-stone-300 hover:text-red-400 transition-colors"
+                  >
+                    <Trash2 size={15} />
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => removeMenuItem(i)}
-                  className="p-2 text-stone-300 hover:text-red-400 transition-colors"
-                >
-                  <Trash2 size={15} />
-                </button>
+                <input
+                  value={item.description}
+                  onChange={e => updateMenuItem(i, 'description', e.target.value)}
+                  placeholder="메뉴 설명 (선택사항, AI 버튼으로 자동 생성)"
+                  className="w-full border border-stone-100 bg-stone-50 rounded-xl px-3 py-2 text-xs text-stone-600 focus:outline-none focus:ring-2 focus:ring-amber-200 transition"
+                />
               </div>
             ))}
           </div>
@@ -681,6 +795,78 @@ export default function AdminSettingsPage() {
                 </div>
               );
             })()}
+          </div>
+        )}
+
+        {/* 생성된 이미지 갤러리 */}
+        {galleryImages.length > 0 && (
+          <div className="mt-6">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-bold text-stone-700">생성된 이미지</h3>
+              <span className={[
+                'text-xs font-semibold px-2.5 py-1 rounded-full',
+                regenCount >= REGEN_LIMIT
+                  ? 'bg-red-100 text-red-600'
+                  : 'bg-violet-100 text-violet-700',
+              ].join(' ')}>
+                재생성 가능: {REGEN_LIMIT - regenCount}/{REGEN_LIMIT}회
+              </span>
+            </div>
+            {regenError && (
+              <div className="flex items-center gap-1.5 mb-3 text-red-500 text-sm">
+                <AlertCircle size={13} />
+                {regenError}
+              </div>
+            )}
+            <div className="grid grid-cols-3 gap-2">
+              {galleryImages.map(img => (
+                <div key={img.key} className="relative aspect-video rounded-xl overflow-hidden bg-stone-100 group">
+                  {img.exists && img.url ? (
+                    <img
+                      src={img.url}
+                      alt={img.label}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <span className="text-stone-300 text-xs text-center px-2">{img.label}</span>
+                    </div>
+                  )}
+
+                  {/* 재생성 중 스피너 오버레이 */}
+                  {regenLoading === img.key && (
+                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                      <Loader2 size={22} className="text-white animate-spin" />
+                    </div>
+                  )}
+
+                  {/* 재생성 버튼 */}
+                  <button
+                    type="button"
+                    onClick={() => handleRegenImage(img.key)}
+                    disabled={regenCount >= REGEN_LIMIT || regenLoading !== null}
+                    title={regenCount >= REGEN_LIMIT ? '한도 초과' : `${img.label} 재생성`}
+                    className={[
+                      'absolute top-1.5 right-1.5 p-1.5 rounded-lg text-white text-xs font-bold transition-all',
+                      regenCount >= REGEN_LIMIT
+                        ? 'bg-stone-400 cursor-not-allowed opacity-70'
+                        : 'bg-violet-600 hover:bg-violet-700 opacity-0 group-hover:opacity-100',
+                      regenLoading === img.key ? 'opacity-0' : '',
+                    ].join(' ')}
+                  >
+                    <RefreshCw size={12} />
+                  </button>
+
+                  {/* 라벨 */}
+                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent px-2 py-1.5">
+                    <span className="text-white text-[10px] font-semibold">{img.label}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+            {regenCount >= REGEN_LIMIT && (
+              <p className="mt-2 text-xs text-red-500">재생성 한도(3회)에 도달했습니다.</p>
+            )}
           </div>
         )}
       </div>

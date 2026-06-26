@@ -47,6 +47,7 @@ db.exec(`
     ['slug',           'TEXT'],
     ['site_config',      "TEXT NOT NULL DEFAULT '{}'"],
     ['drive_folder_id',  'TEXT'],
+    ['regen_count',      'INTEGER NOT NULL DEFAULT 0'],
   ];
   for (const [col, def] of toAdd) {
     if (!existing.includes(col)) {
@@ -69,5 +70,18 @@ db.exec(`
   );
   CREATE INDEX IF NOT EXISTS idx_menu_items_user_id ON menu_items(user_id);
 `);
+
+// ── menu_items 테이블 신규 컬럼 추가 (기존 row 보존, 멱등) ─────────────────────
+{
+  const existing = (db.pragma('table_info(menu_items)') as Array<{ name: string }>).map(c => c.name);
+  const toAdd: [string, string][] = [
+    ['description', "TEXT NOT NULL DEFAULT ''"],
+  ];
+  for (const [col, def] of toAdd) {
+    if (!existing.includes(col)) {
+      db.exec(`ALTER TABLE menu_items ADD COLUMN ${col} ${def}`);
+    }
+  }
+}
 
 export default db;

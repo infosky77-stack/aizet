@@ -26,7 +26,7 @@ export async function PUT(req: NextRequest) {
     address?: string;
     business_hours?: string;
     slug?: string;
-    menu_items?: Array<{ name: string; price: number }>;
+    menu_items?: Array<{ name: string; price: number; description?: string }>;
   };
 
   const shopName = (body.shop_name ?? '').trim();

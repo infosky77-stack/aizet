@@ -19,6 +19,7 @@ export interface UserRecord {
   slug: string | null;
   site_config: string;
   drive_folder_id: string | null;
+  regen_count: number;
   created_at: number;
   updated_at: number;
 }
@@ -28,6 +29,7 @@ export interface MenuItem {
   user_id: string;
   name: string;
   price: number;
+  description: string;
   sort_order: number;
 }
 
@@ -93,15 +95,25 @@ export function getMenuItems(userId: string): MenuItem[] {
   return db.prepare<[string]>('SELECT * FROM menu_items WHERE user_id = ? ORDER BY sort_order, id').all(userId) as MenuItem[];
 }
 
-export function replaceMenuItems(userId: string, items: Array<{ name: string; price: number }>): void {
+export function replaceMenuItems(userId: string, items: Array<{ name: string; price: number; description?: string }>): void {
   const deleteStmt = db.prepare<[string]>('DELETE FROM menu_items WHERE user_id = ?');
-  const insertStmt = db.prepare<{ user_id: string; name: string; price: number; sort_order: number }>(
-    'INSERT INTO menu_items (user_id, name, price, sort_order) VALUES (@user_id, @name, @price, @sort_order)'
+  const insertStmt = db.prepare<{ user_id: string; name: string; price: number; description: string; sort_order: number }>(
+    'INSERT INTO menu_items (user_id, name, price, description, sort_order) VALUES (@user_id, @name, @price, @description, @sort_order)'
   );
   db.transaction(() => {
     deleteStmt.run(userId);
-    items.forEach((item, i) => insertStmt.run({ user_id: userId, name: item.name, price: item.price, sort_order: i }));
+    items.forEach((item, i) => insertStmt.run({ user_id: userId, name: item.name, price: item.price, description: item.description ?? '', sort_order: i }));
   })();
+}
+
+export function getRegenCount(userId: string): number {
+  const row = db.prepare<[string]>('SELECT regen_count FROM users WHERE id = ?').get(userId) as { regen_count: number } | null;
+  return row?.regen_count ?? 0;
+}
+
+export function incrementRegenCount(userId: string): number {
+  db.prepare<[string]>('UPDATE users SET regen_count = regen_count + 1 WHERE id = ?').run(userId);
+  return getRegenCount(userId);
 }
 
 export function getSiteConfig(userId: string): SiteConfig {
