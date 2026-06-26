@@ -5,7 +5,7 @@ import { clsx } from 'clsx';
 import {
   Plus, ChevronLeft, ChevronRight, X, Building2,
   Clock, Loader2, CheckCircle2, AlertTriangle, Trash2, Pencil,
-  CalendarDays, FileText,
+  CalendarDays, FileText, ShieldAlert,
 } from 'lucide-react';
 import { StatCard } from '@/components/admin/StatCard';
 
@@ -89,11 +89,11 @@ function DdayBadge({ due_date, status }: { due_date: string; status: FilingStatu
 /* ── 상태 변경 버튼 ─────────────────────────────────────── */
 function StatusButtons({ filing, onChange }: {
   filing: TaxFiling;
-  onChange: (id: string, status: FilingStatus) => void;
+  onChange: (filing: TaxFiling, status: FilingStatus) => void;
 }) {
   if (filing.status === 'pending') {
     return (
-      <button onClick={() => onChange(filing.id, 'in_progress')}
+      <button onClick={() => onChange(filing, 'in_progress')}
         className="text-[10px] font-bold px-2 py-1 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors">
         진행 시작
       </button>
@@ -102,11 +102,11 @@ function StatusButtons({ filing, onChange }: {
   if (filing.status === 'in_progress') {
     return (
       <div className="flex gap-1">
-        <button onClick={() => onChange(filing.id, 'done')}
+        <button onClick={() => onChange(filing, 'done')}
           className="text-[10px] font-bold px-2 py-1 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors">
           완료
         </button>
-        <button onClick={() => onChange(filing.id, 'pending')}
+        <button onClick={() => onChange(filing, 'pending')}
           className="text-[10px] font-bold px-2 py-1 bg-stone-100 text-stone-500 rounded-lg hover:bg-stone-200 transition-colors">
           되돌리기
         </button>
@@ -114,7 +114,7 @@ function StatusButtons({ filing, onChange }: {
     );
   }
   return (
-    <button onClick={() => onChange(filing.id, 'in_progress')}
+    <button onClick={() => onChange(filing, 'in_progress')}
       className="text-[10px] font-bold px-2 py-1 bg-stone-100 text-stone-500 rounded-lg hover:bg-stone-200 transition-colors">
       재개
     </button>
@@ -258,6 +258,10 @@ export default function TaxFilingsPage() {
   const [formError, setFormError] = useState('');
   const [deleteTarget, setDeleteTarget] = useState<TaxFiling | null>(null);
   const [deleting, setDeleting] = useState(false);
+  // 미검수 문서 확인 모달
+  const [unconfirmedModal, setUnconfirmedModal] = useState<{
+    filingId: string; clientId: string; clientName: string; count: number;
+  } | null>(null);
 
   const fetchFilings = useCallback(async () => {
     setLoading(true);
@@ -318,13 +322,27 @@ export default function TaxFilingsPage() {
     } finally { setSaving(false); }
   }
 
-  async function handleStatusChange(id: string, status: FilingStatus) {
+  async function doStatusChange(id: string, status: FilingStatus) {
     await fetch(`/api/tax/filings/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status }),
     });
     fetchFilings();
+  }
+
+  async function handleStatusChange(filing: TaxFiling, status: FilingStatus) {
+    if (status === 'done') {
+      // 해당 거래처 미검수 문서 수 조회
+      const res  = await fetch(`/api/tax/documents?count_client=${filing.client_id}`);
+      const data = await res.json();
+      const count: number = data.count ?? 0;
+      if (count > 0) {
+        setUnconfirmedModal({ filingId: filing.id, clientId: filing.client_id, clientName: filing.client_name, count });
+        return;
+      }
+    }
+    await doStatusChange(filing.id, status);
   }
 
   async function handleDelete() {
@@ -522,6 +540,44 @@ export default function TaxFilingsPage() {
           onChange={setForm} onSubmit={handleSubmit}
           onClose={() => setPanelOpen(false)}
         />
+      )}
+
+      {/* 미검수 문서 강제 완료 확인 */}
+      {unconfirmedModal && (
+        <>
+          <div className="fixed inset-0 bg-black/40 z-30" onClick={() => setUnconfirmedModal(null)} />
+          <div className="fixed inset-0 z-40 flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 flex flex-col gap-4">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center shrink-0">
+                  <ShieldAlert size={18} className="text-amber-600" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-stone-800">미검수 문서가 있습니다</h3>
+                  <p className="text-sm text-stone-500 mt-1">
+                    <span className="font-semibold text-stone-700">{unconfirmedModal.clientName}</span>의
+                    미검수 문서가 <span className="font-bold text-amber-700">{unconfirmedModal.count}건</span> 남아 있습니다.
+                  </p>
+                  <p className="text-xs text-stone-400 mt-2">검수 완료 후 신고를 완료 처리하는 것을 권장합니다.</p>
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <button onClick={() => setUnconfirmedModal(null)}
+                  className="flex-1 py-2.5 rounded-xl border border-stone-200 text-stone-600 text-sm font-semibold hover:bg-stone-50 transition-colors">
+                  취소
+                </button>
+                <button
+                  onClick={async () => {
+                    await doStatusChange(unconfirmedModal.filingId, 'done');
+                    setUnconfirmedModal(null);
+                  }}
+                  className="flex-1 py-2.5 rounded-xl bg-amber-600 text-white text-sm font-bold hover:bg-amber-700 transition-colors">
+                  강제 완료
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
       )}
 
       {/* 삭제 확인 */}

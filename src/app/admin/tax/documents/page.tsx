@@ -4,8 +4,8 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { clsx } from 'clsx';
 import {
   Upload, FileText, Image, X, CheckCircle2, AlertCircle, Trash2,
-  RotateCcw, Eye, Pencil, Download, Filter, ChevronDown,
-  Sparkles, Loader2, Building2,
+  RotateCcw, Eye, Pencil, Download, Filter,
+  Sparkles, Loader2, Building2, ShieldAlert, History,
 } from 'lucide-react';
 import { StatCard } from '@/components/admin/StatCard';
 
@@ -15,12 +15,19 @@ interface TaxDocument {
   filename: string; mime_type: string; file_size: number;
   local_path: string | null; drive_file_id: string | null; drive_url: string | null;
   doc_date: string | null; amount: number | null; vendor: string; category: string;
+  ai_date: string | null; ai_amount: number | null; ai_vendor: string; ai_category: string;
   ai_raw: string; ai_confirmed: number;
+  anomaly_flag: number; anomaly_note: string;
   deleted_at: number | null; deleted_by: string | null;
   created_at: number;
 }
 interface TaxClient { id: string; name: string; }
 interface AIResult { date: string | null; amount: number | null; vendor: string; category: string; }
+interface TaxDocumentEdit {
+  id: string; document_id: string; user_id: string;
+  field: string; old_value: string | null; new_value: string | null;
+  edited_by: string; created_at: number;
+}
 
 /* ── 상수 ───────────────────────────────────────────────── */
 const CATEGORIES = ['식비','교통비','숙박비','사무용품','통신비','광고비','임차료','공과금','세금','기타'];
@@ -33,7 +40,7 @@ const CATEGORY_COLOR: Record<string, string> = {
   세금:'bg-red-100 text-red-700', 기타:'bg-gray-100 text-gray-600',
 };
 
-/* ── 유틸 ───────────────────────────────────────────────── */
+/* ── 유틸 ─────��─────────────────────────────────────────── */
 function fmtBytes(b: number) {
   if (b >= 1024*1024) return `${(b/1024/1024).toFixed(1)} MB`;
   return `${(b/1024).toFixed(0)} KB`;
@@ -44,10 +51,33 @@ function fmtAmount(a: number | null) {
 }
 function isImage(mimeType: string) { return mimeType.startsWith('image/'); }
 
+/* ── 수정이력 헬퍼 ──────────────────────────────────────── */
+const FIELD_LABEL: Record<string, string> = {
+  doc_date:     '날짜',
+  amount:       '금액',
+  vendor:       '공급자',
+  category:     '카테고리',
+  ai_confirmed: '검수 상태',
+};
+
+function fmtEditValue(field: string, val: string | null): string {
+  if (val == null || val === '') return '—';
+  if (field === 'amount')       return `${Number(val).toLocaleString()}원`;
+  if (field === 'ai_confirmed') return val === '1' ? '완료' : '대기';
+  return val;
+}
+
+function fmtEditTime(ts: number): string {
+  return new Date(ts).toLocaleString('ko-KR', {
+    month: 'numeric', day: 'numeric',
+    hour: '2-digit', minute: '2-digit',
+  });
+}
+
 /* ── AI 검수 패널 ───────────────────────────────────────── */
 function AIReviewPanel({
-  doc, onConfirm, onClose,
-}: { doc: TaxDocument; onConfirm: (doc: TaxDocument) => void; onClose: () => void }) {
+  doc, edits, onConfirm, onClose,
+}: { doc: TaxDocument; edits: TaxDocumentEdit[]; onConfirm: (doc: TaxDocument) => void; onClose: () => void }) {
   const [form, setForm] = useState({
     doc_date: doc.doc_date ?? '',
     amount:   doc.amount != null ? String(doc.amount) : '',
@@ -144,6 +174,35 @@ function AIReviewPanel({
                 </select>
               </div>
             </div>
+
+            {/* 수정 이력 */}
+            {edits.length > 0 && (
+              <div className="flex flex-col gap-2">
+                <p className="text-xs font-semibold text-stone-500 flex items-center gap-1.5">
+                  <History size={12} /> 수정 이력
+                </p>
+                <div className="flex flex-col gap-1">
+                  {edits.map(e => (
+                    <div key={e.id} className="flex items-start gap-2 bg-stone-50 rounded-xl px-3 py-2">
+                      <div className="flex-1 min-w-0">
+                        <span className="text-xs font-semibold text-stone-700">
+                          {FIELD_LABEL[e.field] ?? e.field}
+                        </span>
+                        <span className="text-xs text-stone-400 ml-2">
+                          {fmtEditValue(e.field, e.old_value)}
+                          {' → '}
+                          <span className="text-stone-600">{fmtEditValue(e.field, e.new_value)}</span>
+                        </span>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="text-[10px] text-stone-400">{e.edited_by}</p>
+                        <p className="text-[10px] text-stone-400">{fmtEditTime(e.created_at)}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="px-6 py-4 border-t border-stone-100 flex gap-3">
@@ -290,6 +349,7 @@ export default function TaxDocumentsPage() {
   // 패널
   const [uploadOpen,   setUploadOpen]   = useState(false);
   const [reviewDoc,    setReviewDoc]    = useState<TaxDocument | null>(null);
+  const [reviewEdits,  setReviewEdits]  = useState<TaxDocumentEdit[]>([]);
   const [deleteTarget, setDeleteTarget] = useState<TaxDocument | null>(null);
   const [editDoc,      setEditDoc]      = useState<TaxDocument | null>(null);
   const [deleting,     setDeleting]     = useState(false);
@@ -316,11 +376,19 @@ export default function TaxDocumentsPage() {
   useEffect(() => { fetchDocuments(); }, [fetchDocuments]);
   useEffect(() => { fetchClients(); },  [fetchClients]);
 
+  async function openReview(doc: TaxDocument) {
+    openReview(doc);
+    setReviewEdits([]);
+    const res  = await fetch(`/api/tax/documents/${doc.id}/history`);
+    const data = await res.json();
+    setReviewEdits(data.edits ?? []);
+  }
+
   function handleUploaded(doc: TaxDocument) {
     setUploadOpen(false);
     fetchDocuments();
-    // 이미지면 즉시 AI 검수 팝업
-    if (doc.mime_type.startsWith('image/')) setReviewDoc(doc);
+    // 이미지면 즉시 AI 검수 팝업 (신규 업로드라 이력 없음)
+    if (doc.mime_type.startsWith('image/')) openReview(doc);
   }
 
   async function handleDelete() {
@@ -349,6 +417,7 @@ export default function TaxDocumentsPage() {
   const pendingReview = documents.filter(d => !d.ai_confirmed && !d.deleted_at && d.mime_type.startsWith('image/')).length;
   const totalSize     = documents.filter(d => !d.deleted_at).reduce((s, d) => s + d.file_size, 0);
   const driveLinked   = documents.filter(d => !d.deleted_at && d.drive_file_id).length;
+  const anomalyCount  = documents.filter(d => !d.deleted_at && d.anomaly_flag > 0).length;
 
   return (
     <div className="p-6 flex flex-col gap-6 max-w-6xl">
@@ -367,7 +436,7 @@ export default function TaxDocumentsPage() {
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard label="전체 문서"   value={`${documents.filter(d=>!d.deleted_at).length}건`} icon={FileText}      color="blue"  />
-        <StatCard label="AI 검수 대기" value={`${pendingReview}건`} sub="이미지 문서" icon={Sparkles}    color="amber" sub="이미지 문서" />
+        <StatCard label="AI 검수 대기" value={`${pendingReview}건`} sub="이미지 문서" icon={Sparkles}    color="amber" />
         <StatCard label="Drive 연동" value={`${driveLinked}건`} sub="이중 백업됨"    icon={CheckCircle2} color="green" />
         <StatCard label="서버 용량"   value={fmtBytes(totalSize)}                    icon={Download}     color="rose"  />
       </div>
@@ -385,6 +454,17 @@ export default function TaxDocumentsPage() {
             className="text-xs font-bold px-3 py-1.5 bg-amber-600 text-white rounded-xl hover:bg-amber-700 transition-colors">
             검수하기
           </button>
+        </div>
+      )}
+
+      {/* 이상치 경고 배너 */}
+      {anomalyCount > 0 && !showDeleted && (
+        <div className="bg-orange-50 border border-orange-200 rounded-2xl px-5 py-4 flex items-center gap-3">
+          <ShieldAlert size={18} className="text-orange-500 shrink-0" />
+          <div className="flex-1">
+            <p className="text-sm font-bold text-orange-800">이상치 감지 {anomalyCount}건</p>
+            <p className="text-xs text-orange-600 mt-0.5">금액 또는 날짜 이상이 감지된 문서를 확인해주세요.</p>
+          </div>
         </div>
       )}
 
@@ -457,7 +537,11 @@ export default function TaxDocumentsPage() {
                   className={clsx(
                     'grid grid-cols-1 lg:grid-cols-[2fr_1.2fr_1fr_1fr_1fr_1fr_90px] gap-2 lg:gap-3 px-5 py-4 transition-colors',
                     doc.deleted_at ? 'opacity-60 bg-red-50/30' : 'hover:bg-stone-50/60',
-                    !doc.ai_confirmed && !doc.deleted_at && doc.mime_type.startsWith('image/') && 'border-l-4 border-amber-400'
+                    !doc.deleted_at && doc.anomaly_flag > 0
+                      ? 'border-l-4 border-orange-400'
+                      : !doc.ai_confirmed && !doc.deleted_at && doc.mime_type.startsWith('image/')
+                        ? 'border-l-4 border-amber-400'
+                        : ''
                   )}>
 
                   {/* 파일명 */}
@@ -499,7 +583,7 @@ export default function TaxDocumentsPage() {
                   </div>
 
                   {/* 검수 상태 */}
-                  <div className="flex items-center">
+                  <div className="flex flex-col items-start gap-1">
                     {doc.deleted_at ? (
                       <div>
                         <span className="text-xs text-red-500 font-semibold">삭제됨</span>
@@ -508,12 +592,19 @@ export default function TaxDocumentsPage() {
                     ) : doc.mime_type.startsWith('image/') ? (
                       doc.ai_confirmed
                         ? <span className="inline-flex items-center gap-1 text-xs font-semibold text-green-700 bg-green-100 px-2 py-0.5 rounded-full"><CheckCircle2 size={10} />완료</span>
-                        : <button onClick={() => setReviewDoc(doc)}
+                        : <button onClick={() => openReview(doc)}
                             className="inline-flex items-center gap-1 text-xs font-semibold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full hover:bg-amber-200 transition-colors">
                             <Sparkles size={10} />검수 필요
                           </button>
                     ) : (
                       <span className="text-xs text-stone-400">—</span>
+                    )}
+                    {!doc.deleted_at && doc.anomaly_flag > 0 && (
+                      <span
+                        title={doc.anomaly_note}
+                        className="inline-flex items-center gap-1 text-[10px] font-bold text-orange-700 bg-orange-100 px-1.5 py-0.5 rounded-full cursor-help">
+                        <ShieldAlert size={9} />이상치
+                      </span>
                     )}
                   </div>
 
@@ -533,7 +624,7 @@ export default function TaxDocumentsPage() {
                           <Eye size={12} />
                         </a>
                         {/* 수정(검수) */}
-                        <button onClick={() => setReviewDoc(doc)} title="정보 수정"
+                        <button onClick={() => openReview(doc)} title="정보 수정"
                           className="w-7 h-7 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 flex items-center justify-center transition-colors">
                           <Pencil size={12} />
                         </button>
@@ -566,8 +657,9 @@ export default function TaxDocumentsPage() {
       {reviewDoc && (
         <AIReviewPanel
           doc={reviewDoc}
-          onConfirm={updated => { setReviewDoc(null); fetchDocuments(); }}
-          onClose={() => setReviewDoc(null)}
+          edits={reviewEdits}
+          onConfirm={() => { setReviewDoc(null); setReviewEdits([]); fetchDocuments(); }}
+          onClose={() => { setReviewDoc(null); setReviewEdits([]); }}
         />
       )}
 

@@ -125,6 +125,39 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_tax_documents_deleted   ON tax_documents(deleted_at);
 `);
 
+// ── tax_documents 신규 컬럼 추가 (AI 원본 + 이상치, 멱등) ──────────────────────
+{
+  const existing = (db.pragma('table_info(tax_documents)') as Array<{ name: string }>).map(c => c.name);
+  const toAdd: [string, string][] = [
+    ['ai_date',      'TEXT'],
+    ['ai_amount',    'INTEGER'],
+    ['ai_vendor',    "TEXT NOT NULL DEFAULT ''"],
+    ['ai_category',  "TEXT NOT NULL DEFAULT ''"],
+    ['anomaly_flag', 'INTEGER NOT NULL DEFAULT 0'],
+    ['anomaly_note', "TEXT NOT NULL DEFAULT ''"],
+  ];
+  for (const [col, def] of toAdd) {
+    if (!existing.includes(col)) {
+      db.exec(`ALTER TABLE tax_documents ADD COLUMN ${col} ${def}`);
+    }
+  }
+}
+
+// ── 문서 수정이력 테이블 ────────────────────────────────────────────────────────
+db.exec(`
+  CREATE TABLE IF NOT EXISTS tax_document_edits (
+    id          TEXT    PRIMARY KEY,
+    document_id TEXT    NOT NULL,
+    user_id     TEXT    NOT NULL,
+    field       TEXT    NOT NULL,
+    old_value   TEXT,
+    new_value   TEXT,
+    edited_by   TEXT    NOT NULL DEFAULT '',
+    created_at  INTEGER NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_tax_document_edits_doc ON tax_document_edits(document_id);
+`);
+
 // ── 메뉴 아이템 테이블 ─────────────────────────────────────────────────────────
 db.exec(`
   CREATE TABLE IF NOT EXISTS menu_items (

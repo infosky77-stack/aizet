@@ -3,7 +3,7 @@ import { unlink } from 'fs/promises';
 import { existsSync } from 'fs';
 import path from 'path';
 import { getSessionFromRequest } from '@/lib/auth';
-import { getDocument, updateDocument, softDeleteDocument, restoreDocument } from '@/lib/db/tax-documents';
+import { getDocument, updateDocument, softDeleteDocument, restoreDocument, recordEdits } from '@/lib/db/tax-documents';
 import { getValidAccessToken } from '@/lib/drive-auth';
 import { deleteFromDrive } from '@/lib/drive-upload';
 
@@ -31,14 +31,33 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     return Response.json({ document: doc });
   }
 
-  const doc = updateDocument(id, userId, {
-    doc_date:     body.doc_date  !== undefined ? (body.doc_date || null)          : undefined,
-    amount:       body.amount    !== undefined ? (body.amount ? Number(body.amount) : null) : undefined,
-    vendor:       body.vendor    !== undefined ? String(body.vendor).trim()       : undefined,
-    category:     body.category  !== undefined ? String(body.category).trim()     : undefined,
-    ai_confirmed: body.ai_confirmed !== undefined ? (body.ai_confirmed ? 1 : 0)  : undefined,
-  });
-  if (!doc) return Response.json({ error: 'Not found' }, { status: 404 });
+  const existing = getDocument(id, userId);
+  if (!existing) return Response.json({ error: 'Not found' }, { status: 404 });
+
+  const patch = {
+    doc_date:     body.doc_date     !== undefined ? (body.doc_date || null)                    : undefined,
+    amount:       body.amount       !== undefined ? (body.amount ? Number(body.amount) : null) : undefined,
+    vendor:       body.vendor       !== undefined ? String(body.vendor).trim()                 : undefined,
+    category:     body.category     !== undefined ? String(body.category).trim()               : undefined,
+    ai_confirmed: body.ai_confirmed !== undefined ? (body.ai_confirmed ? 1 : 0)               : undefined,
+  };
+
+  // 변경된 필드만 이력 기록
+  const TRACKED = ['doc_date', 'amount', 'vendor', 'category', 'ai_confirmed'] as const;
+  const changes: { field: string; oldValue: string | null; newValue: string | null }[] = [];
+  for (const field of TRACKED) {
+    const newVal = patch[field];
+    if (newVal === undefined) continue;
+    const oldRaw = existing[field as keyof typeof existing];
+    const oldStr = oldRaw == null ? null : String(oldRaw);
+    const newStr = newVal == null ? null : String(newVal);
+    if (oldStr !== newStr) changes.push({ field, oldValue: oldStr, newValue: newStr });
+  }
+  if (changes.length > 0) {
+    recordEdits(id, userId, session?.email ?? session?.sub ?? 'unknown', changes);
+  }
+
+  const doc = updateDocument(id, userId, patch);
   return Response.json({ document: doc });
 }
 
