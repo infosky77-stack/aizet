@@ -25,16 +25,22 @@ function pollinationsUrl(prompt: string, seed: number): string {
   return `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1280&height=720&model=flux&nologo=true&seed=${seed}`;
 }
 
-async function generateOneImage(prompt: string, seed: number): Promise<Buffer> {
+async function generateOneImage(prompt: string, seed: number, reqSignal?: AbortSignal): Promise<Buffer> {
   let lastError: Error = new Error('unknown');
 
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    if (reqSignal?.aborted) throw Object.assign(new Error('Client disconnected'), { name: 'AbortError' });
+
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+    // 클라이언트 연결 끊김 → timeout controller로 전파
+    const onReqAbort = () => controller.abort();
+    reqSignal?.addEventListener('abort', onReqAbort, { once: true });
 
     try {
       const res = await fetch(pollinationsUrl(prompt, seed), { signal: controller.signal });
       clearTimeout(timer);
+      reqSignal?.removeEventListener('abort', onReqAbort);
 
       if (res.status === 503 || res.status === 429) {
         console.log(`[Pollinations] ${res.status} — 20s 대기 후 재시도`);
@@ -48,8 +54,13 @@ async function generateOneImage(prompt: string, seed: number): Promise<Buffer> {
 
     } catch (e) {
       clearTimeout(timer);
+      reqSignal?.removeEventListener('abort', onReqAbort);
       lastError = e instanceof Error ? e : new Error(String(e));
-      if (lastError.name === 'AbortError') lastError = new Error(`타임아웃 (${REQUEST_TIMEOUT_MS / 1000}s 초과)`);
+      if (lastError.name === 'AbortError') {
+        // 클라이언트 끊김 vs 타임아웃 구별
+        if (reqSignal?.aborted) throw lastError;
+        lastError = new Error(`타임아웃 (${REQUEST_TIMEOUT_MS / 1000}s 초과)`);
+      }
 
       if (attempt < MAX_RETRIES) {
         console.log(`[Pollinations] 오류: ${lastError.message} — 5s 후 재시도 (${attempt + 1}/${MAX_RETRIES})`);
@@ -145,8 +156,12 @@ export async function POST(req: NextRequest) {
 
         let succeeded = 0;
         const succeededKeys: string[] = [];
+        let aborted = false;
 
         for (let i = 0; i < template.images.length; i++) {
+          // 클라이언트가 연결을 끊었으면 나머지 생성 중단
+          if (req.signal.aborted) { aborted = true; break; }
+
           const img = template.images[i];
           const prompt = img.prompt.replace('{name}', shopName);
           const seed = Math.floor(Math.random() * 1_000_000) + i;
@@ -158,7 +173,7 @@ export async function POST(req: NextRequest) {
           }));
 
           try {
-            const buffer = await generateOneImage(prompt, seed);
+            const buffer = await generateOneImage(prompt, seed, req.signal);
             const fileName = `${img.key}.jpg`;
             await writeFile(path.join(saveDir, fileName), buffer);
             succeeded++;
@@ -171,6 +186,11 @@ export async function POST(req: NextRequest) {
               path: `/api/images/${slug}/${fileName}`,
             }));
           } catch (e) {
+            if ((e as { name?: string })?.name === 'AbortError') {
+              // 클라이언트 중단 — 루프 탈출
+              aborted = true;
+              break;
+            }
             // 4. 실패 알림 — 나머지 계속 진행
             controller.enqueue(sse({
               type: 'progress', key: img.key, label: img.label,
@@ -178,6 +198,18 @@ export async function POST(req: NextRequest) {
               error: e instanceof Error ? e.message : String(e),
             }));
           }
+        }
+
+        if (aborted) {
+          // 중단 시: Drive 백업 skip, complete 이벤트 전송 시도 (클라이언트가 이미 끊겼을 수 있음)
+          try {
+            controller.enqueue(sse({
+              type: 'complete', aborted: true,
+              succeeded, total: template.images.length,
+              driveWebViewLink: null,
+            }));
+          } catch { /* 클라이언트 이미 끊김 */ }
+          return;
         }
 
         // 5. Drive 백업 (실패해도 complete 이벤트는 반드시 전송)

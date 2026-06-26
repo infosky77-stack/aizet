@@ -4,11 +4,11 @@ import { useEffect, useState, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSession } from '@/hooks/useSession';
 import {
-  CheckCircle, XCircle, Loader2, Sparkles, ExternalLink, AlertCircle,
+  CheckCircle, XCircle, Loader2, Sparkles, ExternalLink, AlertCircle, StopCircle,
 } from 'lucide-react';
 
 type GenStatus = 'pending' | 'generating' | 'done' | 'error';
-type Phase     = 'confirming' | 'generating' | 'done' | 'error';
+type Phase     = 'confirming' | 'generating' | 'done' | 'error' | 'aborted';
 
 interface ImageItem { key: string; label: string; status: GenStatus }
 
@@ -26,7 +26,8 @@ function ImagePaymentSuccessContent() {
   const [imageList,  setImageList]  = useState<ImageItem[]>([]);
   const [driveLink,  setDriveLink]  = useState<string | null>(null);
   const [slug,       setSlug]       = useState<string | null>(null);
-  const ranOnce = useRef(false);
+  const ranOnce    = useRef(false);
+  const abortCtrl  = useRef<AbortController | null>(null);
 
   useEffect(() => {
     if (ranOnce.current) return;
@@ -62,8 +63,10 @@ function ImagePaymentSuccessContent() {
 
     // 3. SSE 이미지 생성
     setPhase('generating');
+    const ac = new AbortController();
+    abortCtrl.current = ac;
     try {
-      const res = await fetch('/api/admin/generate-images', { method: 'POST' });
+      const res = await fetch('/api/admin/generate-images', { method: 'POST', signal: ac.signal });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         setErrorMsg(data.error ?? `이미지 생성 오류 (${res.status})`);
@@ -97,20 +100,26 @@ function ImagePaymentSuccessContent() {
             } else if (ev.type === 'complete') {
               if (ev.driveWebViewLink) setDriveLink(ev.driveWebViewLink);
               receivedComplete = true;
-              setPhase('done');
+              setPhase(ev.aborted ? 'aborted' : 'done');
             }
           } catch { /* 파싱 실패 무시 */ }
         }
       }
 
-      if (!receivedComplete) {
+      if (!receivedComplete && phase !== 'aborted') {
         setErrorMsg('연결이 끊겼습니다. 설정 페이지에서 이미지를 확인해주세요.');
         setPhase('error');
       }
-    } catch {
+    } catch (e) {
+      if ((e as { name?: string })?.name === 'AbortError') return; // 사용자 중단 — 이미 'aborted' 처리됨
       setErrorMsg('이미지 생성 중 오류가 발생했습니다.');
       setPhase('error');
     }
+  }
+
+  function handleAbort() {
+    setPhase('aborted');
+    abortCtrl.current?.abort();
   }
 
   // ── 승인 중 ──
@@ -204,16 +213,51 @@ function ImagePaymentSuccessContent() {
             </div>
           )}
 
-          {/* 진행률 바 */}
+          {/* 진행률 바 + 중단 버튼 */}
           {phase === 'generating' && totalCount > 0 && (
-            <div>
-              <div className="flex justify-between text-xs text-stone-400 mb-1">
-                <span>{doneCount}/{totalCount}장</span>
-                <span>{Math.round((doneCount / totalCount) * 100)}%</span>
+            <div className="flex flex-col gap-2">
+              <div>
+                <div className="flex justify-between text-xs text-stone-400 mb-1">
+                  <span>{doneCount}/{totalCount}장</span>
+                  <span>{Math.round((doneCount / totalCount) * 100)}%</span>
+                </div>
+                <div className="w-full bg-stone-100 rounded-full h-1.5">
+                  <div className="bg-violet-500 h-1.5 rounded-full transition-all duration-500"
+                    style={{ width: `${(doneCount / totalCount) * 100}%` }} />
+                </div>
               </div>
-              <div className="w-full bg-stone-100 rounded-full h-1.5">
-                <div className="bg-violet-500 h-1.5 rounded-full transition-all duration-500"
-                  style={{ width: `${(doneCount / totalCount) * 100}%` }} />
+              <button onClick={handleAbort}
+                className="flex items-center justify-center gap-1.5 w-full py-2 rounded-lg border border-red-200 text-red-500 hover:bg-red-50 text-sm font-medium transition-colors">
+                <StopCircle size={14} /> 중단
+              </button>
+            </div>
+          )}
+
+          {/* 중단됨 */}
+          {phase === 'aborted' && (
+            <div className="border-t border-stone-100 pt-4 flex flex-col gap-3">
+              <div className="flex items-center gap-2 text-amber-600 font-bold">
+                <StopCircle size={18} />
+                {succeeded}장 완료, 중단됨
+              </div>
+              <p className="text-xs text-stone-400">
+                완료된 이미지는 홈페이지에 반영됩니다. 나머지 이미지를 생성하려면 다시 생성하기를 눌러주세요.
+              </p>
+              <div className="flex flex-col gap-2">
+                {slug && (
+                  <a href={`/site/${slug}`} target="_blank" rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-2 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 text-sm font-semibold rounded-xl transition-colors">
+                    <ExternalLink size={14} /> 현재 홈페이지 보기
+                  </a>
+                )}
+                <button onClick={() => router.replace('/admin/settings')}
+                  className="py-2.5 bg-violet-600 hover:bg-violet-700 text-white text-sm font-bold rounded-xl transition-colors">
+                  다시 생성하기
+                </button>
+                <button onClick={() => router.replace('/admin/settings')}
+                  className="py-2.5 border border-stone-200 text-stone-500 text-sm font-semibold rounded-xl hover:bg-stone-50 transition-colors">
+                  완료
+                </button>
               </div>
             </div>
           )}
