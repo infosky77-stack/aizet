@@ -3,7 +3,7 @@
 import { useEffect, useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { LayoutDashboard, BarChart3, Package, Calendar, AlertCircle, Loader2 } from 'lucide-react';
+import { LayoutDashboard, BarChart3, Package, Calendar, AlertCircle, Loader2, Info } from 'lucide-react';
 import { AizetLogo } from '@/components/AizetLogo';
 
 function GoogleIcon() {
@@ -83,6 +83,13 @@ function LoginContent() {
           <p className="text-center text-xs text-stone-400 mt-4">
             로그인 시 구글 드라이브 파일 접근 권한이 함께 요청됩니다.
           </p>
+
+          <div className="mt-3 flex items-start gap-1.5 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2.5">
+            <Info size={13} className="text-amber-500 shrink-0 mt-0.5" />
+            <p className="text-xs text-amber-700 leading-relaxed">
+              구글 로그인 화면이 여러 번 나올 수 있습니다. 안전한 절차이니 안내에 따라 <span className="font-semibold">&apos;계속&apos;</span>을 눌러주세요.
+            </p>
+          </div>
 
           <div className="mt-8 bg-stone-50 border border-stone-100 rounded-2xl p-4 flex flex-col gap-3">
             <div className="flex items-center gap-2.5">
