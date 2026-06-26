@@ -97,6 +97,34 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_tax_filings_due_date  ON tax_filings(due_date);
 `);
 
+// ── 문서 보관 테이블 ────────────────────────────────────────────────────────────
+db.exec(`
+  CREATE TABLE IF NOT EXISTS tax_documents (
+    id            TEXT    PRIMARY KEY,
+    client_id     TEXT    NOT NULL REFERENCES tax_clients(id) ON DELETE CASCADE,
+    user_id       TEXT    NOT NULL,
+    filename      TEXT    NOT NULL,
+    mime_type     TEXT    NOT NULL DEFAULT 'application/octet-stream',
+    file_size     INTEGER NOT NULL DEFAULT 0,
+    local_path    TEXT,
+    drive_file_id TEXT,
+    drive_url     TEXT,
+    doc_date      TEXT,
+    amount        INTEGER,
+    vendor        TEXT    NOT NULL DEFAULT '',
+    category      TEXT    NOT NULL DEFAULT '',
+    ai_raw        TEXT    NOT NULL DEFAULT '',
+    ai_confirmed  INTEGER NOT NULL DEFAULT 0,
+    deleted_at    INTEGER,
+    deleted_by    TEXT,
+    created_at    INTEGER NOT NULL,
+    updated_at    INTEGER NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_tax_documents_user_id   ON tax_documents(user_id);
+  CREATE INDEX IF NOT EXISTS idx_tax_documents_client_id ON tax_documents(client_id);
+  CREATE INDEX IF NOT EXISTS idx_tax_documents_deleted   ON tax_documents(deleted_at);
+`);
+
 // ── 메뉴 아이템 테이블 ─────────────────────────────────────────────────────────
 db.exec(`
   CREATE TABLE IF NOT EXISTS menu_items (
