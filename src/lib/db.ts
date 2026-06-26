@@ -59,6 +59,44 @@ db.exec(`
 // ── 슬러그 유니크 인덱스 (이미 있으면 무시) ────────────────────────────────────
 db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_users_slug ON users(slug) WHERE slug IS NOT NULL;`);
 
+// ── 거래처 테이블 ──────────────────────────────────────────────────────────────
+db.exec(`
+  CREATE TABLE IF NOT EXISTS tax_clients (
+    id          TEXT    PRIMARY KEY,
+    user_id     TEXT    NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    name        TEXT    NOT NULL,
+    biz_number  TEXT    NOT NULL DEFAULT '',
+    contact     TEXT    NOT NULL DEFAULT '',
+    phone       TEXT    NOT NULL DEFAULT '',
+    email       TEXT    NOT NULL DEFAULT '',
+    memo        TEXT    NOT NULL DEFAULT '',
+    created_at  INTEGER NOT NULL,
+    updated_at  INTEGER NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_tax_clients_user_id ON tax_clients(user_id);
+`);
+
+// ── 신고 현황 테이블 ────────────────────────────────────────────────────────────
+db.exec(`
+  CREATE TABLE IF NOT EXISTS tax_filings (
+    id          TEXT    PRIMARY KEY,
+    client_id   TEXT    NOT NULL REFERENCES tax_clients(id) ON DELETE CASCADE,
+    user_id     TEXT    NOT NULL,
+    type        TEXT    NOT NULL DEFAULT 'vat',
+    year        INTEGER NOT NULL,
+    month       INTEGER NOT NULL,
+    due_date    TEXT    NOT NULL,
+    status      TEXT    NOT NULL DEFAULT 'pending',
+    filed_at    INTEGER,
+    memo        TEXT    NOT NULL DEFAULT '',
+    created_at  INTEGER NOT NULL,
+    updated_at  INTEGER NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_tax_filings_user_id   ON tax_filings(user_id);
+  CREATE INDEX IF NOT EXISTS idx_tax_filings_client_id ON tax_filings(client_id);
+  CREATE INDEX IF NOT EXISTS idx_tax_filings_due_date  ON tax_filings(due_date);
+`);
+
 // ── 메뉴 아이템 테이블 ─────────────────────────────────────────────────────────
 db.exec(`
   CREATE TABLE IF NOT EXISTS menu_items (

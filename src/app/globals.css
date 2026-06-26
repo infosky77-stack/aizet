@@ -30,3 +30,18 @@ body {
 * {
   -webkit-tap-highlight-color: transparent;
 }
+
+.input-field {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.75rem;
+  border: 1px solid #e7e5e4;
+  background: white;
+  font-size: 0.875rem;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.input-field:focus {
+  border-color: #78716c;
+}
