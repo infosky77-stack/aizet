@@ -77,7 +77,17 @@ function ImagePaymentSuccessContent() {
             } else if (ev.type === 'complete') {
               if (ev.driveWebViewLink) setDriveLink(ev.driveWebViewLink);
               receivedComplete = true;
-              setPhase(ev.aborted ? 'aborted' : 'done');
+              if (ev.aborted) {
+                setPhase('aborted');
+              } else {
+                // 생성 완료 → 결제 건 자동 종료 (다음에 새 결제 필요)
+                fetch('/api/admin/image-payment/complete', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ orderId }),
+                }).catch(() => {});
+                setPhase('done');
+              }
             }
           } catch { /* 파싱 실패 무시 */ }
         }
@@ -132,6 +142,16 @@ function ImagePaymentSuccessContent() {
     // 같은 결제 건으로 이어서 생성 — 결제 재승인 없이 생성만 재시작
     setDriveLink(null);
     startGeneration();
+  }
+
+  function handleComplete() {
+    // 결제 건 명시적 종료 → 다음 생성 시 새 결제 필요
+    fetch('/api/admin/image-payment/complete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ orderId }),
+    }).catch(() => {});
+    router.replace('/admin/settings');
   }
 
   // ── 승인 중 ──
@@ -266,7 +286,7 @@ function ImagePaymentSuccessContent() {
                   className="py-2.5 bg-violet-600 hover:bg-violet-700 text-white text-sm font-bold rounded-xl transition-colors">
                   이어서 만들기
                 </button>
-                <button onClick={() => router.replace('/admin/settings')}
+                <button onClick={handleComplete}
                   className="py-2.5 border border-stone-200 text-stone-500 text-sm font-semibold rounded-xl hover:bg-stone-50 transition-colors">
                   완료 (이 결제 건 종료)
                 </button>

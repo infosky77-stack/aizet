@@ -1,7 +1,7 @@
 import { randomUUID } from 'crypto';
 import db from '@/lib/db';
 
-export type ImagePaymentStatus = 'pending' | 'paid' | 'failed';
+export type ImagePaymentStatus = 'pending' | 'paid' | 'completed' | 'failed';
 
 export interface ImagePayment {
   id:         string;
@@ -40,4 +40,17 @@ export function confirmImagePayment(id: string, tossKey: string): ImagePayment |
 
 export function failImagePayment(id: string): void {
   db.prepare(`UPDATE image_payments SET status='failed' WHERE id=? AND status='pending'`).run(id);
+}
+
+export function completeImagePayment(id: string): void {
+  db.prepare(`UPDATE image_payments SET status='completed' WHERE id=? AND status='paid'`).run(id);
+}
+
+/** 결제 완료(paid)됐지만 아직 completed 처리 안 된 최신 레코드 반환 */
+export function getActivePaidPayment(userId: string): ImagePayment | null {
+  return db
+    .prepare<[string], ImagePayment>(
+      `SELECT * FROM image_payments WHERE user_id=? AND status='paid' ORDER BY paid_at DESC LIMIT 1`
+    )
+    .get(userId) ?? null;
 }

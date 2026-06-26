@@ -188,7 +188,14 @@ export default function AdminSettingsPage() {
       const res  = await fetch('/api/admin/image-payment', { method: 'POST' });
       const data = await res.json();
       if (!res.ok) { setGenError(data.error ?? '결제 초기화 실패'); return; }
-      router.push(`/admin/image-payment?orderId=${data.orderId}`);
+      if (data.resumable) {
+        // 완료되지 않은 기존 결제 건 — Toss 결제 없이 바로 생성 화면으로
+        router.push(
+          `/admin/image-payment/success?paymentKey=${data.paymentKey}&orderId=${data.orderId}&amount=${data.amount}`
+        );
+      } else {
+        router.push(`/admin/image-payment?orderId=${data.orderId}`);
+      }
     } catch {
       setGenError('네트워크 오류');
     }
