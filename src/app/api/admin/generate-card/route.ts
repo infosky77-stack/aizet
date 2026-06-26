@@ -14,8 +14,11 @@ export async function POST(req: NextRequest) {
   const user = getUser(session.sub);
   if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 });
 
-  const { selectedStyle } = await req.json();
+  const { selectedStyle, cardTemplate = 'sidebar-violet' } = await req.json();
   if (!selectedStyle) return NextResponse.json({ error: 'selectedStyle required' }, { status: 400 });
+
+  const VALID_TEMPLATES = ['sidebar-violet', 'minimal-white', 'dark-navy', 'split-emerald', 'warm-border'];
+  const safeTemplate = VALID_TEMPLATES.includes(cardTemplate) ? cardTemplate : 'sidebar-violet';
 
   const cwd      = process.cwd();
   const fontDir  = path.join(cwd, 'data', 'fonts');
@@ -23,12 +26,13 @@ export async function POST(req: NextRequest) {
   const script   = path.join(cwd, 'scripts', 'gen_card.py');
 
   const cardData = {
-    shopName:  user.shop_name  || '',
-    ownerName: user.name       || '',
-    phone:     user.phone      || '',
-    address:   user.address    || '',
+    shopName:     user.shop_name  || '',
+    ownerName:    user.name       || '',
+    phone:        user.phone      || '',
+    address:      user.address    || '',
     logoPath,
     fontDir,
+    cardTemplate: safeTemplate,
   };
 
   try {

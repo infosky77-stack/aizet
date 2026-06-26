@@ -13,6 +13,95 @@ type Phase     = 'confirming' | 'generating' | 'selecting' | 'making-card' | 'ca
 
 interface LogoItem { key: string; label: string; status: GenStatus; url?: string }
 
+const CARD_TEMPLATES = [
+  {
+    key: 'sidebar-violet',
+    label: '바이올렛 사이드바',
+    preview: (
+      <div className="w-full h-full flex">
+        <div className="w-1/3 h-full bg-[#1e1b4b] rounded-l" />
+        <div className="flex-1 h-full bg-white rounded-r flex flex-col justify-center gap-0.5 px-1">
+          <div className="h-1.5 w-8 bg-stone-800 rounded" />
+          <div className="h-0.5 w-4 bg-[#7c3aed] rounded" />
+          <div className="h-1 w-10 bg-stone-300 rounded" />
+          <div className="h-1 w-8 bg-stone-200 rounded" />
+        </div>
+      </div>
+    ),
+  },
+  {
+    key: 'minimal-white',
+    label: '심플 미니멀',
+    preview: (
+      <div className="w-full h-full bg-white rounded flex flex-col">
+        <div className="h-1 w-full bg-[#7c3aed] rounded-t" />
+        <div className="flex-1 flex items-center px-1.5 gap-1.5">
+          <div className="w-7 h-7 bg-stone-100 rounded border border-stone-200 shrink-0" />
+          <div className="flex flex-col gap-0.5">
+            <div className="h-1.5 w-12 bg-[#1e1b4b] rounded" />
+            <div className="h-1 w-8 bg-stone-400 rounded" />
+            <div className="h-0.5 w-5 bg-[#7c3aed] rounded" />
+            <div className="h-1 w-10 bg-stone-300 rounded" />
+          </div>
+        </div>
+        <div className="h-1 w-full bg-[#7c3aed] rounded-b" />
+      </div>
+    ),
+  },
+  {
+    key: 'dark-navy',
+    label: '다크 네이비',
+    preview: (
+      <div className="w-full h-full bg-[#0f172a] rounded flex items-center gap-1.5 px-1.5">
+        <div className="w-7 h-7 bg-[#1e293b] rounded border border-[#334155] shrink-0" />
+        <div className="w-px h-8 bg-[#334155]" />
+        <div className="flex flex-col gap-0.5">
+          <div className="h-1.5 w-12 bg-[#f1f5f9] rounded" />
+          <div className="h-1 w-8 bg-[#94a3b8] rounded" />
+          <div className="h-0.5 w-8 bg-[#38bdf8] rounded" />
+          <div className="h-1 w-10 bg-[#cbd5e1] rounded" />
+        </div>
+      </div>
+    ),
+  },
+  {
+    key: 'split-emerald',
+    label: '에메랄드 분할',
+    preview: (
+      <div className="w-full h-full flex rounded overflow-hidden">
+        <div className="flex-1 bg-white flex flex-col justify-center gap-0.5 px-1.5">
+          <div className="h-1.5 w-10 bg-[#064e3b] rounded" />
+          <div className="h-1 w-7 bg-stone-400 rounded" />
+          <div className="h-0.5 w-6 bg-[#059669] rounded" />
+          <div className="h-1 w-9 bg-stone-300 rounded" />
+        </div>
+        <div className="w-2/5 bg-[#059669] flex items-center justify-center">
+          <div className="w-7 h-7 bg-[#047857] rounded" />
+        </div>
+      </div>
+    ),
+  },
+  {
+    key: 'warm-border',
+    label: '앰버 보더',
+    preview: (
+      <div className="w-full h-full bg-white rounded" style={{ border: '2px solid #b45309', padding: '2px' }}>
+        <div className="w-full h-full rounded" style={{ border: '1px solid #fde68a', padding: '2px' }}>
+          <div className="flex items-start gap-1 pt-0.5 pl-0.5">
+            <div className="w-6 h-6 bg-stone-100 rounded border border-stone-200 shrink-0" />
+            <div className="flex flex-col gap-0.5 mt-0.5">
+              <div className="h-1.5 w-10 bg-[#78350f] rounded" />
+              <div className="h-1 w-7 bg-[#92400e] rounded" />
+              <div className="h-0.5 w-5 bg-[#b45309] rounded" />
+              <div className="h-1 w-9 bg-stone-300 rounded" />
+            </div>
+          </div>
+        </div>
+      </div>
+    ),
+  },
+];
+
 function LogoPaymentSuccessContent() {
   const searchParams = useSearchParams();
   const router       = useRouter();
@@ -21,11 +110,12 @@ function LogoPaymentSuccessContent() {
   const orderId    = searchParams.get('orderId')    ?? '';
   const amount     = searchParams.get('amount')     ?? '';
 
-  const [phase,       setPhase]       = useState<Phase>('confirming');
-  const [errorMsg,    setErrorMsg]    = useState('');
-  const [logoList,    setLogoList]    = useState<LogoItem[]>([]);
-  const [selected,    setSelected]    = useState<string | null>(null);
-  const [cardDataUrl, setCardDataUrl] = useState<string | null>(null);
+  const [phase,            setPhase]            = useState<Phase>('confirming');
+  const [errorMsg,         setErrorMsg]         = useState('');
+  const [logoList,         setLogoList]         = useState<LogoItem[]>([]);
+  const [selected,         setSelected]         = useState<string | null>(null);
+  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
+  const [cardDataUrl,      setCardDataUrl]      = useState<string | null>(null);
 
   const ranOnce   = useRef(false);
   const abortCtrl = useRef<AbortController | null>(null);
@@ -148,13 +238,13 @@ function LogoPaymentSuccessContent() {
   }
 
   async function handleMakeCard() {
-    if (!selected) return;
+    if (!selected || !selectedTemplate) return;
     setPhase('making-card');
     try {
       const res = await fetch('/api/admin/generate-card', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ selectedStyle: selected }),
+        body:    JSON.stringify({ selectedStyle: selected, cardTemplate: selectedTemplate }),
       });
       if (!res.ok) {
         setErrorMsg('명함 생성에 실패했습니다.');
@@ -300,44 +390,74 @@ function LogoPaymentSuccessContent() {
 
         {/* 로고 선택 */}
         {(phase === 'selecting' || phase === 'making-card' || phase === 'card-done') && (
-          <div className="bg-white rounded-2xl shadow-sm border border-stone-100 p-5 flex flex-col gap-4">
-            <p className="font-semibold text-stone-700 text-sm">마음에 드는 로고를 선택하세요</p>
+          <div className="bg-white rounded-2xl shadow-sm border border-stone-100 p-5 flex flex-col gap-5">
 
-            <div className="grid grid-cols-3 gap-3">
-              {logoList.map(item => (
-                <button key={item.key}
-                  onClick={() => { if (phase === 'selecting') { setSelected(item.key); setCardDataUrl(null); } }}
-                  disabled={item.status !== 'done' || phase !== 'selecting'}
-                  className={clsx(
-                    'flex flex-col gap-1.5 rounded-xl transition-all',
-                    item.status !== 'done' && 'opacity-40 cursor-not-allowed',
-                    selected === item.key && phase === 'selecting'
-                      ? 'ring-2 ring-violet-500 ring-offset-2'
-                      : '',
-                  )}>
-                  <div className="aspect-square rounded-xl border-2 border-stone-100 bg-stone-50 overflow-hidden">
-                    {item.url
-                      ? <img src={item.url} alt={item.label} className="w-full h-full object-cover" />
-                      : <XCircle size={24} className="text-red-300 m-auto mt-8" />
-                    }
-                  </div>
-                  <p className="text-xs text-center text-stone-500">{item.label}</p>
-                  {selected === item.key && (
-                    <p className="text-xs text-center text-violet-600 font-bold">✓ 선택됨</p>
-                  )}
-                </button>
-              ))}
+            {/* 로고 선택 */}
+            <div className="flex flex-col gap-3">
+              <p className="font-semibold text-stone-700 text-sm">① 마음에 드는 로고를 선택하세요</p>
+              <div className="grid grid-cols-3 gap-3">
+                {logoList.map(item => (
+                  <button key={item.key}
+                    onClick={() => { if (phase === 'selecting') { setSelected(item.key); setCardDataUrl(null); } }}
+                    disabled={item.status !== 'done' || phase !== 'selecting'}
+                    className={clsx(
+                      'flex flex-col gap-1.5 rounded-xl transition-all',
+                      item.status !== 'done' && 'opacity-40 cursor-not-allowed',
+                      selected === item.key && phase === 'selecting'
+                        ? 'ring-2 ring-violet-500 ring-offset-2'
+                        : '',
+                    )}>
+                    <div className="aspect-square rounded-xl border-2 border-stone-100 bg-stone-50 overflow-hidden">
+                      {item.url
+                        ? <img src={item.url} alt={item.label} className="w-full h-full object-cover" />
+                        : <XCircle size={24} className="text-red-300 m-auto mt-8" />
+                      }
+                    </div>
+                    <p className="text-xs text-center text-stone-500">{item.label}</p>
+                    {selected === item.key && (
+                      <p className="text-xs text-center text-violet-600 font-bold">✓ 선택됨</p>
+                    )}
+                  </button>
+                ))}
+              </div>
             </div>
 
+            {/* 명함 레이아웃 선택 */}
             {phase === 'selecting' && (
-              <button onClick={handleMakeCard} disabled={!selected}
+              <div className="flex flex-col gap-3 border-t border-stone-100 pt-4">
+                <p className="font-semibold text-stone-700 text-sm">② 명함 레이아웃을 선택하세요</p>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                  {CARD_TEMPLATES.map(t => (
+                    <button key={t.key}
+                      onClick={() => { setSelectedTemplate(t.key); setCardDataUrl(null); }}
+                      className={clsx(
+                        'flex flex-col gap-2 p-2 rounded-xl border-2 transition-all',
+                        selectedTemplate === t.key
+                          ? 'border-violet-500 bg-violet-50'
+                          : 'border-stone-100 hover:border-stone-300',
+                      )}>
+                      <div className="w-full h-14 rounded-lg overflow-hidden">
+                        {t.preview}
+                      </div>
+                      <p className="text-xs text-center text-stone-600 font-medium leading-tight">{t.label}</p>
+                      {selectedTemplate === t.key && (
+                        <p className="text-xs text-center text-violet-600 font-bold -mt-1">✓ 선택됨</p>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {phase === 'selecting' && (
+              <button onClick={handleMakeCard} disabled={!selected || !selectedTemplate}
                 className={clsx(
                   'w-full py-3.5 font-bold rounded-xl transition-colors text-sm',
-                  selected
+                  selected && selectedTemplate
                     ? 'bg-violet-600 hover:bg-violet-700 text-white'
                     : 'bg-stone-100 text-stone-400 cursor-not-allowed'
                 )}>
-                선택한 로고로 명함 만들기
+                {!selected ? '로고를 선택하세요' : !selectedTemplate ? '레이아웃을 선택하세요' : '선택한 로고로 명함 만들기'}
               </button>
             )}
 
