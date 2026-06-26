@@ -36,33 +36,10 @@ function ImagePaymentSuccessContent() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function run() {
-    // 1. Toss 승인 + DB 기록
-    try {
-      const res  = await fetch('/api/admin/image-payment/confirm', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ paymentKey, orderId, amount: Number(amount) }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setErrorMsg(data.error ?? '결제 승인에 실패했습니다.');
-        setPhase('error');
-        return;
-      }
-    } catch {
-      setErrorMsg('네트워크 오류가 발생했습니다.');
-      setPhase('error');
-      return;
-    }
-
-    // 2. 프로필에서 slug 미리 조회 (완료 후 홈페이지 링크용)
-    fetch('/api/user/profile').then(r => r.json()).then(d => {
-      if (d.user?.slug) setSlug(d.user.slug);
-    }).catch(() => {});
-
-    // 3. SSE 이미지 생성
+  async function startGeneration() {
     setPhase('generating');
+    setImageList([]);
+
     const ac = new AbortController();
     abortCtrl.current = ac;
     try {
@@ -106,7 +83,7 @@ function ImagePaymentSuccessContent() {
         }
       }
 
-      if (!receivedComplete && phase !== 'aborted') {
+      if (!receivedComplete) {
         setErrorMsg('연결이 끊겼습니다. 설정 페이지에서 이미지를 확인해주세요.');
         setPhase('error');
       }
@@ -117,9 +94,44 @@ function ImagePaymentSuccessContent() {
     }
   }
 
+  async function run() {
+    // 1. Toss 승인 + DB 기록 (idempotent — 이미 paid면 ok 반환)
+    try {
+      const res  = await fetch('/api/admin/image-payment/confirm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ paymentKey, orderId, amount: Number(amount) }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setErrorMsg(data.error ?? '결제 승인에 실패했습니다.');
+        setPhase('error');
+        return;
+      }
+    } catch {
+      setErrorMsg('네트워크 오류가 발생했습니다.');
+      setPhase('error');
+      return;
+    }
+
+    // 2. 프로필에서 slug 미리 조회 (완료 후 홈페이지 링크용)
+    fetch('/api/user/profile').then(r => r.json()).then(d => {
+      if (d.user?.slug) setSlug(d.user.slug);
+    }).catch(() => {});
+
+    // 3. SSE 이미지 생성
+    await startGeneration();
+  }
+
   function handleAbort() {
     setPhase('aborted');
     abortCtrl.current?.abort();
+  }
+
+  function handleResume() {
+    // 같은 결제 건으로 이어서 생성 — 결제 재승인 없이 생성만 재시작
+    setDriveLink(null);
+    startGeneration();
   }
 
   // ── 승인 중 ──
@@ -250,13 +262,13 @@ function ImagePaymentSuccessContent() {
                     <ExternalLink size={14} /> 현재 홈페이지 보기
                   </a>
                 )}
-                <button onClick={() => router.replace('/admin/settings')}
+                <button onClick={handleResume}
                   className="py-2.5 bg-violet-600 hover:bg-violet-700 text-white text-sm font-bold rounded-xl transition-colors">
-                  다시 생성하기
+                  이어서 만들기
                 </button>
                 <button onClick={() => router.replace('/admin/settings')}
                   className="py-2.5 border border-stone-200 text-stone-500 text-sm font-semibold rounded-xl hover:bg-stone-50 transition-colors">
-                  완료
+                  완료 (이 결제 건 종료)
                 </button>
               </div>
             </div>
