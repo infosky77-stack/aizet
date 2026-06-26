@@ -36,7 +36,9 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts",
     "/home/aizet/.aizet-next/types/**/*.ts",
-    "/home/aizet/.aizet-next/dev/types/**/*.ts"
+    "/home/aizet/.aizet-next/dev/types/**/*.ts",
+    ".aizet-next/types/**/*.ts",
+    ".aizet-next/dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules"

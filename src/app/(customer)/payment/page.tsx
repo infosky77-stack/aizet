@@ -4,14 +4,60 @@ import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Order, PaymentMethod } from '@/types/order';
 import { ReceiptModal } from '@/components/admin/ReceiptModal';
-import { CreditCard, Banknote, Smartphone, CheckCircle, Clock, Truck, UtensilsCrossed, MapPin, Receipt, Home } from 'lucide-react';
+import {
+  CreditCard, Banknote, Smartphone, CheckCircle, Clock,
+  Truck, UtensilsCrossed, MapPin, Receipt, Home, Loader2,
+} from 'lucide-react';
 import { clsx } from 'clsx';
 
-const PAYMENT_METHODS: { value: PaymentMethod; label: string; icon: React.ReactNode; color: string }[] = [
-  { value: 'card', label: '신용/체크카드', icon: <CreditCard size={20} />, color: 'border-stone-300 hover:border-stone-500' },
-  { value: 'kakao', label: '카카오페이', icon: <Smartphone size={20} />, color: 'border-yellow-300 hover:border-yellow-500' },
-  { value: 'naver', label: '네이버페이', icon: <Smartphone size={20} />, color: 'border-green-300 hover:border-green-500' },
-  { value: 'cash', label: '현금결제', icon: <Banknote size={20} />, color: 'border-stone-300 hover:border-stone-500' },
+type MethodConfig = {
+  value: PaymentMethod;
+  label: string;
+  icon: React.ReactNode;
+  color: string;
+  tossMethod: 'CARD' | 'EASY_PAY' | null;
+  easyPayProvider?: string;
+};
+
+const PAYMENT_METHODS: MethodConfig[] = [
+  {
+    value: 'card',
+    label: '신용/체크카드',
+    icon: <CreditCard size={20} />,
+    color: 'border-stone-300 hover:border-stone-500',
+    tossMethod: 'CARD',
+  },
+  {
+    value: 'kakao',
+    label: '카카오페이',
+    icon: <Smartphone size={20} />,
+    color: 'border-yellow-300 hover:border-yellow-500',
+    tossMethod: 'EASY_PAY',
+    easyPayProvider: 'KAKAOPAY',
+  },
+  {
+    value: 'naver',
+    label: '네이버페이',
+    icon: <Smartphone size={20} />,
+    color: 'border-green-300 hover:border-green-500',
+    tossMethod: 'EASY_PAY',
+    easyPayProvider: 'NAVERPAY',
+  },
+  {
+    value: 'toss',
+    label: '토스페이',
+    icon: <Smartphone size={20} />,
+    color: 'border-blue-300 hover:border-blue-500',
+    tossMethod: 'EASY_PAY',
+    easyPayProvider: 'TOSSPAY',
+  },
+  {
+    value: 'cash',
+    label: '현금결제',
+    icon: <Banknote size={20} />,
+    color: 'border-stone-300 hover:border-stone-500',
+    tossMethod: null,
+  },
 ];
 
 function PaymentContent() {
@@ -23,6 +69,7 @@ function PaymentContent() {
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod | null>(null);
   const [submitted, setSubmitted] = useState(false);
   const [showReceipt, setShowReceipt] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (!orderId) return;
@@ -42,17 +89,70 @@ function PaymentContent() {
     return () => clearInterval(id);
   }, [orderId]);
 
-  async function handlePayment() {
-    if (!selectedMethod || !orderId) return;
+  async function handleCashPayment() {
+    if (!orderId) return;
+    setLoading(true);
     const res = await fetch('/api/payments', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ orderId, paymentMethod: selectedMethod }),
+      body: JSON.stringify({ orderId, paymentMethod: 'cash' }),
     });
     if (res.ok) {
       const { order: o } = await res.json();
       setOrder(o);
       setSubmitted(true);
+    }
+    setLoading(false);
+  }
+
+  async function handleTossPayment(config: MethodConfig) {
+    if (!orderId || !order) return;
+    setLoading(true);
+    try {
+      const { loadTossPayments, ANONYMOUS } = await import('@tosspayments/tosspayments-sdk');
+      const clientKey = process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY!;
+      const tossPayments = await loadTossPayments(clientKey);
+      const payment = tossPayments.payment({ customerKey: ANONYMOUS });
+
+      const orderName =
+        order.items.length === 1
+          ? order.items[0].name
+          : `${order.items[0].name} 외 ${order.items.length - 1}건`;
+
+      const base = {
+        amount: { currency: 'KRW' as const, value: order.totalAmount },
+        orderId,
+        orderName,
+        successUrl: `${window.location.origin}/payment/success`,
+        failUrl: `${window.location.origin}/payment/fail`,
+      };
+
+      if (config.tossMethod === 'CARD') {
+        await payment.requestPayment({ method: 'CARD', ...base });
+      } else {
+        await payment.requestPayment({
+          method: 'EASY_PAY',
+          ...base,
+          easyPay: { easyPayProvider: config.easyPayProvider as 'KAKAOPAY' | 'NAVERPAY' | 'TOSSPAY' },
+        });
+      }
+    } catch (err: unknown) {
+      const e = err as { code?: string };
+      if (e?.code !== 'PAY_PROCESS_CANCELED') {
+        console.error('TossPayments error:', err);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function handlePayment() {
+    if (!selectedMethod) return;
+    const config = PAYMENT_METHODS.find((m) => m.value === selectedMethod)!;
+    if (config.tossMethod === null) {
+      handleCashPayment();
+    } else {
+      handleTossPayment(config);
     }
   }
 
@@ -160,7 +260,7 @@ function PaymentContent() {
         ) : submitted ? (
           <div className="bg-blue-50 border border-blue-200 rounded-2xl p-6 flex flex-col items-center gap-3">
             <Clock size={40} className="text-blue-400 animate-pulse" />
-            <p className="font-bold text-blue-700">결제 요청 중</p>
+            <p className="font-bold text-blue-700">현금 결제 요청 중</p>
             <p className="text-sm text-blue-600 text-center">
               직원이 결제를 확인하고 있습니다. 잠시만 기다려 주세요.
             </p>
@@ -188,16 +288,31 @@ function PaymentContent() {
 
             <button
               onClick={handlePayment}
-              disabled={!selectedMethod}
+              disabled={!selectedMethod || loading}
               className={clsx(
-                'w-full py-4 text-white font-bold rounded-xl transition-colors',
-                selectedMethod
+                'w-full py-4 text-white font-bold rounded-xl transition-colors flex items-center justify-center gap-2',
+                selectedMethod && !loading
                   ? 'bg-amber-600 hover:bg-amber-700'
                   : 'bg-stone-200 text-stone-400 cursor-not-allowed'
               )}
             >
-              {selectedMethod ? `${order.totalAmount.toLocaleString()}원 결제 요청` : '결제 방법을 선택하세요'}
+              {loading ? (
+                <>
+                  <Loader2 size={18} className="animate-spin" />
+                  결제 진행 중...
+                </>
+              ) : selectedMethod ? (
+                `${order.totalAmount.toLocaleString()}원 결제하기`
+              ) : (
+                '결제 방법을 선택하세요'
+              )}
             </button>
+
+            {selectedMethod && selectedMethod !== 'cash' && (
+              <p className="text-xs text-stone-400 text-center">
+                토스페이먼츠 안전결제로 연결됩니다
+              </p>
+            )}
           </div>
         )}
 

@@ -9,7 +9,7 @@ export type OrderStatus =
   | 'partially_refunded';
 
 export type PaymentStatus = 'unpaid' | 'pending' | 'paid';
-export type PaymentMethod = 'card' | 'cash' | 'kakao' | 'naver';
+export type PaymentMethod = 'card' | 'cash' | 'kakao' | 'naver' | 'toss';
 export type OrderType = 'dine-in' | 'delivery';
 
 export interface OrderItem {

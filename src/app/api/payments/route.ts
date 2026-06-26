@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server';
 import { updateOrderPayment } from '@/lib/db/orders';
 import { PaymentMethod } from '@/types/order';
 
-const VALID_METHODS: PaymentMethod[] = ['card', 'cash', 'kakao', 'naver'];
+const VALID_METHODS: PaymentMethod[] = ['card', 'cash', 'kakao', 'naver', 'toss'];
 
 export async function POST(req: NextRequest) {
   const { orderId, paymentMethod } = await req.json();
