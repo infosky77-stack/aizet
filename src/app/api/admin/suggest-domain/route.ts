@@ -30,8 +30,20 @@ async function checkDomainAvailability(domain: string): Promise<boolean | null> 
 }
 
 const INDUSTRY_LABEL: Record<string, string> = {
-  restaurant: '음식점', cafe: '카페', beauty: '미용실',
-  fitness: '헬스/피트니스', retail: '소매점', consulting: '컨설팅',
+  restaurant:    '음식점',
+  cafe:          '카페',
+  beauty:        '미용실',
+  fitness:       '헬스/피트니스',
+  retail:        '소매점',
+  consulting:    '컨설팅',
+  tax:           '세무사',
+  clinic:        '클리닉/의원',
+  fashion:       '패션/의류',
+  pension:       '펜션/숙박',
+  print:         '인쇄/출력',
+  accommodation: '숙박업',
+  education:     '교육',
+  shopping:      '쇼핑/유통',
 };
 
 export async function POST(req: NextRequest) {
