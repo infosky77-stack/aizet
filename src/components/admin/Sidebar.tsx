@@ -13,24 +13,42 @@ import { useSession } from '@/hooks/useSession';
 import { AizetLogo } from '@/components/AizetLogo';
 import type { UserPlan } from '@/types/auth';
 
-const NAV = [
-  { href: '/admin', label: '대시보드', icon: LayoutDashboard, exact: true },
-  { href: '/admin/orders', label: '주문 관리', icon: ClipboardList },
-  { href: '/admin/payments', label: '결제 관리', icon: CreditCard },
-  { href: '/admin/settlement', label: '매출 정산', icon: BarChart3 },
-  { href: '/admin/robots', label: '서빙 로봇', icon: Bot },
-  { href: '/admin/menu', label: '메뉴 관리', icon: UtensilsCrossed },
-  { href: '/admin/reservations', label: '예약 관리', icon: CalendarClock },
-  { href: '/admin/menu-print', label: '메뉴판 인쇄', icon: Printer },
-  { href: '/admin/korean', label: '한국어 학습', icon: BookOpen },
-  { href: '/admin/hancandy', label: 'HanCandy', icon: Leaf },
-  { href: '/admin/tax', label: '세무법인', icon: Scale, exact: true },
-  { href: '/admin/tax/clients', label: '거래처 관리', icon: Building2 },
-  { href: '/admin/tax/filings',   label: '신고 현황', icon: FileText   },
-  { href: '/admin/tax/documents', label: '문서 보관', icon: FolderOpen },
-  { href: '/admin/editor', label: '홈페이지 편집', icon: Wand2 },
-  { href: '/admin/domain', label: '도메인 관리', icon: Globe },
-  { href: '/admin/settings', label: '가게 정보 설정', icon: Settings },
+type NavItem = {
+  href:       string;
+  label:      string;
+  icon:       React.ComponentType<{ size?: number }>;
+  exact?:     boolean;
+  /** undefined = 공통(항상 표시). 배열 = 해당 업종일 때만 표시. */
+  industries?: string[];
+};
+
+const NAV: NavItem[] = [
+  // ── 공통 ──────────────────────────────────────────────────
+  { href: '/admin',            label: '대시보드',       icon: LayoutDashboard, exact: true },
+  { href: '/admin/payments',   label: '결제 관리',      icon: CreditCard },
+  { href: '/admin/settlement', label: '매출 정산',      icon: BarChart3 },
+  { href: '/admin/editor',     label: '홈페이지 편집',  icon: Wand2 },
+  { href: '/admin/domain',     label: '도메인 관리',    icon: Globe },
+  { href: '/admin/settings',   label: '가게 정보 설정', icon: Settings },
+
+  // ── 식당 / 카페 ────────────────────────────────────────────
+  { href: '/admin/orders',       label: '주문 관리',   icon: ClipboardList,   industries: ['restaurant', 'cafe'] },
+  { href: '/admin/robots',       label: '서빙 로봇',   icon: Bot,             industries: ['restaurant', 'cafe'] },
+  { href: '/admin/menu',         label: '메뉴 관리',   icon: UtensilsCrossed, industries: ['restaurant', 'cafe'] },
+  { href: '/admin/menu-print',   label: '메뉴판 인쇄', icon: Printer,         industries: ['restaurant', 'cafe'] },
+
+  // ── 예약 계열 ──────────────────────────────────────────────
+  { href: '/admin/reservations', label: '예약 관리',   icon: CalendarClock,   industries: ['beauty', 'fitness', 'clinic', 'pension'] },
+
+  // ── 세무사 ────────────────────────────────────────────────
+  { href: '/admin/tax',           label: '세무법인',    icon: Scale,      exact: true, industries: ['tax'] },
+  { href: '/admin/tax/clients',   label: '거래처 관리', icon: Building2,               industries: ['tax'] },
+  { href: '/admin/tax/filings',   label: '신고 현황',   icon: FileText,                industries: ['tax'] },
+  { href: '/admin/tax/documents', label: '문서 보관',   icon: FolderOpen,              industries: ['tax'] },
+
+  // ── 데모 전용 ─────────────────────────────────────────────
+  { href: '/admin/korean',   label: '한국어 학습', icon: BookOpen, industries: ['demo'] },
+  { href: '/admin/hancandy', label: 'HanCandy',   icon: Leaf,     industries: ['demo'] },
 ];
 
 const PLAN_META: Record<UserPlan, { label: string; icon: React.ReactNode; color: string }> = {
@@ -148,13 +166,20 @@ function UserCard({ onSignOut }: { onSignOut: () => void }) {
 }
 
 export function Sidebar() {
-  const pathname = usePathname();
-  const { signOut } = useSession();
+  const pathname  = usePathname();
+  const { session, signOut } = useSession();
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
     setOpen(false);
   }, [pathname]);
+
+  const industry = session?.industry ?? '';
+
+  // industry 미설정 시 모든 메뉴 표시 (하위 호환)
+  const visibleNav = NAV.filter(({ industries }) =>
+    !industries || !industry || industries.includes(industry)
+  );
 
   return (
     <>
@@ -206,7 +231,7 @@ export function Sidebar() {
 
         {/* 네비게이션 */}
         <nav className="flex-1 px-3 py-4 flex flex-col gap-1 overflow-y-auto">
-          {NAV.map(({ href, label, icon: Icon, exact }) => {
+          {visibleNav.map(({ href, label, icon: Icon, exact }) => {
             const active = exact ? pathname === href : pathname.startsWith(href);
             return (
               <Link
