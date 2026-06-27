@@ -139,7 +139,7 @@ export default function SuperAdminPage() {
                     {new Date(m.created_at).toLocaleDateString('ko-KR')}
                   </span>
                   <span className="ml-auto px-1.5 py-0.5 bg-stone-100 rounded text-stone-500">
-                    {INDUSTRY_LABEL[m.industry] ?? m.industry || '미설정'}
+                    {INDUSTRY_LABEL[m.industry] ?? (m.industry || '미설정')}
                   </span>
                 </div>
               </div>
