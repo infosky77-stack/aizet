@@ -20,6 +20,7 @@ export interface UserRecord {
   site_config: string;
   drive_folder_id: string | null;
   regen_count: number;
+  is_super_admin: number;
   created_at: number;
   updated_at: number;
 }

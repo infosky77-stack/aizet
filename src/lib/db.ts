@@ -48,6 +48,7 @@ db.exec(`
     ['site_config',      "TEXT NOT NULL DEFAULT '{}'"],
     ['drive_folder_id',  'TEXT'],
     ['regen_count',      'INTEGER NOT NULL DEFAULT 0'],
+    ['is_super_admin',   'INTEGER NOT NULL DEFAULT 0'],
   ];
   for (const [col, def] of toAdd) {
     if (!existing.includes(col)) {

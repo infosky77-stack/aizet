@@ -22,4 +22,6 @@ export interface PublicSession {
   plan: UserPlan;
   industry: string;
   driveConnected: boolean;
+  isSuperAdmin: boolean;
+  isImpersonating: boolean;
 }

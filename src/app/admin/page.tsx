@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { StatCard } from '@/components/admin/StatCard';
 import { OrderCard } from '@/components/admin/OrderCard';
@@ -16,7 +17,16 @@ interface Stats {
 }
 
 export default function AdminDashboard() {
-  const { session } = useSession();
+  const router = useRouter();
+  const { session, status } = useSession();
+
+  // super_admin (비-impersonation) → 전체 관리 화면으로 이동
+  useEffect(() => {
+    if (status === 'loading') return;
+    if (session?.isSuperAdmin && !session.isImpersonating) {
+      router.replace('/admin/superadmin');
+    }
+  }, [session, status, router]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [lastUpdated, setLastUpdated] = useState('');

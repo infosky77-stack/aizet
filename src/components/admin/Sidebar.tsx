@@ -2,11 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard, ClipboardList, UtensilsCrossed, CalendarClock, Bot,
   ArrowLeft, CreditCard, Printer, BookOpen, Leaf, Scale, BarChart3,
   Menu, X, Cloud, LogOut, ChevronDown, Shield, Zap, Crown, Globe, Settings, Wand2, Building2, FileText, FolderOpen,
+  Users, ChevronLeft,
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useSession } from '@/hooks/useSession';
@@ -165,21 +166,47 @@ function UserCard({ onSignOut }: { onSignOut: () => void }) {
   );
 }
 
+// ── super_admin 전용 NAV ────────────────────────────────────────────────────
+const SUPER_NAV: NavItem[] = [
+  { href: '/admin/superadmin', label: '회원 사이트 목록', icon: Users, exact: true },
+];
+
 export function Sidebar() {
   const pathname  = usePathname();
+  const router    = useRouter();
   const { session, signOut } = useSession();
   const [open, setOpen] = useState(false);
+  const [exiting, setExiting] = useState(false);
 
   useEffect(() => {
     setOpen(false);
   }, [pathname]);
 
-  const industry = session?.industry ?? '';
+  const isSuperAdmin    = session?.isSuperAdmin    ?? false;
+  const isImpersonating = session?.isImpersonating ?? false;
+  const industry        = session?.industry        ?? '';
 
-  // industry 미설정 시 모든 메뉴 표시 (하위 호환)
-  const visibleNav = NAV.filter(({ industries }) =>
-    !industries || !industry || industries.includes(industry)
-  );
+  // ── NAV 결정 ──────────────────────────────────────────────────────────────
+  // super_admin 비-impersonation: 전체관리 전용 메뉴
+  // super_admin impersonating: 해당 업종 메뉴 (배너 따로 표시)
+  // 일반 유저: industry 필터 (기존 동작 유지)
+  const visibleNav = (isSuperAdmin && !isImpersonating)
+    ? SUPER_NAV
+    : NAV.filter(({ industries }) =>
+        !industries || !industry || industries.includes(industry)
+      );
+
+  async function handleExitImpersonate() {
+    setExiting(true);
+    await fetch('/api/admin/superadmin/exit', { method: 'POST' });
+    router.push('/admin/superadmin');
+    router.refresh();
+  }
+
+  // ── 로고 아이콘 결정 ───────────────────────────────────────────────────────
+  const LogoIcon = (isSuperAdmin && !isImpersonating) ? Shield : UtensilsCrossed;
+  const logoColor = (isSuperAdmin && !isImpersonating) ? 'bg-violet-600' : 'bg-amber-600';
+  const logoSubtitle = (isSuperAdmin && !isImpersonating) ? '통합 관리자' : '관리자 모드';
 
   return (
     <>
@@ -209,15 +236,29 @@ export function Sidebar() {
           open ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
         )}
       >
+        {/* impersonation 배너 */}
+        {isSuperAdmin && isImpersonating && (
+          <div className="px-3 pt-3">
+            <button
+              onClick={handleExitImpersonate}
+              disabled={exiting}
+              className="w-full flex items-center gap-2 px-3 py-2 rounded-xl bg-violet-700 hover:bg-violet-600 text-violet-100 text-xs font-semibold transition-colors disabled:opacity-60"
+            >
+              <ChevronLeft size={13} />
+              {exiting ? '돌아가는 중...' : '전체 관리로 돌아가기'}
+            </button>
+          </div>
+        )}
+
         {/* 로고 */}
         <div className="px-5 py-5 border-b border-stone-800 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-amber-600 flex items-center justify-center">
-              <UtensilsCrossed size={15} className="text-white" />
+            <div className={clsx('w-8 h-8 rounded-lg flex items-center justify-center', logoColor)}>
+              <LogoIcon size={15} className="text-white" />
             </div>
             <div>
               <AizetLogo className="font-bold text-sm tracking-tight" />
-              <p className="text-[10px] text-stone-500">관리자 모드</p>
+              <p className="text-[10px] text-stone-500">{logoSubtitle}</p>
             </div>
           </div>
           <button
