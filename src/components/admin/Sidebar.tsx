@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard, ClipboardList, UtensilsCrossed, CalendarClock, Bot,
   ArrowLeft, CreditCard, Printer, BookOpen, Leaf, Scale, BarChart3,
@@ -173,7 +173,6 @@ const SUPER_NAV: NavItem[] = [
 
 export function Sidebar() {
   const pathname  = usePathname();
-  const router    = useRouter();
   const { session, signOut } = useSession();
   const [open, setOpen] = useState(false);
   const [exiting, setExiting] = useState(false);
@@ -199,8 +198,10 @@ export function Sidebar() {
   async function handleExitImpersonate() {
     setExiting(true);
     await fetch('/api/admin/superadmin/exit', { method: 'POST' });
-    router.push('/admin/superadmin');
-    router.refresh();
+    // window.location.replace: 현재 히스토리 엔트리(/admin)를 /admin/superadmin으로
+    // 교체하므로 뒤로가기로 /admin에 돌아와 AdminDashboard가 잘못된 replace를
+    // 재실행하는 상황이 생기지 않는다.
+    window.location.replace('/admin/superadmin');
   }
 
   // ── 로고 아이콘 결정 ───────────────────────────────────────────────────────

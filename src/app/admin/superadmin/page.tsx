@@ -60,8 +60,11 @@ export default function SuperAdminPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ targetUserId: userId }),
     });
-    router.push('/admin');
-    router.refresh();
+    // 풀 리로드로 impersonate 쿠키를 세션에 즉시 반영.
+    // router.push + router.refresh 조합은 쿠키 반영 전에 AdminDashboard가
+    // isSuperAdmin && !isImpersonating 조건을 true로 평가해 router.replace를
+    // 잘못 실행시키고 브라우저 히스토리를 오염시킨다.
+    window.location.href = '/admin';
   }
 
   if (status === 'loading' || loading) {
