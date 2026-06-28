@@ -5,10 +5,12 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { StatCard } from '@/components/admin/StatCard';
 import { OrderCard } from '@/components/admin/OrderCard';
+import { ReservationDashboard } from '@/components/admin/ReservationDashboard';
 import { Order, OrderStatus } from '@/types/order';
-import { TrendingUp, ShoppingBag, Clock, CheckCircle, Trophy, Printer, Sparkles, ChevronRight, Cloud } from 'lucide-react';
+import { TrendingUp, ShoppingBag, Clock, CheckCircle, Trophy, Printer, Sparkles, ChevronRight, Cloud, Wand2, Settings, Globe } from 'lucide-react';
 import { useSession } from '@/hooks/useSession';
 
+// ── 식당/카페 전용 대시보드 ────────────────────────────────────────────────────
 interface Stats {
   todayRevenue: number;
   activeOrders: number;
@@ -16,19 +18,10 @@ interface Stats {
   popularItems: { name: string; count: number }[];
 }
 
-export default function AdminDashboard() {
-  const router = useRouter();
-  const { session, status } = useSession();
-
-  // super_admin (비-impersonation) → 전체 관리 화면으로 이동
-  useEffect(() => {
-    if (status === 'loading') return;
-    if (session?.isSuperAdmin && !session.isImpersonating) {
-      router.replace('/admin/superadmin');
-    }
-  }, [session, status, router]);
+function RestaurantDashboard() {
+  const { session } = useSession();
   const [orders, setOrders] = useState<Order[]>([]);
-  const [stats, setStats] = useState<Stats | null>(null);
+  const [stats, setStats]   = useState<Stats | null>(null);
   const [lastUpdated, setLastUpdated] = useState('');
 
   const fetchAll = useCallback(async () => {
@@ -58,14 +51,12 @@ export default function AdminDashboard() {
     fetchAll();
   }
 
-  const activeOrders = orders.filter((o) =>
-    ['pending', 'confirmed', 'preparing', 'ready'].includes(o.status)
-  );
-  const pendingOrders = orders.filter((o) => o.status === 'pending');
+  const activeOrders  = orders.filter(o => ['pending', 'confirmed', 'preparing', 'ready'].includes(o.status));
+  const pendingOrders = orders.filter(o => o.status === 'pending');
 
   return (
     <div className="p-6 flex flex-col gap-6 max-w-6xl">
-      {/* Header */}
+      {/* 헤더 */}
       <div className="flex items-center justify-between gap-4">
         <div>
           {session ? (
@@ -141,7 +132,7 @@ export default function AdminDashboard() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Active orders */}
+        {/* 실시간 주문 */}
         <div className="lg:col-span-2 flex flex-col gap-3">
           <div className="flex items-center justify-between">
             <h2 className="font-bold text-stone-800">실시간 주문 현황</h2>
@@ -150,7 +141,6 @@ export default function AdminDashboard() {
               5초마다 자동 갱신
             </span>
           </div>
-
           {activeOrders.length === 0 ? (
             <div className="bg-white rounded-2xl border border-stone-100 p-10 text-center text-stone-400 text-sm">
               <CheckCircle size={32} className="mx-auto mb-2 opacity-30" />
@@ -158,34 +148,25 @@ export default function AdminDashboard() {
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {activeOrders.map((order) => (
-                <OrderCard
-                  key={order.id}
-                  order={order}
-                  onStatusChange={handleStatusChange}
-                />
+              {activeOrders.map(order => (
+                <OrderCard key={order.id} order={order} onStatusChange={handleStatusChange} />
               ))}
             </div>
           )}
         </div>
 
-        {/* Sidebar: popular + recent */}
+        {/* 우측 패널 */}
         <div className="flex flex-col gap-4">
-          {/* Popular items */}
           <div className="bg-white rounded-2xl border border-stone-100 p-4">
             <h3 className="font-bold text-sm text-stone-800 mb-3">인기 메뉴 TOP 3</h3>
             <div className="flex flex-col gap-2">
               {stats?.popularItems.map((item, i) => (
                 <div key={i} className="flex items-center gap-3">
-                  <span
-                    className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
-                      i === 0 ? 'bg-amber-500 text-white' :
-                      i === 1 ? 'bg-stone-300 text-stone-700' :
-                                'bg-orange-200 text-orange-700'
-                    }`}
-                  >
-                    {i + 1}
-                  </span>
+                  <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
+                    i === 0 ? 'bg-amber-500 text-white' :
+                    i === 1 ? 'bg-stone-300 text-stone-700' :
+                              'bg-orange-200 text-orange-700'
+                  }`}>{i + 1}</span>
                   <span className="text-sm text-stone-700 flex-1 truncate">{item.name}</span>
                   <span className="text-xs text-stone-400 shrink-0">{item.count}개</span>
                 </div>
@@ -193,28 +174,23 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          {/* Recent completed */}
           <div className="bg-white rounded-2xl border border-stone-100 p-4">
             <h3 className="font-bold text-sm text-stone-800 mb-3">최근 완료 주문</h3>
             <div className="flex flex-col gap-2">
-              {orders
-                .filter((o) => o.status === 'delivered')
-                .slice(0, 4)
-                .map((o) => (
-                  <div key={o.id} className="flex justify-between items-center text-sm">
-                    <span className="text-stone-500">
-                      {o.orderType === 'delivery' ? '🚴 배달' : `테이블 ${o.tableNumber}번`}
-                    </span>
-                    <span className="font-medium text-stone-700">{o.totalAmount.toLocaleString()}원</span>
-                  </div>
-                ))}
-              {orders.filter((o) => o.status === 'delivered').length === 0 && (
+              {orders.filter(o => o.status === 'delivered').slice(0, 4).map(o => (
+                <div key={o.id} className="flex justify-between items-center text-sm">
+                  <span className="text-stone-500">
+                    {o.orderType === 'delivery' ? '🚴 배달' : `테이블 ${o.tableNumber}번`}
+                  </span>
+                  <span className="font-medium text-stone-700">{o.totalAmount.toLocaleString()}원</span>
+                </div>
+              ))}
+              {orders.filter(o => o.status === 'delivered').length === 0 && (
                 <p className="text-xs text-stone-400">완료된 주문이 없습니다</p>
               )}
             </div>
           </div>
 
-          {/* 메뉴판 인쇄 CTA */}
           <Link
             href="/admin/menu-print"
             className="group bg-gradient-to-br from-amber-400 to-orange-500 rounded-2xl p-4 text-white block hover:from-amber-500 hover:to-orange-600 transition-all shadow-sm"
@@ -233,23 +209,19 @@ export default function AdminDashboard() {
             </div>
           </Link>
 
-          {/* Pending payment */}
           <div className="bg-white rounded-2xl border border-yellow-200 p-4">
             <h3 className="font-bold text-sm text-stone-800 mb-3">결제 승인 대기</h3>
             <div className="flex flex-col gap-2">
-              {orders
-                .filter((o) => o.paymentStatus === 'pending')
-                .slice(0, 4)
-                .map((o) => (
-                  <div key={o.id} className="flex justify-between items-center text-sm">
-                    <span className="text-stone-500">
-                      {o.orderType === 'delivery' ? '배달' : `테이블 ${o.tableNumber}번`}
-                      {o.paymentMethod && ` · ${o.paymentMethod}`}
-                    </span>
-                    <span className="font-medium text-amber-700">{o.totalAmount.toLocaleString()}원</span>
-                  </div>
-                ))}
-              {orders.filter((o) => o.paymentStatus === 'pending').length === 0 && (
+              {orders.filter(o => o.paymentStatus === 'pending').slice(0, 4).map(o => (
+                <div key={o.id} className="flex justify-between items-center text-sm">
+                  <span className="text-stone-500">
+                    {o.orderType === 'delivery' ? '배달' : `테이블 ${o.tableNumber}번`}
+                    {o.paymentMethod && ` · ${o.paymentMethod}`}
+                  </span>
+                  <span className="font-medium text-amber-700">{o.totalAmount.toLocaleString()}원</span>
+                </div>
+              ))}
+              {orders.filter(o => o.paymentStatus === 'pending').length === 0 && (
                 <p className="text-xs text-stone-400">대기 중인 결제가 없습니다</p>
               )}
             </div>
@@ -258,4 +230,118 @@ export default function AdminDashboard() {
       </div>
     </div>
   );
+}
+
+// ── 범용 플레이스홀더 ────────────────────────────────────────────────────────────
+const INDUSTRY_LABEL: Record<string, string> = {
+  retail:        '소매점',
+  consulting:    '컨설팅',
+  fashion:       '패션/의류',
+  print:         '인쇄/출력',
+  accommodation: '숙박업',
+  education:     '교육',
+  shopping:      '쇼핑/유통',
+};
+
+function GenericDashboard({ industryLabel }: { industryLabel: string }) {
+  const { session } = useSession();
+  return (
+    <div className="p-6 flex flex-col gap-6 max-w-3xl">
+      <div>
+        {session && (
+          <p className="text-sm text-stone-400 font-medium">
+            안녕하세요,{' '}
+            <span className="text-stone-700 font-semibold">{session.name}</span>님
+          </p>
+        )}
+        <h1 className="text-2xl font-bold text-stone-800 mt-0.5">대시보드</h1>
+      </div>
+
+      <div className="bg-white rounded-2xl border border-stone-100 p-10 text-center flex flex-col items-center gap-4">
+        <div className="w-16 h-16 rounded-2xl bg-amber-50 border border-amber-100 flex items-center justify-center">
+          <Sparkles size={28} className="text-amber-500" />
+        </div>
+        <div>
+          <p className="font-bold text-stone-800 text-lg">{industryLabel} 대시보드 준비 중</p>
+          <p className="text-sm text-stone-400 mt-1">업종 전용 현황 화면을 곧 제공할 예정입니다.</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <Link href="/admin/editor" className="bg-white rounded-2xl border border-stone-100 p-4 flex items-center gap-3 hover:shadow-md transition-shadow">
+          <div className="w-9 h-9 rounded-xl bg-amber-50 flex items-center justify-center shrink-0">
+            <Wand2 size={16} className="text-amber-600" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-stone-800">홈페이지 편집</p>
+            <p className="text-xs text-stone-400">AI 자동 생성</p>
+          </div>
+        </Link>
+        <Link href="/admin/settings" className="bg-white rounded-2xl border border-stone-100 p-4 flex items-center gap-3 hover:shadow-md transition-shadow">
+          <div className="w-9 h-9 rounded-xl bg-stone-50 flex items-center justify-center shrink-0">
+            <Settings size={16} className="text-stone-500" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-stone-800">가게 정보</p>
+            <p className="text-xs text-stone-400">기본 정보 설정</p>
+          </div>
+        </Link>
+        <Link href="/admin/domain" className="bg-white rounded-2xl border border-stone-100 p-4 flex items-center gap-3 hover:shadow-md transition-shadow">
+          <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
+            <Globe size={16} className="text-blue-500" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-stone-800">도메인 관리</p>
+            <p className="text-xs text-stone-400">커스텀 도메인</p>
+          </div>
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+// ── 메인 진입점 ─────────────────────────────────────────────────────────────────
+const RESERVATION_INDUSTRIES = ['beauty', 'fitness', 'clinic', 'pension'];
+const RESTAURANT_INDUSTRIES  = ['restaurant', 'cafe'];
+
+export default function AdminDashboard() {
+  const router = useRouter();
+  const { session, status } = useSession();
+
+  useEffect(() => {
+    if (status === 'loading') return;
+    if (session?.isSuperAdmin && !session.isImpersonating) {
+      router.replace('/admin/superadmin');
+      return;
+    }
+    if (session?.industry === 'tax') {
+      router.replace('/admin/tax');
+    }
+  }, [session, status, router]);
+
+  if (status === 'loading') {
+    return (
+      <div className="p-8 flex items-center gap-3 text-stone-400">
+        <div className="w-5 h-5 border-2 border-stone-300 border-t-amber-500 rounded-full animate-spin" />
+        로딩 중...
+      </div>
+    );
+  }
+
+  const industry = session?.industry ?? '';
+
+  if (RESERVATION_INDUSTRIES.includes(industry)) {
+    return <ReservationDashboard session={session} />;
+  }
+
+  if (RESTAURANT_INDUSTRIES.includes(industry)) {
+    return <RestaurantDashboard />;
+  }
+
+  // tax는 useEffect redirect 대기 중 잠깐 노출될 수 있어 빈 화면 유지
+  if (industry === 'tax') {
+    return null;
+  }
+
+  return <GenericDashboard industryLabel={INDUSTRY_LABEL[industry] ?? industry} />;
 }
