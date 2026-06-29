@@ -22,9 +22,10 @@ function SuperEditorPaymentContent() {
   const amount           = Number(searchParams.get('amount')    ?? '0');
   const orderType        = (searchParams.get('orderType') ?? 'video') as 'video' | 'print';
 
-  const [method,  setMethod]  = useState<Method | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error,   setError]   = useState('');
+  const [method,      setMethod]      = useState<Method | null>(null);
+  const [loading,     setLoading]     = useState(false);
+  const [error,       setError]       = useState('');
+  const [showTestCard, setShowTestCard] = useState(false);
 
   useEffect(() => {
     if (!orderId || !paymentOrderId) router.replace('/admin/super-editor');
@@ -131,6 +132,37 @@ function SuperEditorPaymentContent() {
               ? <><Loader2 size={18} className="animate-spin" />결제 진행 중...</>
               : `${amount.toLocaleString()}원 결제하기`}
           </button>
+        </div>
+
+        {/* 테스트 카드 */}
+        <div className="flex flex-col items-center gap-2">
+          <p className="text-[11px] text-stone-400">테스트 모드 — 실제 결제가 발생하지 않습니다</p>
+          <button
+            onClick={() => setShowTestCard(v => !v)}
+            className="text-xs text-stone-400 hover:text-violet-600 underline underline-offset-2 transition-colors"
+          >
+            🧪 테스트 카드 정보 {showTestCard ? '숨기기' : '보기'}
+          </button>
+
+          {showTestCard && (
+            <div className="w-full bg-amber-50 border border-amber-200 rounded-2xl p-4 flex flex-col gap-2.5 text-sm">
+              <p className="text-xs font-bold text-amber-700 mb-1">토스페이먼츠 테스트 카드</p>
+              {[
+                { label: '카드번호',         value: '4242 4242 4242 4242' },
+                { label: '유효기간',         value: '12 / 28' },
+                { label: 'CVC',             value: '123' },
+                { label: '생년월일 / 사업자', value: '00 01 01' },
+              ].map(({ label, value }) => (
+                <div key={label} className="flex items-center justify-between">
+                  <span className="text-amber-700 text-xs font-medium">{label}</span>
+                  <span className="font-mono font-bold text-amber-900 tracking-widest text-sm select-all">{value}</span>
+                </div>
+              ))}
+              <p className="text-[10px] text-amber-500 mt-1">
+                위 정보를 토스페이먼츠 결제 화면에 직접 입력하세요
+              </p>
+            </div>
+          )}
         </div>
 
       </div>
