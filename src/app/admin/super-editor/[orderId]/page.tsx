@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import {
   ArrowLeft, Save, CheckCircle, AlertCircle, Loader2,
   Film, Printer, Lock, CreditCard, Clock,
-  FolderOpen, Image, Music, Trash2, Upload, ExternalLink,
+  FolderOpen, Image, Music, Trash2, Upload, ExternalLink, X, Type,
 } from 'lucide-react';
 import { clsx } from 'clsx';
 
@@ -38,7 +38,17 @@ interface MediaOrder {
   updated_at: number;
 }
 
-// 영상 스냅샷 스키마 (1단계 더미 필드)
+// 캔버스 블록
+interface CanvasBlock {
+  id:      string;
+  type:    'text' | 'image';
+  content: string;
+}
+interface CanvasState {
+  blocks: CanvasBlock[];
+}
+
+// 영상 스냅샷 스키마
 interface VideoSnapshot {
   title:        string;
   description:  string;
@@ -46,9 +56,10 @@ interface VideoSnapshot {
   style:        string;
   bgm:          string;
   extra_notes:  string;
+  canvas:       CanvasState;
 }
 
-// 인쇄 스냅샷 스키마 (1단계 더미 필드)
+// 인쇄 스냅샷 스키마
 interface PrintSnapshot {
   title:       string;
   paper_size:  string;
@@ -57,13 +68,16 @@ interface PrintSnapshot {
   headline:    string;
   body_text:   string;
   extra_notes: string;
+  canvas:      CanvasState;
 }
 
 const DEFAULT_VIDEO: VideoSnapshot = {
   title: '', description: '', duration_sec: 30, style: 'modern', bgm: 'none', extra_notes: '',
+  canvas: { blocks: [] },
 };
 const DEFAULT_PRINT: PrintSnapshot = {
   title: '', paper_size: 'A4', quantity: 100, color_mode: 'color', headline: '', body_text: '', extra_notes: '',
+  canvas: { blocks: [] },
 };
 
 const VIDEO_STYLES  = ['modern', 'cinematic', 'minimal', 'energetic'];
@@ -203,6 +217,38 @@ export default function SuperEditorPage() {
     dirtyRef.current   = true;
     setSaveStatus('saving');
   }
+
+  // ── 캔버스 헬퍼 ────────────────────────────────────────────────────────────
+  function getCanvas(): CanvasState {
+    return (order?.order_type === 'video' ? vSnap : pSnap).canvas;
+  }
+
+  function addCanvasBlock(block: CanvasBlock) {
+    const next: CanvasState = { blocks: [...getCanvas().blocks, block] };
+    order?.order_type === 'video' ? updateV({ canvas: next }) : updateP({ canvas: next });
+  }
+
+  function deleteCanvasBlock(id: string) {
+    const next: CanvasState = { blocks: getCanvas().blocks.filter(b => b.id !== id) };
+    order?.order_type === 'video' ? updateV({ canvas: next }) : updateP({ canvas: next });
+  }
+
+  function updateCanvasText(id: string, content: string) {
+    const next: CanvasState = {
+      blocks: getCanvas().blocks.map(b => b.id === id ? { ...b, content } : b),
+    };
+    order?.order_type === 'video' ? updateV({ canvas: next }) : updateP({ canvas: next });
+  }
+
+  function handleAddText() {
+    addCanvasBlock({ id: Date.now().toString(36) + Math.random().toString(36).slice(2), type: 'text', content: '' });
+  }
+
+  function handleInsertImage(url: string) {
+    addCanvasBlock({ id: Date.now().toString(36) + Math.random().toString(36).slice(2), type: 'image', content: url });
+    setPanelTab('preview');
+  }
+  // ────────────────────────────────────────────────────────────────────────────
 
   async function handleManualSave() {
     dirtyRef.current = true;
@@ -396,6 +442,17 @@ export default function SuperEditorPage() {
               </span>
             )}
           </button>
+          {panelTab === 'preview' && !isLocked && (
+            <div className="ml-auto flex items-center gap-2 px-3">
+              <button
+                onClick={handleAddText}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-violet-100 hover:bg-violet-200 text-violet-700 transition-colors"
+              >
+                <Type size={11} />
+                텍스트 추가
+              </button>
+            </div>
+          )}
           {panelTab === 'files' && (
             <div className="ml-auto flex items-center gap-2 px-3">
               <button
@@ -429,24 +486,15 @@ export default function SuperEditorPage() {
           )}
         </div>
 
-        {/* 미리보기 탭 */}
+        {/* 캔버스 탭 */}
         {panelTab === 'preview' && (
-          <div className="flex-1 flex items-center justify-center p-6">
-            <div className="w-full max-w-lg bg-white rounded-2xl border border-stone-200 shadow-sm p-8 flex flex-col items-center gap-4 text-stone-400">
-              {order.order_type === 'video'
-                ? <Film size={48} className="opacity-20" />
-                : <Printer size={48} className="opacity-20" />}
-              <p className="text-sm font-medium">
-                {order.order_type === 'video'
-                  ? '영상 미리보기는 컴파일 완료 후 제공됩니다'
-                  : '인쇄 미리보기는 컴파일 완료 후 제공됩니다'}
-              </p>
-              <p className="text-xs text-center leading-relaxed">
-                결제 완료 후 자동으로 큐에 등록되어<br />
-                {order.order_type === 'video' ? 'FullAutoCut' : 'FullAutoShot'} 엔진이 처리합니다.
-              </p>
-            </div>
-          </div>
+          <EditorCanvas
+            blocks={getCanvas().blocks}
+            orderType={order.order_type}
+            locked={isLocked}
+            onDelete={deleteCanvasBlock}
+            onUpdateText={updateCanvasText}
+          />
         )}
 
         {/* 파일 관리자 탭 */}
@@ -492,15 +540,139 @@ export default function SuperEditorPage() {
                           : <Trash2 size={11} />}
                       </button>
                     </div>
-                    <div className="px-2 py-1.5">
-                      <p className="text-[10px] font-medium text-stone-600 truncate" title={file.orig_name}>
+                    <div className="px-2 py-1.5 flex items-center gap-1">
+                      <p className="text-[10px] font-medium text-stone-600 truncate flex-1" title={file.orig_name}>
                         {file.orig_name}
                       </p>
+                      {file.file_type === 'image' && !isLocked && (
+                        <button
+                          onClick={() => handleInsertImage(`/api/super-editor-files/${file.user_id}/${file.filename}`)}
+                          className="shrink-0 text-[10px] font-bold text-violet-600 hover:text-violet-800 px-1.5 py-0.5 rounded hover:bg-violet-50 transition-colors"
+                        >
+                          삽입
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))}
               </div>
             )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── 캔버스 에디터 ─────────────────────────────────────────────────────────────
+function EditorCanvas({
+  blocks, orderType, locked, onDelete, onUpdateText,
+}: {
+  blocks:       CanvasBlock[];
+  orderType:    OrderType;
+  locked:       boolean;
+  onDelete:     (id: string) => void;
+  onUpdateText: (id: string, content: string) => void;
+}) {
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [editingId,  setEditingId]  = useState<string | null>(null);
+
+  const isVideo = orderType === 'video';
+
+  function handleCanvasClick(e: React.MouseEvent<HTMLDivElement>) {
+    if ((e.target as HTMLElement).closest('[data-block]')) return;
+    setSelectedId(null);
+    setEditingId(null);
+  }
+
+  return (
+    <div className="flex-1 flex flex-col items-center p-6 overflow-y-auto">
+      <div
+        onClick={handleCanvasClick}
+        className={clsx(
+          'w-full rounded-2xl overflow-hidden shadow-xl relative',
+          isVideo
+            ? 'bg-stone-900 max-w-2xl'
+            : 'bg-white border border-stone-200 max-w-lg',
+        )}
+        style={isVideo ? { aspectRatio: '16 / 9' } : { aspectRatio: '1 / 1.414' }}
+      >
+        {blocks.length === 0 ? (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
+            {isVideo
+              ? <Film size={40} className="text-stone-600" />
+              : <Printer size={40} className="text-stone-300" />}
+            <p className={clsx('text-sm text-center px-6', isVideo ? 'text-stone-500' : 'text-stone-300')}>
+              {locked
+                ? '결제 완료 — 컴파일 처리 중입니다'
+                : isVideo
+                  ? '위 [텍스트 추가] 버튼 또는 파일 관리자 [삽입]으로 소재를 추가하세요'
+                  : '위 [텍스트 추가] 버튼 또는 파일 관리자 [삽입]으로 소재를 추가하세요'}
+            </p>
+          </div>
+        ) : (
+          <div className="p-5 flex flex-col gap-3 h-full overflow-y-auto">
+            {blocks.map((block) => (
+              <div
+                key={block.id}
+                data-block="1"
+                onClick={(e) => { e.stopPropagation(); setSelectedId(block.id); }}
+                className={clsx(
+                  'relative rounded-xl transition-all',
+                  selectedId === block.id
+                    ? 'ring-2 ring-violet-400'
+                    : 'ring-1 ring-transparent hover:ring-stone-300',
+                )}
+              >
+                {/* 삭제 버튼 */}
+                {!locked && selectedId === block.id && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onDelete(block.id); setSelectedId(null); }}
+                    className="absolute -top-2 -right-2 z-10 w-5 h-5 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center shadow"
+                  >
+                    <X size={10} />
+                  </button>
+                )}
+
+                {block.type === 'text' ? (
+                  editingId === block.id && !locked ? (
+                    <textarea
+                      autoFocus
+                      value={block.content}
+                      onChange={(e) => onUpdateText(block.id, e.target.value)}
+                      onBlur={() => setEditingId(null)}
+                      placeholder="텍스트를 입력하세요"
+                      rows={3}
+                      className={clsx(
+                        'w-full p-3 rounded-xl resize-none text-sm bg-transparent focus:outline-none focus:ring-2 focus:ring-violet-300',
+                        isVideo ? 'text-white placeholder:text-stone-500' : 'text-stone-800',
+                      )}
+                    />
+                  ) : (
+                    <div
+                      onClick={() => { if (!locked) { setSelectedId(block.id); setEditingId(block.id); } }}
+                      className={clsx(
+                        'w-full min-h-[48px] p-3 rounded-xl text-sm whitespace-pre-wrap cursor-text select-none',
+                        block.content
+                          ? (isVideo ? 'text-white' : 'text-stone-800')
+                          : (isVideo ? 'text-stone-500 italic' : 'text-stone-300 italic'),
+                      )}
+                    >
+                      {block.content || '클릭하여 텍스트 입력'}
+                    </div>
+                  )
+                ) : (
+                  <div className="w-full rounded-xl overflow-hidden bg-stone-100">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={block.content}
+                      alt=""
+                      className="w-full h-auto object-contain max-h-64"
+                    />
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
         )}
       </div>
