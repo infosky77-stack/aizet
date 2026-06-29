@@ -873,8 +873,8 @@ function DemoImagesSection() {
         </div>
 
         <Link href="/demo" className="group block">
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:h-96">
-            <div className="relative overflow-hidden rounded-2xl col-span-2 md:col-span-1 md:row-span-2 h-56 md:h-full">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            <div className="relative overflow-hidden rounded-2xl col-span-2 md:col-span-1 md:row-span-2 h-52 md:h-[332px]">
               <img
                 src={images[0].src}
                 alt={images[0].alt}
@@ -888,8 +888,14 @@ function DemoImagesSection() {
                 </span>
               </div>
             </div>
-            {images.slice(1).map((img) => (
-              <div key={img.src} className="relative overflow-hidden rounded-2xl h-36 md:h-full">
+            {images.slice(1).map((img, i) => (
+              <div
+                key={img.src}
+                className={clsx(
+                  'relative overflow-hidden rounded-2xl h-40',
+                  i === 2 && 'col-span-2 md:col-span-1',
+                )}
+              >
                 <img
                   src={img.src}
                   alt={img.alt}
