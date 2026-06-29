@@ -193,10 +193,12 @@ export function Sidebar() {
   // super_admin 비-impersonation: 전체관리 전용 메뉴
   // super_admin impersonating: 해당 업종 메뉴 (배너 따로 표시)
   // 일반 유저: industry 필터 (기존 동작 유지)
+  // !industry (빈 문자열)가 true가 되어 모든 메뉴가 표시되는 버그 수정
+  // 업종 미설정 시 공통 메뉴(industries 없는 항목)만 표시
   const visibleNav = (isSuperAdmin && !isImpersonating)
     ? SUPER_NAV
     : NAV.filter(({ industries }) =>
-        !industries || !industry || industries.includes(industry)
+        !industries || (!!industry && industries.includes(industry))
       );
 
   async function handleExitImpersonate() {

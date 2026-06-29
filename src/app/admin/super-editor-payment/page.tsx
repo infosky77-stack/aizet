@@ -62,6 +62,14 @@ function SuperEditorPaymentContent({ orderId, paymentOrderId, amount, orderType 
 
   async function handlePay() {
     if (!method || !paymentOrderId) return;
+
+    // payment.requestPayment()는 CARD/TRANSFER/MOBILE_PHONE만 지원
+    // KAKAOPAY/NAVERPAY/TOSSPAY(EASY_PAY)는 위젯 플로우 전용 → 현재 미지원
+    if (method !== 'CARD') {
+      setError('현재 신용/체크카드 결제만 지원됩니다. 카드를 선택해 주세요.');
+      return;
+    }
+
     setLoading(true);
     setError('');
     try {
@@ -69,27 +77,18 @@ function SuperEditorPaymentContent({ orderId, paymentOrderId, amount, orderType 
       const tossPayments = await loadTossPayments(process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY!);
       const payment = tossPayments.payment({ customerKey: ANONYMOUS });
 
-      const base = {
+      await payment.requestPayment({
+        method: 'CARD',
         amount:    { currency: 'KRW' as const, value: amount },
         orderId:   paymentOrderId,
         orderName: orderType === 'video' ? '영상 자동 컴파일 (FullAutoCut)' : '인쇄 자동 컴파일 (FullAutoShot)',
         successUrl: `${window.location.origin}/admin/super-editor-payment/success?mediaOrderId=${orderId}`,
         failUrl:    `${window.location.origin}/admin/super-editor-payment/fail?mediaOrderId=${orderId}`,
-      };
-
-      if (method === 'CARD') {
-        await payment.requestPayment({ method: 'CARD', ...base });
-      } else {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        await (payment.requestPayment as any)({
-          method: 'EASY_PAY',
-          ...base,
-          easyPay: { easyPayProvider: method },
-        });
-      }
+      });
     } catch (err: unknown) {
-      const e = err as { code?: string };
-      if (e?.code !== 'PAY_PROCESS_CANCELED') setError('결제 중 오류가 발생했습니다.');
+      const e = err as { code?: string; message?: string };
+      if (e?.code === 'PAY_PROCESS_CANCELED' || e?.code === 'PAY_PROCESS_ABORTED') return;
+      setError(`결제 중 오류가 발생했습니다. (${e?.code ?? ''} ${e?.message ?? ''})`);
     } finally {
       setLoading(false);
     }
@@ -156,18 +155,27 @@ function SuperEditorPaymentContent({ orderId, paymentOrderId, amount, orderType 
         <div className="bg-white rounded-2xl shadow-sm border border-stone-100 p-5 flex flex-col gap-4">
           <p className="font-semibold text-stone-700 text-sm">결제 방법 선택</p>
           <div className="grid grid-cols-2 gap-2">
-            {METHODS.map(m => (
-              <button key={m.value} onClick={() => setMethod(m.value)}
-                className={clsx(
-                  'flex flex-col items-center gap-2 py-4 rounded-xl border-2 text-sm font-medium transition-colors',
-                  method === m.value
-                    ? 'border-violet-500 bg-violet-50 text-violet-700'
-                    : `border-stone-200 text-stone-600 ${m.border}`,
-                )}>
-                {m.icon}
-                {m.label}
-              </button>
-            ))}
+            {METHODS.map(m => {
+              const isCard = m.value === 'CARD';
+              return (
+                <button key={m.value} onClick={() => setMethod(m.value)}
+                  className={clsx(
+                    'flex flex-col items-center gap-2 py-4 rounded-xl border-2 text-sm font-medium transition-colors relative',
+                    method === m.value
+                      ? 'border-violet-500 bg-violet-50 text-violet-700'
+                      : `border-stone-200 text-stone-600 ${m.border}`,
+                    !isCard && 'opacity-60',
+                  )}>
+                  {m.icon}
+                  {m.label}
+                  {!isCard && (
+                    <span className="absolute top-1.5 right-1.5 text-[9px] bg-stone-200 text-stone-500 px-1 py-0.5 rounded font-semibold">
+                      준비 중
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
 
           {/* 테스트 카드 정보 (항상 표시) */}
