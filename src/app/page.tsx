@@ -460,8 +460,8 @@ function Hero() {
                 <div className="p-4 flex flex-col gap-3">
                   <div className="flex gap-3">
                     {[
-                      { name: '짜장면', price: '₩8,000', tag: '인기', img: '/api/images/mr-china/dish1.jpg' },
-                      { name: '짬뽕', price: '₩10,000', tag: '인기', img: '/api/images/mr-china/dish2.jpg' },
+                      { name: '짜장면', price: '₩8,000', tag: '인기', img: '/demo/menu/menu-jjajangmyeon.jpg' },
+                      { name: '짬뽕', price: '₩10,000', tag: '인기', img: '/demo/menu/menu-jjamppong.jpg' },
                     ].map((item) => (
                       <div key={item.name} className="flex-1 bg-stone-50 rounded-xl p-3 border border-stone-100">
                         <img src={item.img} alt={item.name} className="w-full h-14 rounded-lg mb-2 object-cover" />
