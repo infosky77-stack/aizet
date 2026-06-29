@@ -27,9 +27,20 @@ function SuperEditorPaymentContent() {
   const [error,       setError]       = useState('');
   const [showTestCard, setShowTestCard] = useState(false);
 
+  // 새 결제 진입 시 이전 오류 상태 초기화
   useEffect(() => {
+    setError('');
     if (!orderId || !paymentOrderId) router.replace('/admin/super-editor');
   }, [orderId, paymentOrderId, router]);
+
+  // 브라우저 bfcache 복원 시에도 오류 초기화
+  useEffect(() => {
+    const handler = (e: PageTransitionEvent) => {
+      if (e.persisted) setError('');
+    };
+    window.addEventListener('pageshow', handler);
+    return () => window.removeEventListener('pageshow', handler);
+  }, []);
 
   async function handlePay() {
     if (!method || !paymentOrderId) return;
