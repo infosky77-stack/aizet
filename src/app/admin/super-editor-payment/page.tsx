@@ -106,7 +106,7 @@ function SuperEditorPaymentContent({ orderId, paymentOrderId, amount, orderType 
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error ?? '바이패스 실패'); return; }
-      router.replace('/admin/super-editor');
+      router.replace(`/admin/super-editor/${orderId}`);
     } catch {
       setError('네트워크 오류가 발생했습니다.');
     } finally {

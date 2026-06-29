@@ -6,6 +6,7 @@ import {
   ArrowLeft, Save, CheckCircle, AlertCircle, Loader2,
   Film, Printer, Lock, CreditCard, Clock,
   FolderOpen, Image, Music, Trash2, Upload, ExternalLink, X, Type,
+  Smartphone, RefreshCw, Download,
 } from 'lucide-react';
 import { clsx } from 'clsx';
 
@@ -27,15 +28,16 @@ interface SEFile {
 }
 
 interface MediaOrder {
-  id:         string;
-  user_id:    string;
-  order_type: OrderType;
-  title:      string;
-  snapshot:   string;
-  is_paid:    number;
-  payment_id: string | null;
-  status:     OrderStatus;
-  updated_at: number;
+  id:          string;
+  user_id:     string;
+  order_type:  OrderType;
+  title:       string;
+  snapshot:    string;
+  is_paid:     number;
+  payment_id:  string | null;
+  status:      OrderStatus;
+  updated_at:  number;
+  output_uuid: string | null;
 }
 
 // 캔버스 블록
@@ -101,6 +103,12 @@ export default function SuperEditorPage() {
   const [uploading,  setUploading]  = useState(false);
   const [deletingFile, setDeletingFile] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // QR / 모바일 전송
+  const [qrDataUrl,  setQrDataUrl]  = useState<string | null>(null);
+  const [qrLoading,  setQrLoading]  = useState(false);
+  const [showQr,     setShowQr]     = useState(false);
+  const [mobileNote, setMobileNote] = useState('');
 
   // 스냅샷 상태
   const [vSnap, setVSnap] = useState<VideoSnapshot>(DEFAULT_VIDEO);
@@ -172,6 +180,99 @@ export default function SuperEditorPage() {
     setDeletingFile(null);
   }
 
+  async function fetchQr() {
+    setQrLoading(true);
+    setMobileNote('');
+    try {
+      const res = await fetch('/api/admin/super-editor/mobile-token', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ orderId }),
+      });
+      if (!res.ok) { setMobileNote('QR 생성 실패'); return; }
+      const { qrDataUrl: url } = await res.json();
+      setQrDataUrl(url);
+    } catch {
+      setMobileNote('네트워크 오류');
+    } finally {
+      setQrLoading(false);
+    }
+  }
+
+  function handleToggleQr() {
+    if (!showQr) {
+      setShowQr(true);
+      if (!qrDataUrl) fetchQr();
+    } else {
+      setShowQr(false);
+    }
+  }
+
+  // SSE 연결 — 스마트폰 업로드 실시간 수신
+  // 주의: stale closure 방지를 위해 functional setState + ref 사용
+  useEffect(() => {
+    const es = new EventSource(`/api/admin/super-editor/sse/${orderId}`);
+    es.onmessage = (e) => {
+      try {
+        const data = JSON.parse(e.data) as {
+          type: string; url?: string; fileId?: string; fileType?: string; filename?: string;
+        };
+        if (data.type !== 'file_uploaded' || !data.url) return;
+
+        const isVideo = data.fileType === 'video';
+
+        // 이미지만 캔버스에 삽입 — 동영상은 파일 관리자에만 추가
+        if (!isVideo) {
+          const url = data.url;
+          const newBlock: CanvasBlock = {
+            id: Date.now().toString(36) + Math.random().toString(36).slice(2),
+            type: 'image',
+            content: url,
+          };
+          // functional update — 항상 최신 상태 기반으로 블록 추가
+          if (orderRef.current?.order_type === 'video') {
+            setVSnap(prev => {
+              const next = { ...prev, canvas: { blocks: [...prev.canvas.blocks, newBlock] } };
+              latestSnap.current = next;
+              dirtyRef.current = true;
+              return next;
+            });
+          } else {
+            setPSnap(prev => {
+              const next = { ...prev, canvas: { blocks: [...prev.canvas.blocks, newBlock] } };
+              latestSnap.current = next;
+              dirtyRef.current = true;
+              return next;
+            });
+          }
+          setSaveStatus('saving');
+          setPanelTab('preview');
+        }
+
+        // 파일 목록에 즉시 추가 (이미지/동영상 모두)
+        if (data.fileId && data.filename) {
+          setSeFiles(prev => [{
+            id:         data.fileId!,
+            user_id:    '',
+            filename:   data.filename!,
+            orig_name:  data.filename!,
+            file_type:  (data.fileType as SEFileType) ?? 'image',
+            mime_type:  '',
+            size_bytes: 0,
+            created_at: Date.now(),
+          }, ...prev]);
+        }
+
+        const note = isVideo
+          ? '📹 동영상이 파일 관리자에 추가됐습니다'
+          : '📱 이미지가 캔버스에 삽입됐습니다';
+        setMobileNote(note);
+        setTimeout(() => setMobileNote(''), 4000);
+      } catch { /* ignore */ }
+    };
+    return () => es.close();
+  }, [orderId]); // orderRef/latestSnap/dirtyRef는 stable ref라 deps 불필요
+
   // 3초 Auto-Save 인터벌
   useEffect(() => {
     intervalRef.current = setInterval(() => { saveNow(); }, 3000);
@@ -199,6 +300,24 @@ export default function SuperEditorPage() {
       })
       .finally(() => setLoading(false));
   }, [orderId]);
+
+  // 렌더링 진행 중 폴링 (5초마다 상태 갱신)
+  useEffect(() => {
+    if (!order || !['queued', 'processing'].includes(order.status)) return;
+    const id = setInterval(() => {
+      fetch(`/api/admin/super-editor?orderId=${orderId}`)
+        .then(r => r.json())
+        .then(data => {
+          const o: MediaOrder = data.order;
+          if (!o) return;
+          setOrder(o);
+          orderRef.current = o;
+          if (o.status === 'done' || o.status === 'failed') clearInterval(id);
+        })
+        .catch(() => { /* 폴링 오류는 무시 */ });
+    }, 5000);
+    return () => clearInterval(id);
+  }, [order?.status, orderId]);
 
   function updateV(patch: Partial<VideoSnapshot>) {
     if (orderRef.current?.is_paid) return;
@@ -401,9 +520,13 @@ export default function SuperEditorPage() {
             </button>
           ) : (
             <div className="flex items-center justify-center gap-2 py-3 bg-stone-50 rounded-xl border border-stone-200">
-              {order.status === 'processing'
-                ? <><Clock size={14} className="text-violet-500 animate-pulse" /><span className="text-sm text-stone-500 font-medium">처리 중...</span></>
-                : <><CheckCircle size={14} className="text-emerald-500" /><span className="text-sm text-emerald-700 font-medium">제출 완료</span></>}
+              {order.status === 'queued'
+                ? <><Clock size={14} className="text-blue-400 animate-pulse" /><span className="text-sm text-blue-600 font-medium">렌더링 대기 중...</span></>
+                : order.status === 'processing'
+                ? <><Loader2 size={14} className="text-violet-500 animate-spin" /><span className="text-sm text-violet-600 font-medium">렌더링 중...</span></>
+                : order.status === 'failed'
+                ? <><AlertCircle size={14} className="text-red-400" /><span className="text-sm text-red-600 font-medium">렌더링 실패</span></>
+                : <><CheckCircle size={14} className="text-emerald-500" /><span className="text-sm text-emerald-700 font-medium">완료</span></>}
             </div>
           )}
         </div>
@@ -487,7 +610,23 @@ export default function SuperEditorPage() {
         </div>
 
         {/* 캔버스 탭 */}
-        {panelTab === 'preview' && (
+        {panelTab === 'preview' && order.status === 'done' && order.output_uuid ? (
+          <div className="flex-1 flex flex-col items-center justify-center gap-4 p-6 bg-stone-900">
+            <video
+              controls
+              className="max-w-full max-h-full rounded-xl shadow-lg"
+              src={`/api/admin/render-output/${order.output_uuid}`}
+            />
+            <a
+              href={`/api/admin/render-output/${order.output_uuid}`}
+              download
+              className="flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white text-sm font-semibold rounded-xl transition-colors"
+            >
+              <Download size={14} />
+              다운로드
+            </a>
+          </div>
+        ) : panelTab === 'preview' ? (
           <EditorCanvas
             blocks={getCanvas().blocks}
             orderType={order.order_type}
@@ -495,11 +634,55 @@ export default function SuperEditorPage() {
             onDelete={deleteCanvasBlock}
             onUpdateText={updateCanvasText}
           />
-        )}
+        ) : null}
 
         {/* 파일 관리자 탭 */}
         {panelTab === 'files' && (
-          <div className="flex-1 overflow-y-auto p-4">
+          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+
+            {/* QR 무선 전송 섹션 */}
+            <div className="bg-white rounded-xl border border-stone-200 overflow-hidden">
+              <button
+                onClick={handleToggleQr}
+                className="w-full flex items-center gap-2 px-4 py-3 hover:bg-stone-50 transition-colors text-left"
+              >
+                <Smartphone size={14} className="text-violet-500 shrink-0" />
+                <span className="text-sm font-semibold text-stone-700 flex-1">스마트폰으로 사진 전송</span>
+                <span className="text-xs text-stone-400">{showQr ? '닫기' : 'QR 열기'}</span>
+              </button>
+
+              {showQr && (
+                <div className="px-4 pb-4 flex flex-col items-center gap-3 border-t border-stone-100 pt-3">
+                  {qrLoading ? (
+                    <Loader2 size={24} className="animate-spin text-stone-300 my-4" />
+                  ) : qrDataUrl ? (
+                    <>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={qrDataUrl} alt="QR 코드" className="w-48 h-48 rounded-lg border border-stone-100" />
+                      <p className="text-xs text-stone-500 text-center">
+                        스마트폰 카메라로 QR코드를 스캔하세요<br />
+                        <span className="text-stone-400">유효시간 15분 · 업로드 즉시 캔버스에 삽입됩니다</span>
+                      </p>
+                      <button
+                        onClick={fetchQr}
+                        disabled={qrLoading}
+                        className="flex items-center gap-1.5 text-xs text-violet-600 hover:text-violet-800 font-semibold"
+                      >
+                        <RefreshCw size={11} />
+                        QR 새로고침
+                      </button>
+                    </>
+                  ) : (
+                    <p className="text-xs text-red-400 py-2">{mobileNote || 'QR 생성 오류'}</p>
+                  )}
+                  {mobileNote && qrDataUrl && (
+                    <p className="text-xs font-semibold text-emerald-600 text-center animate-pulse">{mobileNote}</p>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* 파일 목록 */}
             {filesLoading ? (
               <div className="flex justify-center py-12">
                 <Loader2 size={24} className="animate-spin text-stone-300" />
