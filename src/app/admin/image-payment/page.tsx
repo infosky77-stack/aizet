@@ -20,9 +20,11 @@ function ImagePaymentContent() {
   const router       = useRouter();
   const orderId      = searchParams.get('orderId') ?? '';
 
-  const [method,  setMethod]  = useState<Method | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error,   setError]   = useState('');
+  const [method,        setMethod]        = useState<Method | null>(null);
+  const [loading,       setLoading]       = useState(false);
+  const [error,         setError]         = useState('');
+  // TODO: 테스트용, 배포 전 제거
+  const [bypassLoading, setBypassLoading] = useState(false);
 
   useEffect(() => {
     if (!orderId) router.replace('/admin/settings');
@@ -60,6 +62,28 @@ function ImagePaymentContent() {
       if (e?.code !== 'PAY_PROCESS_CANCELED') setError('결제 중 오류가 발생했습니다.');
     } finally {
       setLoading(false);
+    }
+  }
+
+  // TODO: 테스트용, 배포 전 제거
+  async function handleBypass() {
+    if (!orderId) return;
+    setBypassLoading(true);
+    setError('');
+    try {
+      const res = await fetch('/api/admin/image-payment/bypass', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ orderId }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setError(data.error ?? '바이패스 실패'); return; }
+      // success 페이지로 이동 — confirm 호출 시 alreadyPaid 경로를 타서 이미지 생성 시작
+      router.push(`/admin/image-payment/success?orderId=${orderId}&paymentKey=bypass&amount=1`);
+    } catch {
+      setError('네트워크 오류가 발생했습니다.');
+    } finally {
+      setBypassLoading(false);
     }
   }
 
@@ -130,6 +154,17 @@ function ImagePaymentContent() {
           {method && (
             <p className="text-xs text-stone-400 text-center">토스페이먼츠 안전결제로 연결됩니다</p>
           )}
+        </div>
+
+        {/* TODO: 테스트용, 배포 전 제거 */}
+        <div className="text-center pb-2">
+          <button
+            onClick={handleBypass}
+            disabled={bypassLoading}
+            className="text-xs text-stone-300 hover:text-stone-500 transition-colors disabled:opacity-50"
+          >
+            {bypassLoading ? '처리 중...' : '🧪 테스트 결제 건너뛰기 (개발용)'}
+          </button>
         </div>
 
       </div>

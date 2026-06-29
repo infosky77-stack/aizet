@@ -41,10 +41,11 @@ interface ContentProps {
 function SuperEditorPaymentContent({ orderId, paymentOrderId, amount, orderType }: ContentProps) {
   const router = useRouter();
 
-  const [method] = useState<Method>('CARD');
-  const [loading, setLoading] = useState(false);
-  const [error,   setError]   = useState('');
-  const [sdkReady, setSdkReady] = useState(false);
+  const [loading,        setLoading]        = useState(false);
+  const [error,          setError]          = useState('');
+  const [sdkReady,       setSdkReady]       = useState(false);
+  // TODO: 테스트용, 배포 전 제거
+  const [bypassLoading,  setBypassLoading]  = useState(false);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const tossPaymentsRef = useRef<any>(null);
@@ -104,6 +105,26 @@ function SuperEditorPaymentContent({ orderId, paymentOrderId, amount, orderType 
       }
     } finally {
       setLoading(false);
+    }
+  }
+
+  // TODO: 테스트용, 배포 전 제거
+  async function handleBypass() {
+    setBypassLoading(true);
+    setError('');
+    try {
+      const res = await fetch('/api/admin/super-editor-payment/bypass', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ paymentOrderId, mediaOrderId: orderId }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setError(data.error ?? '바이패스 실패'); return; }
+      router.replace('/admin/super-editor');
+    } catch {
+      setError('네트워크 오류가 발생했습니다.');
+    } finally {
+      setBypassLoading(false);
     }
   }
 
@@ -179,6 +200,17 @@ function SuperEditorPaymentContent({ orderId, paymentOrderId, amount, orderType 
               : !sdkReady
                 ? <><Loader2 size={18} className="animate-spin" />결제 준비 중...</>
                 : `${amount.toLocaleString()}원 결제하기`}
+          </button>
+        </div>
+
+        {/* TODO: 테스트용, 배포 전 제거 */}
+        <div className="text-center pb-2">
+          <button
+            onClick={handleBypass}
+            disabled={bypassLoading}
+            className="text-xs text-stone-300 hover:text-stone-500 transition-colors disabled:opacity-50"
+          >
+            {bypassLoading ? '처리 중...' : '🧪 테스트 결제 건너뛰기 (개발용)'}
           </button>
         </div>
 
