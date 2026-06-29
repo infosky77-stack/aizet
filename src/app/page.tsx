@@ -464,7 +464,7 @@ function Hero() {
                       { name: '짬뽕', price: '₩10,000', tag: '인기', img: '/demo/menu/menu-jjamppong.jpg' },
                     ].map((item) => (
                       <div key={item.name} className="flex-1 bg-stone-50 rounded-xl p-3 border border-stone-100">
-                        <img src={item.img} alt={item.name} className="w-full h-14 rounded-lg mb-2 object-cover" />
+                        <img src={item.img} alt={item.name} className="w-full h-40 rounded-lg mb-2 object-cover" />
                         <div className="flex items-center justify-between">
                           <div>
                             <p className="text-xs font-semibold text-stone-800">{item.name}</p>
