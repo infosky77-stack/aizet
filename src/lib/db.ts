@@ -235,4 +235,19 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_render_jobs_order  ON render_jobs(order_id);
 `);
 
+// ── 슈퍼에디터 업로드 소재 테이블 ────────────────────────────────────────────
+db.exec(`
+  CREATE TABLE IF NOT EXISTS super_editor_files (
+    id         TEXT    PRIMARY KEY,
+    user_id    TEXT    NOT NULL,
+    filename   TEXT    NOT NULL,
+    orig_name  TEXT    NOT NULL,
+    file_type  TEXT    NOT NULL,
+    mime_type  TEXT    NOT NULL,
+    size_bytes INTEGER NOT NULL DEFAULT 0,
+    created_at INTEGER NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_super_editor_files_user ON super_editor_files(user_id);
+`);
+
 export default db;

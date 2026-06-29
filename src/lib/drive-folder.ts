@@ -24,6 +24,32 @@ export async function ensureAizetFolder(accessToken: string): Promise<string> {
   return folder.id;
 }
 
+export interface DriveFileEntry {
+  id:       string;
+  name:     string;
+  mimeType: string;
+  size:     string;
+}
+
+const MEDIA_MIME_PREFIXES = ['image/', 'video/', 'audio/'];
+
+/** AIZET 폴더 안의 미디어 파일(이미지/영상/오디오) 목록을 반환한다. */
+export async function listDriveFiles(
+  accessToken: string,
+  folderId: string,
+): Promise<DriveFileEntry[]> {
+  const mimeQ = MEDIA_MIME_PREFIXES
+    .map(p => `mimeType contains '${p}'`)
+    .join(' or ');
+  const q = `'${folderId}' in parents and (${mimeQ}) and trashed=false`;
+  const res = await fetch(
+    `${FILES_API}?q=${encodeURIComponent(q)}&fields=files(id,name,mimeType,size)&pageSize=100&orderBy=createdTime desc`,
+    { headers: { Authorization: `Bearer ${accessToken}` } },
+  );
+  const data = await res.json() as { files?: DriveFileEntry[] };
+  return data.files ?? [];
+}
+
 /** 지정한 부모 폴더 안에 이름으로 서브폴더를 찾거나 생성한다. */
 export async function ensureSubfolder(
   accessToken: string,

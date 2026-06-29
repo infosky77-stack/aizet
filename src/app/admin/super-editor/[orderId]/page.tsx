@@ -5,12 +5,26 @@ import { useParams, useRouter } from 'next/navigation';
 import {
   ArrowLeft, Save, CheckCircle, AlertCircle, Loader2,
   Film, Printer, Lock, CreditCard, Clock,
+  FolderOpen, Image, Music, Trash2, Upload, ExternalLink,
 } from 'lucide-react';
 import { clsx } from 'clsx';
 
 type OrderType   = 'video' | 'print';
 type OrderStatus = 'editing' | 'queued' | 'processing' | 'done' | 'failed';
 type SaveStatus  = 'idle' | 'saving' | 'saved' | 'error';
+type PanelTab    = 'preview' | 'files';
+type SEFileType  = 'image' | 'video' | 'audio';
+
+interface SEFile {
+  id:         string;
+  user_id:    string;
+  filename:   string;
+  orig_name:  string;
+  file_type:  SEFileType;
+  mime_type:  string;
+  size_bytes: number;
+  created_at: number;
+}
 
 interface MediaOrder {
   id:         string;
@@ -67,6 +81,12 @@ export default function SuperEditorPage() {
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
   const [paying,     setPaying]     = useState(false);
   const [payError,   setPayError]   = useState('');
+  const [panelTab,   setPanelTab]   = useState<PanelTab>('preview');
+  const [seFiles,    setSeFiles]    = useState<SEFile[]>([]);
+  const [filesLoading, setFilesLoading] = useState(false);
+  const [uploading,  setUploading]  = useState(false);
+  const [deletingFile, setDeletingFile] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // 스냅샷 상태
   const [vSnap, setVSnap] = useState<VideoSnapshot>(DEFAULT_VIDEO);
@@ -99,6 +119,44 @@ export default function SuperEditorPage() {
       setSaveStatus('error');
     }
   }, [orderId]);
+
+  async function fetchFiles() {
+    setFilesLoading(true);
+    const res = await fetch('/api/admin/super-editor/files');
+    if (res.ok) {
+      const data = await res.json();
+      setSeFiles(data.files ?? []);
+    }
+    setFilesLoading(false);
+  }
+
+  function handlePanelTab(tab: PanelTab) {
+    setPanelTab(tab);
+    if (tab === 'files' && seFiles.length === 0 && !filesLoading) fetchFiles();
+  }
+
+  async function uploadFiles(fileList: FileList) {
+    setUploading(true);
+    const uploaded: SEFile[] = [];
+    for (const file of Array.from(fileList)) {
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await fetch('/api/admin/super-editor/files', { method: 'POST', body: fd });
+      if (res.ok) {
+        const data = await res.json();
+        uploaded.push(data.file);
+      }
+    }
+    setSeFiles(prev => [...uploaded, ...prev]);
+    setUploading(false);
+  }
+
+  async function handleDeleteFile(id: string) {
+    setDeletingFile(id);
+    await fetch(`/api/admin/super-editor/files?fileId=${id}`, { method: 'DELETE' });
+    setSeFiles(prev => prev.filter(f => f.id !== id));
+    setDeletingFile(null);
+  }
 
   // 3초 Auto-Save 인터벌
   useEffect(() => {
@@ -305,31 +363,146 @@ export default function SuperEditorPage() {
         </div>
       </aside>
 
-      {/* ── 우측 미리보기 패널 ──────────────────────────────────── */}
+      {/* ── 우측 패널 ───────────────────────────────────────────── */}
       <div className="flex-1 flex flex-col overflow-hidden bg-stone-100">
-        <div className="flex items-center gap-3 px-4 py-2 bg-white border-b border-stone-200 shrink-0">
-          <span className="text-xs text-stone-400 font-medium">미리보기</span>
-          <span className="text-xs text-stone-300">·</span>
-          <span className="text-xs text-stone-500">
-            {order.order_type === 'video' ? 'FullAutoCut (영상)' : 'FullAutoShot (인쇄)'}
-          </span>
+
+        {/* 탭 헤더 */}
+        <div className="flex items-center bg-white border-b border-stone-200 shrink-0">
+          <button
+            onClick={() => handlePanelTab('preview')}
+            className={clsx(
+              'px-4 py-2.5 text-xs font-semibold border-b-2 transition-colors',
+              panelTab === 'preview'
+                ? 'border-violet-500 text-violet-700'
+                : 'border-transparent text-stone-400 hover:text-stone-600',
+            )}
+          >
+            미리보기
+          </button>
+          <button
+            onClick={() => handlePanelTab('files')}
+            className={clsx(
+              'flex items-center gap-1.5 px-4 py-2.5 text-xs font-semibold border-b-2 transition-colors',
+              panelTab === 'files'
+                ? 'border-violet-500 text-violet-700'
+                : 'border-transparent text-stone-400 hover:text-stone-600',
+            )}
+          >
+            <FolderOpen size={12} />
+            파일 관리자
+            {seFiles.length > 0 && (
+              <span className="bg-violet-100 text-violet-600 text-[10px] px-1.5 py-0.5 rounded-full">
+                {seFiles.length}
+              </span>
+            )}
+          </button>
+          {panelTab === 'files' && (
+            <div className="ml-auto flex items-center gap-2 px-3">
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+                className={clsx(
+                  'flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors',
+                  uploading ? 'bg-stone-100 text-stone-400' : 'bg-violet-100 hover:bg-violet-200 text-violet-700',
+                )}
+              >
+                {uploading ? <Loader2 size={11} className="animate-spin" /> : <Upload size={11} />}
+                {uploading ? '업로드 중' : '업로드'}
+              </button>
+              <a
+                href="/admin/super-editor/files"
+                target="_blank"
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold text-stone-500 hover:bg-stone-100 transition-colors"
+              >
+                <ExternalLink size={11} />
+                전체 관리
+              </a>
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                accept="image/*,video/*,audio/*"
+                className="hidden"
+                onChange={e => { if (e.target.files?.length) { uploadFiles(e.target.files); e.target.value = ''; } }}
+              />
+            </div>
+          )}
         </div>
-        <div className="flex-1 flex items-center justify-center p-6">
-          <div className="w-full max-w-lg bg-white rounded-2xl border border-stone-200 shadow-sm p-8 flex flex-col items-center gap-4 text-stone-400">
-            {order.order_type === 'video'
-              ? <Film size={48} className="opacity-20" />
-              : <Printer size={48} className="opacity-20" />}
-            <p className="text-sm font-medium">
+
+        {/* 미리보기 탭 */}
+        {panelTab === 'preview' && (
+          <div className="flex-1 flex items-center justify-center p-6">
+            <div className="w-full max-w-lg bg-white rounded-2xl border border-stone-200 shadow-sm p-8 flex flex-col items-center gap-4 text-stone-400">
               {order.order_type === 'video'
-                ? '영상 미리보기는 컴파일 완료 후 제공됩니다'
-                : '인쇄 미리보기는 컴파일 완료 후 제공됩니다'}
-            </p>
-            <p className="text-xs text-center leading-relaxed">
-              결제 완료 후 자동으로 큐에 등록되어<br />
-              {order.order_type === 'video' ? 'FullAutoCut' : 'FullAutoShot'} 엔진이 처리합니다.
-            </p>
+                ? <Film size={48} className="opacity-20" />
+                : <Printer size={48} className="opacity-20" />}
+              <p className="text-sm font-medium">
+                {order.order_type === 'video'
+                  ? '영상 미리보기는 컴파일 완료 후 제공됩니다'
+                  : '인쇄 미리보기는 컴파일 완료 후 제공됩니다'}
+              </p>
+              <p className="text-xs text-center leading-relaxed">
+                결제 완료 후 자동으로 큐에 등록되어<br />
+                {order.order_type === 'video' ? 'FullAutoCut' : 'FullAutoShot'} 엔진이 처리합니다.
+              </p>
+            </div>
           </div>
-        </div>
+        )}
+
+        {/* 파일 관리자 탭 */}
+        {panelTab === 'files' && (
+          <div className="flex-1 overflow-y-auto p-4">
+            {filesLoading ? (
+              <div className="flex justify-center py-12">
+                <Loader2 size={24} className="animate-spin text-stone-300" />
+              </div>
+            ) : seFiles.length === 0 ? (
+              <div
+                onClick={() => fileInputRef.current?.click()}
+                className="flex flex-col items-center gap-3 py-16 text-stone-400 cursor-pointer border-2 border-dashed border-stone-200 rounded-2xl hover:border-violet-300 hover:bg-white transition-colors"
+              >
+                <Upload size={32} className="opacity-30" />
+                <p className="text-sm">클릭해서 소재를 업로드하세요</p>
+                <p className="text-xs text-stone-300">이미지 · 영상 · 오디오</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {seFiles.map(file => (
+                  <div key={file.id} className="group bg-white border border-stone-200 rounded-xl overflow-hidden hover:border-violet-300 transition-colors">
+                    <div className="aspect-video bg-stone-100 flex items-center justify-center relative overflow-hidden">
+                      {file.file_type === 'image' ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={`/api/super-editor-files/${file.user_id}/${file.filename}`}
+                          alt={file.orig_name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : file.file_type === 'video' ? (
+                        <Film size={24} className="text-stone-300" />
+                      ) : (
+                        <Music size={24} className="text-stone-300" />
+                      )}
+                      <button
+                        onClick={() => handleDeleteFile(file.id)}
+                        disabled={deletingFile === file.id}
+                        className="absolute top-1 right-1 p-1 bg-white/80 hover:bg-red-50 hover:text-red-500 text-stone-400 rounded-md opacity-0 group-hover:opacity-100 transition-all"
+                      >
+                        {deletingFile === file.id
+                          ? <Loader2 size={11} className="animate-spin" />
+                          : <Trash2 size={11} />}
+                      </button>
+                    </div>
+                    <div className="px-2 py-1.5">
+                      <p className="text-[10px] font-medium text-stone-600 truncate" title={file.orig_name}>
+                        {file.orig_name}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
