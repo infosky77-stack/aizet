@@ -7,7 +7,7 @@ import {
   LayoutDashboard, ClipboardList, UtensilsCrossed, CalendarClock, Bot,
   ArrowLeft, CreditCard, Printer, BookOpen, Leaf, Scale, BarChart3,
   Menu, X, Cloud, LogOut, ChevronDown, Shield, Zap, Crown, Globe, Settings, Wand2, Building2, FileText, FolderOpen,
-  Users, ChevronLeft,
+  Users, ChevronLeft, Film, ListVideo,
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useSession } from '@/hooks/useSession';
@@ -50,6 +50,9 @@ const NAV: NavItem[] = [
   // ── 데모 전용 ─────────────────────────────────────────────
   { href: '/admin/korean',   label: '한국어 학습', icon: BookOpen, industries: ['demo'] },
   { href: '/admin/hancandy', label: 'HanCandy',   icon: Leaf,     industries: ['demo'] },
+
+  // ── 자동화 엔진 (공통) ────────────────────────────────────
+  { href: '/admin/super-editor', label: '슈퍼에디터', icon: Film },
 ];
 
 const PLAN_META: Record<UserPlan, { label: string; icon: React.ReactNode; color: string }> = {
@@ -168,7 +171,8 @@ function UserCard({ onSignOut }: { onSignOut: () => void }) {
 
 // ── super_admin 전용 NAV ────────────────────────────────────────────────────
 const SUPER_NAV: NavItem[] = [
-  { href: '/admin/superadmin', label: '회원 사이트 목록', icon: Users, exact: true },
+  { href: '/admin/superadmin',   label: '회원 사이트 목록', icon: Users,     exact: true },
+  { href: '/admin/render-queue', label: '렌더 큐',          icon: ListVideo, exact: true },
 ];
 
 export function Sidebar() {

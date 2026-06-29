@@ -199,4 +199,40 @@ db.exec(`
   }
 }
 
+// ── 미디어 주문 테이블 (SuperEditor) ──────────────────────────────────────────
+db.exec(`
+  CREATE TABLE IF NOT EXISTS media_orders (
+    id          TEXT    PRIMARY KEY,
+    user_id     TEXT    NOT NULL,
+    order_type  TEXT    NOT NULL DEFAULT 'video',
+    title       TEXT    NOT NULL DEFAULT '',
+    snapshot    TEXT    NOT NULL DEFAULT '{}',
+    is_paid     INTEGER NOT NULL DEFAULT 0,
+    payment_id  TEXT,
+    status      TEXT    NOT NULL DEFAULT 'editing',
+    created_at  INTEGER NOT NULL,
+    updated_at  INTEGER NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_media_orders_user   ON media_orders(user_id);
+  CREATE INDEX IF NOT EXISTS idx_media_orders_status ON media_orders(status);
+`);
+
+// ── 렌더링 잡 큐 테이블 (FullAutoCut / FullAutoShot) ─────────────────────────
+db.exec(`
+  CREATE TABLE IF NOT EXISTS render_jobs (
+    id          TEXT    PRIMARY KEY,
+    order_id    TEXT    NOT NULL REFERENCES media_orders(id) ON DELETE CASCADE,
+    job_type    TEXT    NOT NULL DEFAULT 'video',
+    worker_type TEXT    NOT NULL DEFAULT 'ubuntu_local',
+    status      TEXT    NOT NULL DEFAULT 'queued',
+    priority    INTEGER NOT NULL DEFAULT 0,
+    queued_at   INTEGER NOT NULL,
+    started_at  INTEGER,
+    done_at     INTEGER,
+    error_msg   TEXT
+  );
+  CREATE INDEX IF NOT EXISTS idx_render_jobs_status ON render_jobs(status);
+  CREATE INDEX IF NOT EXISTS idx_render_jobs_order  ON render_jobs(order_id);
+`);
+
 export default db;
