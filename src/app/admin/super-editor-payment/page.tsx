@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useState, Suspense } from 'react';
+import { useEffect, useState, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Film, Printer, CreditCard, Smartphone, Loader2, ArrowLeft } from 'lucide-react';
+import { Film, Printer, CreditCard, Smartphone, Loader2, ArrowLeft, Copy, Check } from 'lucide-react';
 import { clsx } from 'clsx';
 
 type Method = 'CARD' | 'KAKAOPAY' | 'NAVERPAY' | 'TOSSPAY';
@@ -14,43 +14,87 @@ const METHODS: { value: Method; label: string; icon: React.ReactNode; border: st
   { value: 'TOSSPAY',  label: '토스페이',      icon: <Smartphone size={20} />, border: 'border-blue-300 hover:border-blue-500'    },
 ];
 
-function SuperEditorPaymentContent() {
-  const searchParams     = useSearchParams();
-  const router           = useRouter();
-  const orderId          = searchParams.get('orderId')          ?? '';
-  const paymentOrderId   = searchParams.get('paymentOrderId')   ?? '';
-  const amount           = Number(searchParams.get('amount')    ?? '0');
-  const orderType        = (searchParams.get('orderType') ?? 'video') as 'video' | 'print';
+const TEST_CARD_ROWS = [
+  { label: '카드번호',  value: '4242424242424242', display: '4242 4242 4242 4242' },
+  { label: '유효기간',  value: '12/28',            display: '12 / 28'            },
+  { label: 'CVC',      value: '123',               display: '123'                },
+  { label: '생년월일',  value: '000101',            display: '00 01 01'           },
+];
 
-  const [method,      setMethod]      = useState<Method | null>(null);
-  const [loading,     setLoading]     = useState(false);
-  const [error,       setError]       = useState('');
-  const [showTestCard, setShowTestCard] = useState(false);
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+  async function handleCopy() {
+    await navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  }
+  return (
+    <button
+      onClick={handleCopy}
+      className="ml-2 p-1 rounded hover:bg-stone-200 transition-colors text-stone-400 hover:text-stone-600 flex-shrink-0"
+      title="복사"
+    >
+      {copied ? <Check size={13} className="text-green-500" /> : <Copy size={13} />}
+    </button>
+  );
+}
 
-  // 새 결제 진입 시 이전 오류 상태 초기화
+interface ContentProps {
+  orderId:        string;
+  paymentOrderId: string;
+  amount:         number;
+  orderType:      'video' | 'print';
+}
+
+// key={paymentOrderId}로 강제 리마운트 — 매번 상태가 초기값으로 시작
+function SuperEditorPaymentContent({ orderId, paymentOrderId, amount, orderType }: ContentProps) {
+  const router = useRouter();
+
+  const [method,  setMethod]  = useState<Method | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error,   setError]   = useState('');
+  const [sdkReady, setSdkReady] = useState(false);
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const tossPaymentsRef = useRef<any>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const tossAnonRef = useRef<any>(null);
+
+  // 마운트 시 loadTossPayments(비동기)만 미리 실행 — payment 객체는 클릭 시 생성(동기)
+  // 이렇게 하면 window.open()이 사용자 제스처 컨텍스트에서 실행되면서 매 클릭마다 새 payment 객체 사용
   useEffect(() => {
-    setError('');
-    if (!orderId || !paymentOrderId) router.replace('/admin/super-editor');
+    if (!orderId || !paymentOrderId) {
+      router.replace('/admin/super-editor');
+      return;
+    }
+    let cancelled = false;
+    async function initToss() {
+      try {
+        const { loadTossPayments, ANONYMOUS } = await import('@tosspayments/tosspayments-sdk');
+        const tossPayments = await loadTossPayments(process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY!);
+        if (cancelled) return;
+        tossPaymentsRef.current = tossPayments;
+        tossAnonRef.current = ANONYMOUS;
+        setSdkReady(true);
+      } catch {
+        if (!cancelled) setError('결제 모듈 로드 실패. 페이지를 새로고침 해주세요.');
+      }
+    }
+    initToss();
+    return () => { cancelled = true; };
   }, [orderId, paymentOrderId, router]);
-
-  // 브라우저 bfcache 복원 시에도 오류 초기화
-  useEffect(() => {
-    const handler = (e: PageTransitionEvent) => {
-      if (e.persisted) setError('');
-    };
-    window.addEventListener('pageshow', handler);
-    return () => window.removeEventListener('pageshow', handler);
-  }, []);
 
   async function handlePay() {
     if (!method || !paymentOrderId) return;
+    if (!tossPaymentsRef.current) {
+      setError('결제 모듈이 아직 로드 중입니다. 잠시 후 다시 시도해주세요.');
+      return;
+    }
     setLoading(true);
     setError('');
     try {
-      const { loadTossPayments, ANONYMOUS } = await import('@tosspayments/tosspayments-sdk');
-      const tossPayments = await loadTossPayments(process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY!);
-      const payment = tossPayments.payment({ customerKey: ANONYMOUS });
-
+      // payment 객체를 매 클릭마다 새로 생성(동기) — INVALID_PARAMETERS 방지
+      const payment = tossPaymentsRef.current.payment({ customerKey: tossAnonRef.current });
       const base = {
         amount:    { currency: 'KRW' as const, value: amount },
         orderId:   paymentOrderId,
@@ -62,7 +106,6 @@ function SuperEditorPaymentContent() {
       if (method === 'CARD') {
         await payment.requestPayment({ method: 'CARD', ...base });
       } else {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await (payment.requestPayment as any)({
           method: 'EASY_PAY',
           ...base,
@@ -70,8 +113,12 @@ function SuperEditorPaymentContent() {
         });
       }
     } catch (err: unknown) {
-      const e = err as { code?: string };
-      if (e?.code !== 'PAY_PROCESS_CANCELED') setError('결제 중 오류가 발생했습니다.');
+      const e = err as { code?: string; message?: string };
+      if (e?.code === 'PAY_PROCESS_CANCELED' || e?.code === 'PAY_PROCESS_ABORTED') {
+        // 사용자가 직접 취소 — 에러 메시지 없음
+      } else {
+        setError(`결제 중 오류가 발생했습니다. (${e?.code ?? ''} ${e?.message ?? ''})`);
+      }
     } finally {
       setLoading(false);
     }
@@ -114,7 +161,7 @@ function SuperEditorPaymentContent() {
           </div>
         </div>
 
-        {/* 결제수단 */}
+        {/* 결제수단 + 테스트카드 + 결제버튼 */}
         <div className="bg-white rounded-2xl shadow-sm border border-stone-100 p-5 flex flex-col gap-4">
           <p className="font-semibold text-stone-700 text-sm">결제 방법 선택</p>
           <div className="grid grid-cols-2 gap-2">
@@ -132,48 +179,35 @@ function SuperEditorPaymentContent() {
             ))}
           </div>
 
+          {/* 테스트 카드 정보 (항상 표시) */}
+          <div className="bg-stone-50 border border-stone-200 rounded-xl p-3.5 flex flex-col gap-2">
+            <div className="flex items-center gap-1.5 mb-0.5">
+              <span className="text-xs">🧪</span>
+              <span className="text-xs font-semibold text-stone-500">테스트 모드</span>
+              <span className="text-[10px] text-stone-400 ml-auto">실제 결제가 발생하지 않습니다</span>
+            </div>
+            {TEST_CARD_ROWS.map(({ label, value, display }) => (
+              <div key={label} className="flex items-center justify-between gap-2">
+                <span className="text-[11px] text-stone-400 w-16 flex-shrink-0">{label}</span>
+                <span className="font-mono text-xs font-bold text-stone-700 tracking-wider flex-1">{display}</span>
+                <CopyButton text={value} />
+              </div>
+            ))}
+          </div>
+
           {error && <p className="text-sm text-red-500 text-center">{error}</p>}
 
-          <button onClick={handlePay} disabled={!method || loading}
+          <button onClick={handlePay} disabled={!method || loading || !sdkReady}
             className={clsx(
               'w-full py-4 font-bold rounded-xl transition-colors flex items-center justify-center gap-2 text-white',
-              method && !loading ? 'bg-violet-600 hover:bg-violet-700' : 'bg-stone-200 text-stone-400 cursor-not-allowed',
+              method && !loading && sdkReady ? 'bg-violet-600 hover:bg-violet-700' : 'bg-stone-200 text-stone-400 cursor-not-allowed',
             )}>
             {loading
               ? <><Loader2 size={18} className="animate-spin" />결제 진행 중...</>
-              : `${amount.toLocaleString()}원 결제하기`}
+              : !sdkReady
+                ? <><Loader2 size={18} className="animate-spin" />결제 준비 중...</>
+                : `${amount.toLocaleString()}원 결제하기`}
           </button>
-        </div>
-
-        {/* 테스트 카드 */}
-        <div className="flex flex-col items-center gap-2">
-          <p className="text-[11px] text-stone-400">테스트 모드 — 실제 결제가 발생하지 않습니다</p>
-          <button
-            onClick={() => setShowTestCard(v => !v)}
-            className="text-xs text-stone-400 hover:text-violet-600 underline underline-offset-2 transition-colors"
-          >
-            🧪 테스트 카드 정보 {showTestCard ? '숨기기' : '보기'}
-          </button>
-
-          {showTestCard && (
-            <div className="w-full bg-amber-50 border border-amber-200 rounded-2xl p-4 flex flex-col gap-2.5 text-sm">
-              <p className="text-xs font-bold text-amber-700 mb-1">토스페이먼츠 테스트 카드</p>
-              {[
-                { label: '카드번호',         value: '4242 4242 4242 4242' },
-                { label: '유효기간',         value: '12 / 28' },
-                { label: 'CVC',             value: '123' },
-                { label: '생년월일 / 사업자', value: '00 01 01' },
-              ].map(({ label, value }) => (
-                <div key={label} className="flex items-center justify-between">
-                  <span className="text-amber-700 text-xs font-medium">{label}</span>
-                  <span className="font-mono font-bold text-amber-900 tracking-widest text-sm select-all">{value}</span>
-                </div>
-              ))}
-              <p className="text-[10px] text-amber-500 mt-1">
-                위 정보를 토스페이먼츠 결제 화면에 직접 입력하세요
-              </p>
-            </div>
-          )}
         </div>
 
       </div>
@@ -181,10 +215,29 @@ function SuperEditorPaymentContent() {
   );
 }
 
+// 파라미터를 읽어 key로 전달 — paymentOrderId가 바뀔 때마다 Content 완전 리마운트
+function SuperEditorPaymentWrapper() {
+  const searchParams    = useSearchParams();
+  const orderId         = searchParams.get('orderId')        ?? '';
+  const paymentOrderId  = searchParams.get('paymentOrderId') ?? '';
+  const amount          = Number(searchParams.get('amount')  ?? '0');
+  const orderType       = (searchParams.get('orderType')     ?? 'video') as 'video' | 'print';
+
+  return (
+    <SuperEditorPaymentContent
+      key={paymentOrderId}
+      orderId={orderId}
+      paymentOrderId={paymentOrderId}
+      amount={amount}
+      orderType={orderType}
+    />
+  );
+}
+
 export default function SuperEditorPaymentPage() {
   return (
     <Suspense>
-      <SuperEditorPaymentContent />
+      <SuperEditorPaymentWrapper />
     </Suspense>
   );
 }
