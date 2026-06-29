@@ -1,3 +1,4 @@
+import { randomUUID } from 'crypto';
 import db from '@/lib/db';
 import { UbuntuLocalWorker } from './UbuntuLocalWorker';
 import type { IRenderWorker } from './IRenderWorker';
@@ -5,16 +6,19 @@ import type { IRenderWorker } from './IRenderWorker';
 export type RenderJobStatus = 'queued' | 'processing' | 'done' | 'failed';
 
 export interface RenderJob {
-  id:          string;
-  order_id:    string;
-  job_type:    'video' | 'print';
-  worker_type: string;
-  status:      RenderJobStatus;
-  priority:    number;
-  queued_at:   number;
-  started_at:  number | null;
-  done_at:     number | null;
-  error_msg:   string | null;
+  id:           string;
+  order_id:     string;
+  job_type:     'video' | 'print';
+  worker_type:  string;
+  status:       RenderJobStatus;
+  priority:     number;
+  queued_at:    number;
+  started_at:   number | null;
+  done_at:      number | null;
+  error_msg:    string | null;
+  output_uuid:  string | null;
+  output_path:  string | null;
+  output_type:  'video' | 'pdf' | null;
 }
 
 // 등록된 워커 목록 — 2단계에서 CloudflareTunnelWorker 추가 예정
@@ -23,7 +27,6 @@ const WORKERS: IRenderWorker[] = [
 ];
 
 export function enqueueJob(orderId: string, jobType: 'video' | 'print'): RenderJob {
-  const { randomUUID } = require('crypto') as { randomUUID: () => string };
   const id  = randomUUID();
   const now = Date.now();
   db.prepare(`
@@ -78,9 +81,9 @@ export async function processNextJob(): Promise<{ processed: boolean; jobId?: st
   const startedAt = Date.now();
   db.prepare("UPDATE render_jobs SET status='processing', started_at=? WHERE id=?").run(startedAt, next.id);
 
-  // 주문 snapshot 조회
-  const order = db.prepare<[string], { snapshot: string; order_type: string; title: string }>(
-    'SELECT snapshot, order_type, title FROM media_orders WHERE id=?'
+  // 주문 + userId 조회
+  const order = db.prepare<[string], { snapshot: string; order_type: string; title: string; user_id: string }>(
+    'SELECT snapshot, order_type, title, user_id FROM media_orders WHERE id=?'
   ).get(next.order_id);
 
   let snapshot: Record<string, unknown> = {};
@@ -88,21 +91,30 @@ export async function processNextJob(): Promise<{ processed: boolean; jobId?: st
 
   try {
     const result = await worker.execute({
-      jobId:    next.id,
-      orderId:  next.order_id,
-      jobType:  next.job_type,
+      jobId:   next.id,
+      orderId: next.order_id,
+      userId:  order?.user_id ?? '',
+      jobType: next.job_type,
       snapshot,
-      title:    order?.title ?? '',
+      title:   order?.title ?? '',
     });
 
     const doneAt = Date.now();
     if (result.success) {
-      db.prepare("UPDATE render_jobs SET status='done', done_at=? WHERE id=?").run(doneAt, next.id);
-      db.prepare("UPDATE media_orders SET status='done', updated_at=? WHERE id=?").run(doneAt, next.order_id);
+      db.prepare(`
+        UPDATE render_jobs
+        SET status='done', done_at=?, output_uuid=?, output_path=?, output_type=?
+        WHERE id=?
+      `).run(doneAt, result.outputUuid ?? null, result.outputPath ?? null, result.outputType ?? null, next.id);
+
+      db.prepare(`
+        UPDATE media_orders SET status='done', output_uuid=?, updated_at=? WHERE id=?
+      `).run(result.outputUuid ?? null, doneAt, next.order_id);
     } else {
       db.prepare("UPDATE render_jobs SET status='failed', done_at=?, error_msg=? WHERE id=?")
         .run(doneAt, result.errorMsg ?? 'unknown error', next.id);
-      db.prepare("UPDATE media_orders SET status='failed', updated_at=? WHERE id=?").run(doneAt, next.order_id);
+      db.prepare("UPDATE media_orders SET status='failed', updated_at=? WHERE id=?")
+        .run(doneAt, next.order_id);
     }
     return { processed: true, jobId: next.id };
   } catch (e) {
@@ -110,7 +122,8 @@ export async function processNextJob(): Promise<{ processed: boolean; jobId?: st
     const msg = e instanceof Error ? e.message : 'unknown error';
     db.prepare("UPDATE render_jobs SET status='failed', done_at=?, error_msg=? WHERE id=?")
       .run(doneAt, msg, next.id);
-    db.prepare("UPDATE media_orders SET status='failed', updated_at=? WHERE id=?").run(doneAt, next.order_id);
+    db.prepare("UPDATE media_orders SET status='failed', updated_at=? WHERE id=?")
+      .run(doneAt, next.order_id);
     return { processed: true, jobId: next.id, error: msg };
   }
 }

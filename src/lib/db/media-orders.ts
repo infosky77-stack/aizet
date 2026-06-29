@@ -5,16 +5,17 @@ export type MediaOrderType   = 'video' | 'print';
 export type MediaOrderStatus = 'editing' | 'queued' | 'processing' | 'done' | 'failed';
 
 export interface MediaOrder {
-  id:         string;
-  user_id:    string;
-  order_type: MediaOrderType;
-  title:      string;
-  snapshot:   string;
-  is_paid:    number;
-  payment_id: string | null;
-  status:     MediaOrderStatus;
-  created_at: number;
-  updated_at: number;
+  id:          string;
+  user_id:     string;
+  order_type:  MediaOrderType;
+  title:       string;
+  snapshot:    string;
+  is_paid:     number;
+  payment_id:  string | null;
+  status:      MediaOrderStatus;
+  output_uuid: string | null;
+  created_at:  number;
+  updated_at:  number;
 }
 
 export function createMediaOrder(

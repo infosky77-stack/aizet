@@ -235,6 +235,29 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_render_jobs_order  ON render_jobs(order_id);
 `);
 
+// ── render_jobs 신규 컬럼 추가 (출력 파일 UUID 매핑, 멱등) ────────────────────
+{
+  const existing = (db.pragma('table_info(render_jobs)') as Array<{ name: string }>).map(c => c.name);
+  const toAdd: [string, string][] = [
+    ['output_uuid', 'TEXT'],
+    ['output_path', 'TEXT'],
+    ['output_type', 'TEXT'],
+  ];
+  for (const [col, def] of toAdd) {
+    if (!existing.includes(col)) {
+      db.exec(`ALTER TABLE render_jobs ADD COLUMN ${col} ${def}`);
+    }
+  }
+}
+
+// ── media_orders 신규 컬럼 추가 (출력 UUID 연결, 멱등) ───────────────────────
+{
+  const existing = (db.pragma('table_info(media_orders)') as Array<{ name: string }>).map(c => c.name);
+  if (!existing.includes('output_uuid')) {
+    db.exec(`ALTER TABLE media_orders ADD COLUMN output_uuid TEXT`);
+  }
+}
+
 // ── 슈퍼에디터 업로드 소재 테이블 ────────────────────────────────────────────
 db.exec(`
   CREATE TABLE IF NOT EXISTS super_editor_files (
