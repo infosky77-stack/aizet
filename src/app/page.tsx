@@ -847,6 +847,75 @@ function DashboardCTA() {
   );
 }
 
+/* ─── Demo Images Section ─────────────────────────────── */
+function DemoImagesSection() {
+  const images = [
+    { src: '/api/images/mr-china/exterior.jpg',   alt: '중화가정 외관' },
+    { src: '/api/images/mr-china/interior.jpg',   alt: '중화가정 내부' },
+    { src: '/api/images/mr-china/dish1.jpg',      alt: '중화가정 대표 메뉴' },
+    { src: '/api/images/mr-china/atmosphere.jpg', alt: '중화가정 분위기' },
+  ];
+
+  return (
+    <section className="py-20 px-4 bg-gradient-to-b from-amber-50/60 to-white">
+      <div className="max-w-6xl mx-auto flex flex-col gap-10">
+        <div className="text-center">
+          <div className="inline-flex items-center gap-2 bg-amber-100 text-amber-800 text-xs font-semibold px-3 py-1.5 rounded-full border border-amber-200 mb-4">
+            <Sparkles size={12} />
+            실제 AI 생성 데모
+          </div>
+          <h2 className="text-3xl sm:text-4xl font-black text-stone-900">
+            이런 홈페이지가 자동으로 만들어집니다
+          </h2>
+          <p className="text-stone-600 text-base mt-4 max-w-md mx-auto">
+            중화가정 · 신세계백화점 의정부점 — AIZET가 자동 생성한 식당 홈페이지입니다.
+          </p>
+        </div>
+
+        <Link href="/demo" className="group block">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:h-96">
+            <div className="relative overflow-hidden rounded-2xl col-span-2 md:col-span-1 md:row-span-2 h-56 md:h-full">
+              <img
+                src={images[0].src}
+                alt={images[0].alt}
+                className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
+              <div className="absolute bottom-4 left-4">
+                <span className="bg-white/90 backdrop-blur-sm text-amber-700 text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-lg">
+                  <UtensilsCrossed size={11} />
+                  중화가정
+                </span>
+              </div>
+            </div>
+            {images.slice(1).map((img) => (
+              <div key={img.src} className="relative overflow-hidden rounded-2xl h-36 md:h-full">
+                <img
+                  src={img.src}
+                  alt={img.alt}
+                  className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                />
+              </div>
+            ))}
+          </div>
+        </Link>
+
+        <div className="flex flex-col items-center gap-3">
+          <Link
+            href="/demo"
+            className="inline-flex items-center gap-2 bg-amber-600 hover:bg-amber-700 text-white font-bold text-base px-7 py-4 rounded-xl transition-colors shadow-lg shadow-amber-200"
+          >
+            <Play size={15} />
+            중화가정 데모 직접 체험하기
+            <ArrowRight size={14} />
+          </Link>
+          <p className="text-stone-400 text-sm">주문·결제·AI 챗봇·서빙 로봇까지 모두 작동합니다</p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 /* ─── Demo Preview ────────────────────────────────────── */
 function DemoPreview() {
   return (
@@ -1603,6 +1672,7 @@ export default function LandingPage() {
       <Industries />
       <Features />
       <DashboardCTA />
+      <DemoImagesSection />
       <DemoPreview />
       <MySpaceSection />
       <PromptLibraryCTA />
