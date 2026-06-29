@@ -891,10 +891,7 @@ function DemoImagesSection() {
             {images.slice(1).map((img, i) => (
               <div
                 key={img.src}
-                className={clsx(
-                  'relative overflow-hidden rounded-2xl h-40',
-                  i === 2 && 'col-span-2 md:col-span-1',
-                )}
+                className={`relative overflow-hidden rounded-2xl h-40${i === 2 ? ' col-span-2 md:col-span-1' : ''}`}
               >
                 <img
                   src={img.src}
