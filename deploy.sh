@@ -1,12 +1,16 @@
 #!/bin/bash
 # AIZET 배포 스크립트
 # 실행: bash /root/aizet/deploy.sh
+#
+# npm run build 는 NEXT_DIST_DIR=.aizet-next 를 내재화하고 있어
+# 빌드 결과물이 /root/aizet/.aizet-next 에 직접 생성된다.
+# PM2 도 cwd=/root/aizet + NEXT_DIST_DIR=.aizet-next 로 같은 경로를 읽는다.
+# 따라서 빌드 후 별도 복사 없이 PM2 재시작만 하면 된다.
 
 set -euo pipefail
 
 SRC_DIR="/root/aizet"
-DIST_DIR="/home/aizet/.aizet-next"
-BUILD_OUT="$SRC_DIR/.next"
+BUILD_OUT="$SRC_DIR/.aizet-next"
 PM2_APP="aizet"
 
 GREEN='\033[0;32m'
@@ -25,7 +29,7 @@ echo "========================================"
 echo ""
 
 # ── Step 1: 빌드 ──────────────────────────────────────────
-info "Step 1/3 | Next.js 빌드 중..."
+info "Step 1/2 | Next.js 빌드 중..."
 cd "$SRC_DIR"
 npm run build 2>&1 | tail -5
 BUILD_ID=$(cat "$BUILD_OUT/BUILD_ID" 2>/dev/null || echo "")
@@ -34,37 +38,8 @@ if [[ -z "$BUILD_ID" ]]; then
 fi
 ok "빌드 완료 (BUILD_ID: $BUILD_ID)"
 
-# ── Step 2: 복사 ──────────────────────────────────────────
-info "Step 2/3 | $DIST_DIR 으로 복사 중..."
-rm -rf "$DIST_DIR"
-cp -r "$BUILD_OUT" "$DIST_DIR"
-
-# BUILD_ID 일치 확인
-DIST_BUILD_ID=$(cat "$DIST_DIR/BUILD_ID" 2>/dev/null || echo "")
-if [[ "$BUILD_ID" != "$DIST_BUILD_ID" ]]; then
-  fail "BUILD_ID 불일치: src=$BUILD_ID dist=$DIST_BUILD_ID"
-fi
-ok "복사 완료 (BUILD_ID 일치: $BUILD_ID)"
-
-# 네이티브 모듈 심볼릭 링크 절대경로 수정
-# cp -r 이 상대경로 심볼릭 링크를 그대로 복사해 DIST_DIR에서 경로가 깨지는 문제 방지
-if [[ -d "$DIST_DIR/node_modules" ]]; then
-  for link in "$DIST_DIR/node_modules/"*; do
-    if [[ -L "$link" ]]; then
-      rel_target=$(readlink "$link")
-      mod_name=$(basename "$link")
-      # .next/node_modules/ 안의 원본 심볼릭 링크 대상(절대경로)으로 교체
-      abs_target=$(realpath -m "$BUILD_OUT/node_modules/$mod_name" 2>/dev/null || echo "")
-      if [[ -n "$abs_target" && -e "$abs_target" ]]; then
-        rm "$link"
-        ln -s "$abs_target" "$link"
-      fi
-    fi
-  done
-fi
-
-# ── Step 3: PM2 재시작 ────────────────────────────────────
-info "Step 3/3 | PM2 '$PM2_APP' 재시작 중..."
+# ── Step 2: PM2 재시작 ────────────────────────────────────
+info "Step 2/2 | PM2 '$PM2_APP' 재시작 중..."
 pm2 restart "$PM2_APP" --update-env 2>&1 | grep -E "(restarted|error|online)" || true
 sleep 2
 
