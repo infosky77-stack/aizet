@@ -114,6 +114,7 @@ export default function SuperEditorPage() {
   const [uploading,    setUploading]    = useState(false);
   const [uploadError,  setUploadError]  = useState('');
   const [deletingFile, setDeletingFile] = useState<string | null>(null);
+  const [mobilePanelView, setMobilePanelView] = useState<'edit' | 'right'>('right');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // QR / 모바일 전송
@@ -495,10 +496,39 @@ export default function SuperEditorPage() {
   }[order.order_type];
 
   return (
-    <div className="flex h-full overflow-hidden">
+    <div className="flex flex-col lg:flex-row h-full overflow-hidden">
+
+      {/* ── 모바일 패널 전환 탭 (lg 이상에서는 숨김) ──────────────── */}
+      <div className="lg:hidden flex shrink-0 border-b border-stone-200 bg-white">
+        <button
+          onClick={() => setMobilePanelView('right')}
+          className={clsx(
+            'flex-1 py-2.5 text-xs font-bold border-b-2 transition-colors',
+            mobilePanelView === 'right'
+              ? isCatalog ? 'border-amber-500 text-amber-700' : 'border-violet-500 text-violet-700'
+              : 'border-transparent text-stone-400',
+          )}
+        >
+          {isCatalog ? '① 이미지 · ③ 미리보기' : '파일 / 미리보기'}
+        </button>
+        <button
+          onClick={() => setMobilePanelView('edit')}
+          className={clsx(
+            'flex-1 py-2.5 text-xs font-bold border-b-2 transition-colors',
+            mobilePanelView === 'edit'
+              ? isCatalog ? 'border-amber-500 text-amber-700' : 'border-violet-500 text-violet-700'
+              : 'border-transparent text-stone-400',
+          )}
+        >
+          {isCatalog ? '② 작품 정보 입력' : '편집 설정'}
+        </button>
+      </div>
 
       {/* ── 좌측 편집 패널 ──────────────────────────────────────── */}
-      <aside className="w-80 shrink-0 border-r border-stone-200 bg-white flex flex-col overflow-hidden">
+      <aside className={clsx(
+        'w-full lg:w-80 shrink-0 border-b lg:border-b-0 lg:border-r border-stone-200 bg-white flex-col overflow-hidden',
+        mobilePanelView === 'edit' ? 'flex' : 'hidden lg:flex',
+      )}>
 
         {/* 헤더 */}
         <div className="flex items-center gap-2 px-4 py-3 border-b border-stone-100 shrink-0">
@@ -677,7 +707,10 @@ export default function SuperEditorPage() {
       </aside>
 
       {/* ── 우측 패널 ───────────────────────────────────────────── */}
-      <div className="flex-1 flex flex-col overflow-hidden bg-stone-100">
+      <div className={clsx(
+        'flex-1 flex-col overflow-hidden bg-stone-100',
+        mobilePanelView === 'right' ? 'flex' : 'hidden lg:flex',
+      )}>
 
         {/* 탭 헤더 */}
         <div className="flex items-center bg-white border-b border-stone-200 shrink-0">

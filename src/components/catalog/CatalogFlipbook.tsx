@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import HTMLFlipBook from 'react-pageflip';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { AizetLogo } from '@/components/AizetLogo';
@@ -29,6 +29,14 @@ const CAP_H  = 72;
 export default function CatalogFlipbook({ artworks, exhibitionTitle, artistName }: Props) {
   const bookRef = useRef<any>(null);
   const [page, setPage] = useState(0);
+  const [isPortrait, setIsPortrait] = useState(false);
+
+  useEffect(() => {
+    const check = () => setIsPortrait(window.innerWidth < 640);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
 
   // 표지 + 작품 페이지들 + 후면
   const totalPages = artworks.length + 2;
@@ -45,6 +53,7 @@ export default function CatalogFlipbook({ artworks, exhibitionTitle, artistName 
       {/* 플립북 본체 */}
       <div className="drop-shadow-2xl">
         <HTMLFlipBook
+          key={String(isPortrait)}
           ref={bookRef}
           width={PAGE_W}
           height={PAGE_H}
@@ -56,7 +65,7 @@ export default function CatalogFlipbook({ artworks, exhibitionTitle, artistName 
           showCover
           drawShadow
           flippingTime={650}
-          usePortrait={false}
+          usePortrait={isPortrait}
           startZIndex={0}
           autoSize={false}
           maxShadowOpacity={0.45}

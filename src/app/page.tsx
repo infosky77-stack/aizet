@@ -510,11 +510,11 @@ function Hero() {
               </div>
               </Link>
 
-              <div className="absolute -right-3 top-16 bg-white rounded-xl shadow-lg border border-stone-100 px-3 py-2 flex items-center gap-2">
+              <div className="hidden sm:flex absolute -right-3 top-16 bg-white rounded-xl shadow-lg border border-stone-100 px-3 py-2 items-center gap-2">
                 <Zap size={13} className="text-amber-500" />
                 <span className="text-xs font-semibold text-stone-700">AI 생성 완료</span>
               </div>
-              <div className="absolute -left-3 bottom-16 bg-white rounded-xl shadow-lg border border-stone-100 px-3 py-2 flex items-center gap-2">
+              <div className="hidden sm:flex absolute -left-3 bottom-16 bg-white rounded-xl shadow-lg border border-stone-100 px-3 py-2 items-center gap-2">
                 <BarChart3 size={13} className="text-emerald-500" />
                 <span className="text-xs font-semibold text-stone-700">오늘 매출 +23%</span>
               </div>
@@ -1315,11 +1315,11 @@ function MySpaceSection() {
                 </div>
               </div>
 
-              <div className="absolute -right-3 top-20 bg-white rounded-xl shadow-lg border border-stone-100 px-3 py-2 flex items-center gap-2">
+              <div className="hidden sm:flex absolute -right-3 top-20 bg-white rounded-xl shadow-lg border border-stone-100 px-3 py-2 items-center gap-2">
                 <Shield size={12} className="text-violet-500" />
                 <span className="text-xs font-semibold text-stone-700">알고리즘 노출 없음</span>
               </div>
-              <div className="absolute -left-3 bottom-12 bg-white rounded-xl shadow-lg border border-stone-100 px-3 py-2 flex items-center gap-2">
+              <div className="hidden sm:flex absolute -left-3 bottom-12 bg-white rounded-xl shadow-lg border border-stone-100 px-3 py-2 items-center gap-2">
                 <Cloud size={12} className="text-blue-500" />
                 <span className="text-xs font-semibold text-stone-700">Drive 연동 저장</span>
               </div>
