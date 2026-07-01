@@ -160,48 +160,50 @@ export default function CatalogFlipbook({
           >
             <div className="absolute top-0 left-0 right-0 h-1 bg-amber-600" />
 
-            <div className="shrink-0 flex flex-col items-center gap-2"
-              style={{ paddingTop: fs(28), paddingBottom: fs(12), paddingLeft: fs(32), paddingRight: fs(32) }}
-            >
-              {exhibitionTitle ? (
-                <p className="font-black leading-snug tracking-tight text-center text-stone-900"
-                  style={{ fontSize: fs(14) }}>
-                  {exhibitionTitle}
-                </p>
-              ) : (
-                <p className="italic text-center text-stone-300" style={{ fontSize: fs(12) }}>전시명을 입력하세요</p>
-              )}
-              <div className="h-px bg-amber-500" style={{ width: fs(32) }} />
-            </div>
+            <div className="h-full flex flex-col">
+              <div className="shrink-0 flex flex-col items-center gap-2"
+                style={{ paddingTop: fs(28), paddingBottom: fs(12), paddingLeft: fs(32), paddingRight: fs(32) }}
+              >
+                {exhibitionTitle ? (
+                  <p className="font-black leading-snug tracking-tight text-center text-stone-900"
+                    style={{ fontSize: fs(14) }}>
+                    {exhibitionTitle}
+                  </p>
+                ) : (
+                  <p className="italic text-center text-stone-300" style={{ fontSize: fs(12) }}>전시명을 입력하세요</p>
+                )}
+                <div className="h-px bg-amber-500" style={{ width: fs(32) }} />
+              </div>
 
-            <div className="flex-1 min-h-0 flex items-center justify-center bg-white border border-stone-100 shadow-sm overflow-hidden"
-              style={{ marginLeft: fs(24), marginRight: fs(24) }}
-            >
-              {artworks.length > 0 ? (
-                /* eslint-disable-next-line @next/next/no-img-element */
-                <img
-                  src={artworks[0].imageUrl}
-                  alt={artworks[0].title || '대표 작품'}
-                  className="w-full h-full object-contain"
-                  draggable={false}
-                />
-              ) : (
-                <p className="text-stone-200 text-center leading-relaxed" style={{ fontSize: fs(10) }}>
-                  작품을 추가하면<br />여기에 표시됩니다
-                </p>
-              )}
-            </div>
+              <div className="flex-1 min-h-0 flex items-center justify-center bg-white border border-stone-100 shadow-sm overflow-hidden"
+                style={{ marginLeft: fs(24), marginRight: fs(24) }}
+              >
+                {artworks.length > 0 ? (
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img
+                    src={artworks[0].imageUrl}
+                    alt={artworks[0].title || '대표 작품'}
+                    className="w-full h-full object-contain"
+                    draggable={false}
+                  />
+                ) : (
+                  <p className="text-stone-200 text-center leading-relaxed" style={{ fontSize: fs(10) }}>
+                    작품을 추가하면<br />여기에 표시됩니다
+                  </p>
+                )}
+              </div>
 
-            <div className="shrink-0 flex flex-col items-center gap-1.5"
-              style={{ paddingTop: fs(12), paddingBottom: fs(24), paddingLeft: fs(32), paddingRight: fs(32) }}
-            >
-              <div className="h-px bg-stone-200" style={{ width: fs(32) }} />
-              {artistName ? (
-                <p className="text-stone-700 font-medium tracking-[0.25em]" style={{ fontSize: fs(11) }}>{artistName}</p>
-              ) : (
-                <p className="text-stone-300 tracking-[0.15em]" style={{ fontSize: fs(11) }}>작가명</p>
-              )}
-              <p className="text-stone-400 tracking-[0.2em] mt-0.5" style={{ fontSize: fs(9) }}>CATALOG</p>
+              <div className="shrink-0 flex flex-col items-center gap-1.5"
+                style={{ paddingTop: fs(12), paddingBottom: fs(24), paddingLeft: fs(32), paddingRight: fs(32) }}
+              >
+                <div className="h-px bg-stone-200" style={{ width: fs(32) }} />
+                {artistName ? (
+                  <p className="text-stone-700 font-medium tracking-[0.25em]" style={{ fontSize: fs(11) }}>{artistName}</p>
+                ) : (
+                  <p className="text-stone-300 tracking-[0.15em]" style={{ fontSize: fs(11) }}>작가명</p>
+                )}
+                <p className="text-stone-400 tracking-[0.2em] mt-0.5" style={{ fontSize: fs(9) }}>CATALOG</p>
+              </div>
             </div>
           </div>
 
@@ -266,7 +268,7 @@ export default function CatalogFlipbook({
             <div className="absolute top-0 left-0 right-0 h-1 bg-amber-600" />
             <div className="absolute bottom-0 left-0 right-0 h-1 bg-amber-600" />
 
-            <div className="flex-1 flex flex-col items-center justify-center gap-5"
+            <div className="h-full flex flex-col items-center justify-center gap-5"
               style={{ paddingLeft: fs(40), paddingRight: fs(40) }}
             >
               {(exhibitionTitle || artistName) && (
