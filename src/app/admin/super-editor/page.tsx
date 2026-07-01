@@ -131,7 +131,7 @@ function SuperEditorIndexContent() {
                     'flex flex-col items-center gap-1.5 py-3 rounded-xl border-2 text-sm font-medium transition-colors',
                     newType === t
                       ? t === 'catalog'
-                        ? 'border-cyan-500 bg-cyan-50 text-cyan-700'
+                        ? 'border-amber-500 bg-amber-50 text-amber-700'
                         : 'border-violet-500 bg-violet-50 text-violet-700'
                       : 'border-stone-200 text-stone-500 hover:border-stone-300',
                   )}
@@ -212,12 +212,12 @@ function SuperEditorIndexContent() {
                 <div className={clsx(
                   'w-10 h-10 rounded-xl flex items-center justify-center shrink-0',
                   order.order_type === 'video'   ? 'bg-violet-100' :
-                  order.order_type === 'catalog' ? 'bg-stone-100'  : 'bg-indigo-100',
+                  order.order_type === 'catalog' ? 'bg-amber-100'  : 'bg-indigo-100',
                 )}>
                   {order.order_type === 'video'
                     ? <Film size={18} className="text-violet-600" />
                     : order.order_type === 'catalog'
-                    ? <BookOpen size={18} className="text-stone-600" />
+                    ? <BookOpen size={18} className="text-amber-700" />
                     : <Printer size={18} className="text-indigo-600" />}
                 </div>
 

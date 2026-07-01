@@ -112,6 +112,7 @@ export default function SuperEditorPage() {
   const catalogTabInit = useRef(false);
   const [filesLoading, setFilesLoading] = useState(false);
   const [uploading,    setUploading]    = useState(false);
+  const [uploadError,  setUploadError]  = useState('');
   const [deletingFile, setDeletingFile] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -172,18 +173,27 @@ export default function SuperEditorPage() {
 
   async function uploadFiles(fileList: FileList) {
     setUploading(true);
+    setUploadError('');
     const uploaded: SEFile[] = [];
-    for (const file of Array.from(fileList)) {
-      const fd = new FormData();
-      fd.append('file', file);
-      const res = await fetch('/api/admin/super-editor/files', { method: 'POST', body: fd });
-      if (res.ok) {
-        const data = await res.json();
-        uploaded.push(data.file);
+    try {
+      for (const file of Array.from(fileList)) {
+        const fd = new FormData();
+        fd.append('file', file);
+        const res = await fetch('/api/admin/super-editor/files', { method: 'POST', body: fd });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.file) uploaded.push(data.file);
+        } else {
+          const errText = await res.text().catch(() => '');
+          setUploadError(`업로드 실패 (${res.status}) — ${errText.slice(0, 80) || '서버 오류'}`);
+        }
       }
+    } catch (err) {
+      setUploadError(`업로드 중 오류: ${err instanceof Error ? err.message : '네트워크 오류'}`);
+    } finally {
+      if (uploaded.length > 0) setSeFiles(prev => [...uploaded, ...prev]);
+      setUploading(false);
     }
-    setSeFiles(prev => [...uploaded, ...prev]);
-    setUploading(false);
   }
 
   async function handleDeleteFile(id: string) {
@@ -481,7 +491,7 @@ export default function SuperEditorPage() {
   const typeTheme = {
     video:   { icon: <Film size={14} className="text-violet-600" />,  bg: 'bg-violet-100', ring: 'focus:ring-violet-300' },
     print:   { icon: <Printer size={14} className="text-indigo-600" />, bg: 'bg-indigo-100', ring: 'focus:ring-indigo-300' },
-    catalog: { icon: <BookOpen size={14} className="text-cyan-600" />,  bg: 'bg-cyan-100',   ring: 'focus:ring-cyan-300'   },
+    catalog: { icon: <BookOpen size={14} className="text-amber-700" />,  bg: 'bg-amber-100',   ring: 'focus:ring-amber-300'   },
   }[order.order_type];
 
   return (
@@ -694,7 +704,7 @@ export default function SuperEditorPage() {
             <FolderOpen size={12} />
             {isCatalog ? '① 작품 이미지' : '파일 관리자'}
             {seFiles.length > 0 && (
-              <span className="bg-violet-100 text-violet-600 text-[10px] px-1.5 py-0.5 rounded-full">{seFiles.length}</span>
+              <span className={clsx('text-[10px] px-1.5 py-0.5 rounded-full', isCatalog ? 'bg-amber-100 text-amber-700' : 'bg-violet-100 text-violet-600')}>{seFiles.length}</span>
             )}
           </button>
 
@@ -716,7 +726,7 @@ export default function SuperEditorPage() {
                 disabled={uploading}
                 className={clsx(
                   'flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors',
-                  uploading ? 'bg-stone-100 text-stone-400' : 'bg-violet-100 hover:bg-violet-200 text-violet-700',
+                  uploading ? 'bg-stone-100 text-stone-400' : isCatalog ? 'bg-amber-100 hover:bg-amber-200 text-amber-700' : 'bg-violet-100 hover:bg-violet-200 text-violet-700',
                 )}
               >
                 {uploading ? <Loader2 size={11} className="animate-spin" /> : <Upload size={11} />}
@@ -757,8 +767,8 @@ export default function SuperEditorPage() {
           ) : (
             // PDF 결과물 (도록·인쇄)
             <div className="flex-1 flex flex-col items-center justify-center gap-5 bg-stone-50">
-              <div className="w-16 h-16 rounded-2xl bg-cyan-100 flex items-center justify-center">
-                <BookOpen size={32} className="text-cyan-600" />
+              <div className="w-16 h-16 rounded-2xl bg-amber-100 flex items-center justify-center">
+                <BookOpen size={32} className="text-amber-700" />
               </div>
               <div className="text-center">
                 <p className="font-bold text-stone-800 text-base">PDF 생성 완료</p>
@@ -767,7 +777,7 @@ export default function SuperEditorPage() {
               <a
                 href={`/api/admin/render-output/${order.output_uuid}`}
                 download
-                className="flex items-center gap-2 px-6 py-3 bg-cyan-600 hover:bg-cyan-700 text-white text-sm font-bold rounded-xl transition-colors shadow-lg"
+                className="flex items-center gap-2 px-6 py-3 bg-amber-600 hover:bg-amber-700 text-white text-sm font-bold rounded-xl transition-colors shadow-lg"
               >
                 <Download size={15} />
                 도록 PDF 다운로드
@@ -775,7 +785,7 @@ export default function SuperEditorPage() {
               <a
                 href={`/api/admin/render-output/${order.output_uuid}`}
                 target="_blank"
-                className="text-xs text-stone-400 hover:text-cyan-600 transition-colors"
+                className="text-xs text-stone-400 hover:text-amber-700 transition-colors"
               >
                 브라우저에서 미리보기 →
               </a>
@@ -807,13 +817,24 @@ export default function SuperEditorPage() {
         {panelTab === 'files' && (
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
 
+            {/* 업로드 에러 표시 */}
+            {uploadError && (
+              <div className="flex items-center gap-2 px-3 py-2 bg-red-50 border border-red-200 rounded-xl text-xs text-red-600 font-medium">
+                <AlertCircle size={13} className="shrink-0" />
+                <span className="flex-1">{uploadError}</span>
+                <button onClick={() => setUploadError('')} className="shrink-0 hover:text-red-800">
+                  <X size={12} />
+                </button>
+              </div>
+            )}
+
             {/* QR 무선 전송 */}
             <div className="bg-white rounded-xl border border-stone-200 overflow-hidden">
               <button
                 onClick={handleToggleQr}
                 className="w-full flex items-center gap-2 px-4 py-3 hover:bg-stone-50 transition-colors text-left"
               >
-                <Smartphone size={14} className="text-violet-500 shrink-0" />
+                <Smartphone size={14} className={clsx('shrink-0', isCatalog ? 'text-amber-600' : 'text-violet-500')} />
                 <span className="text-sm font-semibold text-stone-700 flex-1">
                   {isCatalog ? '스마트폰으로 작품 촬영 전송' : '스마트폰으로 사진 전송'}
                 </span>
@@ -837,7 +858,7 @@ export default function SuperEditorPage() {
                         </span>
                       </p>
                       <button onClick={fetchQr} disabled={qrLoading}
-                        className="flex items-center gap-1.5 text-xs text-violet-600 hover:text-violet-800 font-semibold">
+                        className={clsx('flex items-center gap-1.5 text-xs font-semibold', isCatalog ? 'text-amber-600 hover:text-amber-800' : 'text-violet-600 hover:text-violet-800')}>
                         <RefreshCw size={11} />QR 새로고침
                       </button>
                     </>
@@ -858,10 +879,15 @@ export default function SuperEditorPage() {
               </div>
             ) : seFiles.length === 0 ? (
               isCatalog ? (
-                <div
-                  onClick={() => fileInputRef.current?.click()}
+                <label
                   className="flex flex-col items-center gap-4 py-12 px-4 cursor-pointer border-2 border-dashed border-amber-200 rounded-2xl hover:border-amber-400 hover:bg-amber-50 transition-colors bg-white text-center"
+                  onDragOver={e => { e.preventDefault(); e.stopPropagation(); }}
+                  onDrop={e => { e.preventDefault(); e.stopPropagation(); if (e.dataTransfer.files?.length) { uploadFiles(e.dataTransfer.files); } }}
                 >
+                  <input
+                    type="file" multiple accept="image/*" className="hidden"
+                    onChange={e => { if (e.target.files?.length) { uploadFiles(e.target.files); e.target.value = ''; } }}
+                  />
                   <div className="w-16 h-16 rounded-2xl bg-amber-100 flex items-center justify-center">
                     <Upload size={28} className="text-amber-600" />
                   </div>
@@ -871,23 +897,28 @@ export default function SuperEditorPage() {
                     <p className="text-xs text-stone-300 mt-2">JPG · PNG · WEBP 지원</p>
                   </div>
                   <p className="text-xs text-amber-600 font-semibold bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-full">
-                    또는 위 [QR 열기]로 스마트폰에서 바로 전송
+                    또는 위 [업로드] 버튼이나 QR로 스마트폰 전송
                   </p>
-                </div>
+                </label>
               ) : (
-                <div
-                  onClick={() => fileInputRef.current?.click()}
+                <label
                   className="flex flex-col items-center gap-3 py-16 text-stone-400 cursor-pointer border-2 border-dashed border-stone-200 rounded-2xl hover:border-violet-300 hover:bg-white transition-colors"
+                  onDragOver={e => { e.preventDefault(); e.stopPropagation(); }}
+                  onDrop={e => { e.preventDefault(); e.stopPropagation(); if (e.dataTransfer.files?.length) { uploadFiles(e.dataTransfer.files); } }}
                 >
+                  <input
+                    type="file" multiple accept="image/*,video/*,audio/*" className="hidden"
+                    onChange={e => { if (e.target.files?.length) { uploadFiles(e.target.files); e.target.value = ''; } }}
+                  />
                   <Upload size={32} className="opacity-30" />
                   <p className="text-sm">클릭해서 소재를 업로드하세요</p>
                   <p className="text-xs text-stone-300">이미지 · 영상 · 오디오</p>
-                </div>
+                </label>
               )
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {seFiles.map(file => (
-                  <div key={file.id} className="group bg-white border border-stone-200 rounded-xl overflow-hidden hover:border-violet-300 transition-colors">
+                  <div key={file.id} className={clsx('group bg-white border border-stone-200 rounded-xl overflow-hidden transition-colors', isCatalog ? 'hover:border-amber-300' : 'hover:border-violet-300')}>
                     <div className="aspect-video bg-stone-100 flex items-center justify-center relative overflow-hidden">
                       {file.file_type === 'image' ? (
                         // eslint-disable-next-line @next/next/no-img-element
@@ -916,7 +947,7 @@ export default function SuperEditorPage() {
                       {file.file_type === 'image' && !isLocked && (
                         <button
                           onClick={() => handleInsertImage(`/api/super-editor-files/${file.user_id}/${file.filename}`)}
-                          className="shrink-0 text-[10px] font-bold text-violet-600 hover:text-violet-800 px-1.5 py-0.5 rounded hover:bg-violet-50 transition-colors"
+                          className={clsx('shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded transition-colors', isCatalog ? 'text-amber-700 hover:text-amber-900 hover:bg-amber-50' : 'text-violet-600 hover:text-violet-800 hover:bg-violet-50')}
                         >
                           {isCatalog ? '추가' : '삽입'}
                         </button>
@@ -1219,14 +1250,16 @@ function CatalogForm({ snap, onChange, locked, onMoveArtwork, onDeleteArtwork }:
   onMoveArtwork:   (id: string, dir: 'up' | 'down') => void;
   onDeleteArtwork: (id: string) => void;
 }) {
-  const cls    = 'w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-300 disabled:bg-stone-50 disabled:text-stone-400';
-  const clsS   = 'w-full border border-stone-200 rounded-md px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-cyan-300 disabled:bg-stone-50 disabled:text-stone-400';
+  const cls    = 'w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-300 disabled:bg-stone-50 disabled:text-stone-400';
+  const clsS   = 'w-full border border-stone-200 rounded-md px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-amber-300 disabled:bg-stone-50 disabled:text-stone-400';
   const [guideOpen, setGuideOpen] = useState(true);
   const [aiLoading, setAiLoading] = useState<Record<string, boolean>>({});
   const [mockupLoading, setMockupLoading] = useState<Record<string, boolean>>({});
   const [mockupUrls, setMockupUrls] = useState<Record<string, string>>({});
   const [mockupErrors, setMockupErrors] = useState<Record<string, string>>({});
   const [mockupImgLoaded, setMockupImgLoaded] = useState<Record<string, boolean>>({});
+  const [mockupModal, setMockupModal] = useState<{ url: string; title: string } | null>(null);
+  const pendingModalId = useRef<string | null>(null);
 
   function updateArtwork(id: string, patch: Partial<ArtworkEntry>) {
     if (locked) return;
@@ -1262,6 +1295,7 @@ function CatalogForm({ snap, onChange, locked, onMoveArtwork, onDeleteArtwork }:
     setMockupLoading(prev => ({ ...prev, [artwork.id]: true }));
     setMockupErrors(prev => ({ ...prev, [artwork.id]: '' }));
     setMockupImgLoaded(prev => ({ ...prev, [artwork.id]: false }));
+    pendingModalId.current = artwork.id;
     try {
       const res = await fetch('/api/admin/catalog-mockup', {
         method:  'POST',
@@ -1291,16 +1325,16 @@ function CatalogForm({ snap, onChange, locked, onMoveArtwork, onDeleteArtwork }:
     <>
       {/* 처음 사용 안내 (접기 가능) */}
       {!locked && (
-        <div className="bg-cyan-50 border border-cyan-100 rounded-xl overflow-hidden">
+        <div className="bg-amber-50 border border-amber-100 rounded-xl overflow-hidden">
           <button
             onClick={() => setGuideOpen(v => !v)}
             className="w-full flex items-center justify-between px-3 py-2.5 text-left"
           >
-            <span className="text-xs font-semibold text-cyan-700">📋 처음 쓰시나요? 사용법 안내</span>
-            <span className="text-xs text-cyan-400">{guideOpen ? '접기 ▲' : '펼치기 ▼'}</span>
+            <span className="text-xs font-semibold text-amber-700">📋 처음 쓰시나요? 사용법 안내</span>
+            <span className="text-xs text-amber-400">{guideOpen ? '접기 ▲' : '펼치기 ▼'}</span>
           </button>
           {guideOpen && (
-            <div className="px-3 pb-3 flex flex-col gap-1.5 text-[11px] text-cyan-800 leading-relaxed border-t border-cyan-100 pt-2.5">
+            <div className="px-3 pb-3 flex flex-col gap-1.5 text-[11px] text-amber-900 leading-relaxed border-t border-amber-100 pt-2.5">
               <p>① 오른쪽 <strong>[① 작품 이미지]</strong> 탭에서 이미지를 업로드하거나, QR로 스마트폰에서 바로 전송하세요.</p>
               <p>② 각 작품 카드에 <strong>제목·재료·크기·연도</strong>를 입력하세요. <strong>✦ AI 자동 생성</strong>으로 작품 설명도 만들 수 있어요.</p>
               <p>③ 오른쪽 <strong>[③ 도록 미리보기]</strong> 탭에서 A4 레이아웃을 확인하고, ▲ ▼로 순서를 조정하세요.</p>
@@ -1463,7 +1497,12 @@ function CatalogForm({ snap, onChange, locked, onMoveArtwork, onDeleteArtwork }:
                       </button>
                     </div>
                     {mockupUrls[artwork.id] && (
-                      <div className="relative rounded-lg overflow-hidden bg-stone-100" style={{ minHeight: 80 }}>
+                      <div
+                        className="relative rounded-lg overflow-hidden bg-stone-100 cursor-pointer"
+                        style={{ minHeight: 80 }}
+                        onClick={() => mockupImgLoaded[artwork.id] && setMockupModal({ url: mockupUrls[artwork.id], title: artwork.title })}
+                        title="클릭하면 크게 볼 수 있어요"
+                      >
                         {!mockupImgLoaded[artwork.id] && (
                           <div className="absolute inset-0 flex items-center justify-center gap-1.5 text-stone-400">
                             <Loader2 size={13} className="animate-spin" />
@@ -1476,12 +1515,24 @@ function CatalogForm({ snap, onChange, locked, onMoveArtwork, onDeleteArtwork }:
                           alt="실사 목업"
                           className="w-full h-auto rounded-lg"
                           style={{ opacity: mockupImgLoaded[artwork.id] ? 1 : 0, transition: 'opacity 0.3s' }}
-                          onLoad={() => setMockupImgLoaded(prev => ({ ...prev, [artwork.id]: true }))}
+                          onLoad={(e) => {
+                            setMockupImgLoaded(prev => ({ ...prev, [artwork.id]: true }));
+                            if (pendingModalId.current === artwork.id) {
+                              pendingModalId.current = null;
+                              setMockupModal({ url: (e.target as HTMLImageElement).src, title: artwork.title });
+                            }
+                          }}
                           onError={() => {
+                            pendingModalId.current = null;
                             setMockupErrors(prev => ({ ...prev, [artwork.id]: '이미지 로드 실패 — 다시 시도하세요' }));
                             setMockupUrls(prev => { const n = { ...prev }; delete n[artwork.id]; return n; });
                           }}
                         />
+                        {mockupImgLoaded[artwork.id] && (
+                          <div className="absolute bottom-1.5 right-1.5 bg-black/40 text-white text-[9px] font-semibold px-1.5 py-0.5 rounded">
+                            클릭해서 크게 보기
+                          </div>
+                        )}
                       </div>
                     )}
                     {mockupErrors[artwork.id] && (
@@ -1494,6 +1545,47 @@ function CatalogForm({ snap, onChange, locked, onMoveArtwork, onDeleteArtwork }:
           </div>
         )}
       </section>
+
+      {/* 실사 목업 전체화면 모달 */}
+      {mockupModal && (
+        <div
+          className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/80 p-4"
+          onClick={() => setMockupModal(null)}
+        >
+          {/* 헤더 */}
+          <div
+            className="w-full max-w-3xl flex items-center justify-between mb-3"
+            onClick={e => e.stopPropagation()}
+          >
+            <div>
+              <p className="text-white font-bold text-base leading-tight">{mockupModal.title}</p>
+              <p className="text-amber-300 text-xs font-semibold tracking-wide mt-0.5">✦ 도록 실사 목업 미리보기</p>
+            </div>
+            <button
+              onClick={() => setMockupModal(null)}
+              className="w-9 h-9 bg-white/15 hover:bg-white/30 rounded-full flex items-center justify-center text-white transition-colors"
+            >
+              <X size={16} />
+            </button>
+          </div>
+
+          {/* 이미지 */}
+          <div
+            className="w-full max-w-3xl rounded-2xl overflow-hidden shadow-2xl"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={mockupModal.url}
+              alt="실사 목업 전체보기"
+              className="w-full h-auto"
+              style={{ maxHeight: '72vh', objectFit: 'contain', background: '#1c1917' }}
+            />
+          </div>
+
+          <p className="text-white/40 text-xs mt-4">클릭하거나 바깥을 눌러 닫기</p>
+        </div>
+      )}
     </>
   );
 }
