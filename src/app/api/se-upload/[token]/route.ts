@@ -3,8 +3,7 @@ import { writeFile, mkdir } from 'fs/promises';
 import { existsSync } from 'fs';
 import path from 'path';
 import { randomUUID } from 'crypto';
-import { tokenStore } from '@/app/api/admin/super-editor/mobile-token/route';
-import { notifyChannel } from '@/app/api/admin/super-editor/sse/[orderId]/route';
+import { validateToken, notifyChannel } from '@/lib/mobile-upload-store';
 import { insertFile } from '@/lib/db/super-editor-files';
 
 export const dynamic = 'force-dynamic';
@@ -22,7 +21,7 @@ const EXT_MAP: Record<string, string> = {
   'video/mp4': 'mp4', 'video/quicktime': 'mov', 'video/webm': 'webm',
 };
 
-const MAX_SIZE = 100 * 1024 * 1024; // 100 MB
+const MAX_SIZE = 200 * 1024 * 1024; // 200 MB
 
 function userDir(userId: string): string {
   return path.join(process.cwd(), 'data', 'super-editor-files', userId);
@@ -34,10 +33,8 @@ export async function GET(
   { params }: { params: Promise<{ token: string }> },
 ) {
   const { token } = await params;
-  const entry = tokenStore.get(token);
-  if (!entry || entry.exp < Date.now()) {
-    return NextResponse.json({ error: 'token_expired' }, { status: 410 });
-  }
+  const entry = validateToken(token);
+  if (!entry) return NextResponse.json({ error: 'token_expired' }, { status: 410 });
   return NextResponse.json({ ok: true, orderId: entry.orderId });
 }
 
@@ -47,26 +44,28 @@ export async function POST(
   { params }: { params: Promise<{ token: string }> },
 ) {
   const { token } = await params;
-  const entry = tokenStore.get(token);
-  if (!entry || entry.exp < Date.now()) {
-    return NextResponse.json({ error: 'token_expired' }, { status: 410 });
-  }
+  const entry = validateToken(token);
+  if (!entry) return NextResponse.json({ error: 'token_expired' }, { status: 410 });
 
   const formData = await req.formData();
   const file = formData.get('file') as File | null;
   if (!file) return NextResponse.json({ error: 'no file' }, { status: 400 });
-  if (file.size > MAX_SIZE) return NextResponse.json({ error: 'file too large (max 100MB)' }, { status: 413 });
+  if (file.size > MAX_SIZE) return NextResponse.json({ error: 'file too large (max 200MB)' }, { status: 413 });
 
-  // HEIC는 MIME가 불확실 — 확장자로 보정
+  // HEIC/HEIF 등 MIME 불확실한 경우 확장자로 보정
   let mime = file.type;
   if (!mime || mime === 'application/octet-stream') {
     const ext = file.name.split('.').pop()?.toLowerCase() ?? '';
-    if (ext === 'heic') mime = 'image/heic';
-    else if (ext === 'heif') mime = 'image/heif';
+    const fallback: Record<string, string> = {
+      heic: 'image/heic', heif: 'image/heif',
+      mp4: 'video/mp4', mov: 'video/quicktime', webm: 'video/webm',
+      jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp',
+    };
+    mime = fallback[ext] ?? mime;
   }
 
   const fileType = MIME_TO_TYPE[mime] ?? 'image';
-  const ext = EXT_MAP[mime] ?? file.name.split('.').pop() ?? 'jpg';
+  const ext = EXT_MAP[mime] ?? (file.name.split('.').pop() ?? 'jpg');
   const filename = `${randomUUID()}.${ext}`;
   const dir = userDir(entry.userId);
 
@@ -77,7 +76,7 @@ export async function POST(
   const record = insertFile(entry.userId, filename, file.name || filename, fileType, mime, file.size);
   const url = `/api/super-editor-files/${entry.userId}/${filename}`;
 
-  // SSE로 PC 편집 화면에 notify
+  // SSE로 PC 편집 화면에 notify (공유 store 사용 → 같은 채널 Map)
   notifyChannel(entry.orderId, {
     type: 'file_uploaded',
     url,

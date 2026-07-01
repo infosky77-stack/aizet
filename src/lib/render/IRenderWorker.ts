@@ -2,7 +2,7 @@ export interface RenderJobPayload {
   jobId:     string;
   orderId:   string;
   userId:    string;
-  jobType:   'video' | 'print';
+  jobType:   'video' | 'print' | 'catalog';
   snapshot:  Record<string, unknown>;
   title:     string;
 }

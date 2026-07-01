@@ -40,6 +40,7 @@ import {
   Shield,
   Leaf,
   Scale,
+  Landmark,
   Lock,
   Link2,
   KeyRound,
@@ -100,16 +101,28 @@ const INDUSTRIES_LIST: IndustryItem[] = [
     href: '/clinic',
   },
   {
-    icon: <Building2 size={22} />,
-    name: '법무사·세무사',
+    icon: <Scale size={22} />,
+    name: '세무사',
     color: 'bg-blue-100 text-blue-700',
-    sub: '상담 예약·서비스 안내',
-    gradient: 'from-blue-600 to-blue-900',
+    sub: '세금 신고·절세·AI 세무 상담',
+    gradient: 'from-slate-700 to-blue-900',
     mockupTitle: '세무법인 에이젯',
     mockupSub: 'AI 세무 상담 · 신고 기한 · 계산기',
     cta: '상담 예약',
     features: ['신고 기한 캘린더', '소득세·부가세 계산기', 'AI 세무 상담 챗봇', '상담 예약', '고객 관리 대시보드', '가산세 알림'],
     href: '/tax',
+  },
+  {
+    icon: <Landmark size={22} />,
+    name: '법무사',
+    color: 'bg-cyan-100 text-cyan-700',
+    sub: '등기·법인 설립·내용증명 자동화',
+    gradient: 'from-cyan-700 to-teal-900',
+    mockupTitle: '에이젯 법무사무소',
+    mockupSub: '법인설립 · 부동산 등기 · 내용증명',
+    cta: '상담 예약',
+    features: ['법인 설립 절차 안내', '부동산 등기 신청', '내용증명 자동 작성', '정관 초안 생성', 'AI 법무 상담 챗봇', '상담 예약'],
+    href: '/legal',
   },
   {
     icon: <Dumbbell size={22} />,
@@ -158,6 +171,18 @@ const INDUSTRIES_LIST: IndustryItem[] = [
     cta: '견적 받기',
     features: ['상품 카탈로그', '실시간 견적 계산기', '파일 업로드·검수', 'AI 인쇄 상담', '제작 단계 추적', '관리자 대시보드'],
     href: '/print',
+  },
+  {
+    icon: <Image size={22} />,
+    name: '도록·작품집',
+    color: 'bg-stone-100 text-stone-700',
+    sub: '작품집·도록 자동 제작·고급 인쇄',
+    gradient: 'from-stone-700 to-stone-900',
+    mockupTitle: '2024 개인전 도록',
+    mockupSub: 'AI 편집 · A4 갤러리 레이아웃 · PDF',
+    cta: '작품집 만들기',
+    features: ['작품 이미지 업로드', 'AI 자동 레이아웃', 'A4·A5 사이즈 선택', 'PDF 즉시 다운로드', '파주 고급 인쇄 연계', '표지·캡션 자동 구성'],
+    href: '/catalog',
   },
   {
     icon: <BookOpen size={22} />,
@@ -849,11 +874,10 @@ function DashboardCTA() {
 
 /* ─── Demo Images Section ─────────────────────────────── */
 function DemoImagesSection() {
-  const images = [
-    { src: '/api/images/mr-china/exterior.jpg',   alt: '중화가정 외관' },
-    { src: '/api/images/mr-china/interior.jpg',   alt: '중화가정 내부' },
-    { src: '/api/images/mr-china/dish1.jpg',      alt: '중화가정 대표 메뉴' },
-    { src: '/api/images/mr-china/atmosphere.jpg', alt: '중화가정 분위기' },
+  const sideImages = [
+    { src: '/demo/menu/menu-tangsuyuk.jpg',    alt: '탕수육 — 중화가정 인기 메뉴' },
+    { src: '/demo/menu/menu-jjajangmyeon.jpg', alt: '짜장면 — 중화가정 대표 메뉴' },
+    { src: '/demo/menu/menu-kkanpunggi.jpg',   alt: '깐풍기 — 중화가정 시그니처' },
   ];
 
   return (
@@ -862,24 +886,30 @@ function DemoImagesSection() {
         <div className="text-center">
           <div className="inline-flex items-center gap-2 bg-amber-100 text-amber-800 text-xs font-semibold px-3 py-1.5 rounded-full border border-amber-200 mb-4">
             <Sparkles size={12} />
-            실제 AI 생성 데모
+            AIZET 실제 제작 결과물
           </div>
           <h2 className="text-3xl sm:text-4xl font-black text-stone-900">
             이런 홈페이지가 자동으로 만들어집니다
           </h2>
           <p className="text-stone-600 text-base mt-4 max-w-md mx-auto">
-            중화가정 · 신세계백화점 의정부점 — AIZET가 자동 생성한 식당 홈페이지입니다.
+            신세계백화점 의정부점 입점 브랜드 <strong className="text-stone-800">중화가정</strong> — AIZET이 실제로 제작한 홈페이지입니다.
           </p>
         </div>
 
         <Link href="/demo" className="group block">
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            {/* 대형 첫 슬롯 — 실제 촬영 영상 */}
             <div className="relative overflow-hidden rounded-2xl col-span-2 md:col-span-1 md:row-span-2 h-52 md:h-[332px]">
-              <img
-                src={images[0].src}
-                alt={images[0].alt}
+              <video
+                autoPlay
+                muted
+                loop
+                playsInline
+                poster="/demo/menu/menu-gajeong-set.jpg"
                 className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-              />
+              >
+                <source src="/demo/restaurant-walkthrough.mp4" type="video/mp4" />
+              </video>
               <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
               <div className="absolute bottom-4 left-4">
                 <span className="bg-white/90 backdrop-blur-sm text-amber-700 text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-lg">
@@ -888,7 +918,8 @@ function DemoImagesSection() {
                 </span>
               </div>
             </div>
-            {images.slice(1).map((img, i) => (
+            {/* 실제 메뉴 사진 3장 */}
+            {sideImages.map((img, i) => (
               <div
                 key={img.src}
                 className={`relative overflow-hidden rounded-2xl h-40${i === 2 ? ' col-span-2 md:col-span-1' : ''}`}

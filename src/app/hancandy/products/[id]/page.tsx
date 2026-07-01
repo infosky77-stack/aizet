@@ -130,6 +130,92 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
           </Link>
         </div>
       </div>
+
+      {/* ── 제품 상세 정보 ── */}
+      <div className="px-4 pb-10 flex flex-col gap-8">
+
+        {/* 제품 소개 */}
+        <section>
+          <h2 className="text-base font-black text-gray-900 mb-2">제품 소개</h2>
+          <p className="text-sm text-gray-600 leading-relaxed">{product.longDescription}</p>
+          <div className="flex flex-wrap gap-1.5 mt-3">
+            {product.benefitTags.map(tag => (
+              <span key={tag} className={`text-xs font-semibold px-2.5 py-1 rounded-full ${tc.badge}`}>
+                #{tag}
+              </span>
+            ))}
+          </div>
+        </section>
+
+        {/* 핵심 성분 */}
+        <section>
+          <h2 className="text-base font-black text-gray-900 mb-3">핵심 성분</h2>
+          <div className="flex flex-col gap-2.5">
+            {product.keyIngredients.map(ing => (
+              <div key={ing.name} className={`rounded-2xl p-4 ${tc.bgLight} border ${tc.border}`}>
+                <div className="flex items-start justify-between gap-2 mb-1">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className={`font-black text-sm ${tc.text}`}>{ing.name}</span>
+                    {ing.nameDetail && (
+                      <span className="text-[10px] text-gray-400">{ing.nameDetail}</span>
+                    )}
+                    {ing.priority && (
+                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${tc.badge}`}>{ing.priority}</span>
+                    )}
+                  </div>
+                  <span className="text-xs text-gray-500 font-semibold shrink-0">{ing.role}</span>
+                </div>
+                <p className="text-xs text-gray-600 leading-relaxed">{ing.desc}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* 이런 때 드세요 */}
+        <section>
+          <h2 className="text-base font-black text-gray-900 mb-3">이런 때 드세요</h2>
+          <div className="flex flex-col gap-2">
+            {product.scenarios.map(s => (
+              <div key={s.situation} className="flex gap-3 bg-gray-50 rounded-xl p-3.5">
+                <span className="text-xl shrink-0 leading-none pt-0.5">{s.icon}</span>
+                <div>
+                  <div className="font-bold text-sm text-gray-800">{s.situation}</div>
+                  <div className="text-xs text-gray-500 leading-relaxed mt-0.5">{s.detail}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* 전성분 */}
+        <section>
+          <h2 className="text-base font-black text-gray-900 mb-2">전성분</h2>
+          <p className="text-xs text-gray-500 leading-relaxed">{product.ingredients.join(', ')}</p>
+        </section>
+
+        {/* 영양 정보 */}
+        <section>
+          <h2 className="text-base font-black text-gray-900 mb-3">영양 정보</h2>
+          <div className="bg-gray-50 rounded-2xl overflow-hidden border border-gray-100">
+            <div className="px-4 py-2.5 bg-gray-100 text-xs font-bold text-gray-500">
+              1회 섭취량 {product.nutrition.servingSize} 기준
+            </div>
+            {[
+              { label: '열량',     value: `${product.nutrition.calories}kcal` },
+              { label: '당류',     value: `${product.nutrition.sugar}g` },
+              { label: '탄수화물', value: `${product.nutrition.carbs}g` },
+              { label: '단백질',   value: `${product.nutrition.protein}g` },
+              { label: '지방',     value: `${product.nutrition.fat}g` },
+            ].map((row, i) => (
+              <div key={row.label} className={`flex justify-between px-4 py-2 text-sm ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
+                <span className="text-gray-500">{row.label}</span>
+                <span className="font-bold text-gray-800">{row.value}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+
+      </div>
     </div>
   );
 }

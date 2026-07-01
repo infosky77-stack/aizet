@@ -8,7 +8,7 @@ export type RenderJobStatus = 'queued' | 'processing' | 'done' | 'failed';
 export interface RenderJob {
   id:           string;
   order_id:     string;
-  job_type:     'video' | 'print';
+  job_type:     'video' | 'print' | 'catalog';
   worker_type:  string;
   status:       RenderJobStatus;
   priority:     number;
@@ -26,7 +26,7 @@ const WORKERS: IRenderWorker[] = [
   new UbuntuLocalWorker(),
 ];
 
-export function enqueueJob(orderId: string, jobType: 'video' | 'print'): RenderJob {
+export function enqueueJob(orderId: string, jobType: 'video' | 'print' | 'catalog'): RenderJob {
   const id  = randomUUID();
   const now = Date.now();
   db.prepare(`

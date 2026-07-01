@@ -1,7 +1,7 @@
 import { randomUUID } from 'crypto';
 import db from '@/lib/db';
 
-export type MediaOrderType   = 'video' | 'print';
+export type MediaOrderType   = 'video' | 'print' | 'catalog';
 export type MediaOrderStatus = 'editing' | 'queued' | 'processing' | 'done' | 'failed';
 
 export interface MediaOrder {

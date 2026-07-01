@@ -7,7 +7,7 @@ import {
   LayoutDashboard, ClipboardList, UtensilsCrossed, CalendarClock, Bot,
   ArrowLeft, CreditCard, Printer, BookOpen, Leaf, Scale, BarChart3,
   Menu, X, Cloud, LogOut, ChevronDown, Shield, Zap, Crown, Globe, Settings, Wand2, Building2, FileText, FolderOpen,
-  Users, ChevronLeft, Film, ListVideo,
+  Users, ChevronLeft, Film, ListVideo, Landmark,
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useSession } from '@/hooks/useSession';
@@ -46,6 +46,9 @@ const NAV: NavItem[] = [
   { href: '/admin/tax/clients',   label: '거래처 관리', icon: Building2,               industries: ['tax'] },
   { href: '/admin/tax/filings',   label: '신고 현황',   icon: FileText,                industries: ['tax'] },
   { href: '/admin/tax/documents', label: '문서 보관',   icon: FolderOpen,              industries: ['tax'] },
+
+  // ── 법무사 ────────────────────────────────────────────────
+  { href: '/admin/legal',         label: '법무사무소',  icon: Landmark,   exact: true, industries: ['legal'] },
 
   // ── 데모 전용 ─────────────────────────────────────────────
   { href: '/admin/korean',   label: '한국어 학습', icon: BookOpen, industries: ['demo'] },

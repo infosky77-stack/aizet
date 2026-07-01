@@ -33,8 +33,8 @@ export async function POST(req: NextRequest) {
   if (!session) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
   const { orderType, title } = await req.json();
-  if (orderType !== 'video' && orderType !== 'print') {
-    return Response.json({ error: 'orderType must be video or print' }, { status: 400 });
+  if (orderType !== 'video' && orderType !== 'print' && orderType !== 'catalog') {
+    return Response.json({ error: 'orderType must be video, print, or catalog' }, { status: 400 });
   }
 
   const order = createMediaOrder(session.sub, orderType, title ?? '제목 없음');

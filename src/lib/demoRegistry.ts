@@ -125,4 +125,22 @@ export const DEMO_REGISTRY: DemoEntry[] = [
     adminPath:  '/admin/korean',
     adminKind:  'dedicated',
   },
+  {
+    slug:      'legal',
+    name:      '법무사',
+    icon:      'Landmark',
+    color:     'bg-cyan-100 text-cyan-700',
+    publicPath: '/legal',
+    adminPath:  '/admin/legal',
+    adminKind:  'dedicated',
+  },
+  {
+    slug:      'catalog',
+    name:      '도록·작품집',
+    icon:      'BookOpen',
+    color:     'bg-stone-100 text-stone-700',
+    publicPath: '/catalog',
+    adminPath:  '/admin/super-editor',
+    adminKind:  'shared',
+  },
 ];
