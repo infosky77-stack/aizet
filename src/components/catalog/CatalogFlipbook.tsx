@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import HTMLFlipBook from 'react-pageflip';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { AizetLogo } from '@/components/AizetLogo';
+import { CachedImg } from '@/components/ui/CachedImg';
 
 interface ArtworkEntry {
   id:          string;
@@ -179,8 +180,8 @@ export default function CatalogFlipbook({
                 style={{ marginLeft: fs(24), marginRight: fs(24) }}
               >
                 {artworks.length > 0 ? (
-                  /* eslint-disable-next-line @next/next/no-img-element */
-                  <img
+                  <CachedImg
+                    id={artworks[0].imageUrl}
                     src={artworks[0].imageUrl}
                     alt={artworks[0].title || '대표 작품'}
                     className="w-full h-full object-contain"
@@ -221,8 +222,8 @@ export default function CatalogFlipbook({
                   height: pageH - margin - capH,
                 }}
               >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
+                <CachedImg
+                  id={aw.imageUrl}
                   src={aw.imageUrl}
                   alt={aw.title || `작품 ${idx + 1}`}
                   className="w-full h-full object-contain"

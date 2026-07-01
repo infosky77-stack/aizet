@@ -10,6 +10,8 @@ import {
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import dynamic from 'next/dynamic';
+import { CachedImg } from '@/components/ui/CachedImg';
+import { scheduleRevokeBlobUrl } from '@/lib/imageCache';
 
 const CatalogFlipbook = dynamic(
   () => import('@/components/catalog/CatalogFlipbook'),
@@ -64,13 +66,15 @@ interface PrintSnapshot {
 
 // ── 도록 스냅샷 ─────────────────────────────────────────────────────────────
 interface ArtworkEntry {
-  id:          string;
-  imageUrl:    string;
-  title:       string;
-  year:        string;
-  medium:      string;
-  size:        string;
-  description: string;
+  id:            string;
+  imageUrl:      string;
+  title:         string;
+  year:          string;
+  medium:        string;
+  size:          string;
+  description:   string;
+  sourceFileId?: string; // 업로드 자동추가 중복 방지용 (SEFile.id) — 기존 스냅샷엔 없을 수 있음
+  uploadStatus?: 'uploading' | 'error'; // 로컬 낙관적 미리보기 상태 — 서버 저장 대상 아님(휘발성)
 }
 interface CatalogSnapshot {
   exhibition_title: string;
@@ -116,6 +120,8 @@ export default function SuperEditorPage() {
   const [deletingFile, setDeletingFile] = useState<string | null>(null);
   const [mobilePanelView, setMobilePanelView] = useState<'edit' | 'right'>('right');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // 낙관적 업로드 재시도용 — artworkId → 아직 서버에 안 올라간 로컬 File (저장 스냅샷엔 안 들어감)
+  const pendingFilesRef = useRef<Map<string, File>>(new Map());
 
   // QR / 모바일 전송
   const [qrDataUrl,  setQrDataUrl]  = useState<string | null>(null);
@@ -139,7 +145,13 @@ export default function SuperEditorPage() {
     dirtyRef.current = false;
     setSaveStatus('saving');
     try {
-      const snap = latestSnap.current;
+      let snap = latestSnap.current;
+      // 도록: 아직 로컬 미리보기(blob URL) 상태인 작품은 저장 대상에서 제외
+      // (업로드 완료 후 서버 URL로 교체되면 다음 auto-save 때 자동으로 포함됨)
+      if (orderRef.current.order_type === 'catalog') {
+        const c = snap as CatalogSnapshot;
+        snap = { ...c, artworks: c.artworks.filter(a => !a.imageUrl.startsWith('blob:')) };
+      }
       const res = await fetch('/api/admin/super-editor', {
         method:  'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -175,9 +187,19 @@ export default function SuperEditorPage() {
   async function uploadFiles(fileList: FileList) {
     setUploading(true);
     setUploadError('');
+    const files = Array.from(fileList);
+
+    if (orderRef.current?.order_type === 'catalog') {
+      // 도록: 로컬 blob으로 즉시 표시(낙관적 UI) → 백그라운드로 서버 업로드 → 완료 시 조용히 교체
+      await uploadFilesOptimistic(files);
+      setUploading(false);
+      return;
+    }
+
+    // 영상·인쇄 — 기존 방식 그대로 (서버 업로드 완료 후 파일 목록에 반영)
     const uploaded: SEFile[] = [];
     try {
-      for (const file of Array.from(fileList)) {
+      for (const file of files) {
         const fd = new FormData();
         fd.append('file', file);
         const res = await fetch('/api/admin/super-editor/files', { method: 'POST', body: fd });
@@ -195,6 +217,83 @@ export default function SuperEditorPage() {
       if (uploaded.length > 0) setSeFiles(prev => [...uploaded, ...prev]);
       setUploading(false);
     }
+  }
+
+  // 도록: 파일 선택 즉시 로컬 blob URL로 작품 목록에 낙관적 추가 후, 파일별로 백그라운드 업로드
+  async function uploadFilesOptimistic(files: File[]) {
+    const pending = files.map(file => ({
+      file,
+      artworkId: Date.now().toString(36) + Math.random().toString(36).slice(2),
+      localUrl:  URL.createObjectURL(file),
+    }));
+
+    const optimisticArtworks: ArtworkEntry[] = pending.map(p => ({
+      id: p.artworkId, imageUrl: p.localUrl,
+      title: '', year: '', medium: '', size: '', description: '',
+      uploadStatus: 'uploading',
+    }));
+    pending.forEach(p => pendingFilesRef.current.set(p.artworkId, p.file));
+    updateC({ artworks: [...cSnap.artworks, ...optimisticArtworks] });
+
+    // 파일별로 순차 업로드 — 하나 실패해도 나머지는 계속 진행
+    for (const p of pending) {
+      await uploadOnePending(p.artworkId, p.file);
+    }
+  }
+
+  // 낙관적 작품 하나를 실제로 서버에 업로드하고, 성공하면 로컬 blob → 서버 URL로 조용히 교체
+  async function uploadOnePending(artworkId: string, file: File) {
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await fetch('/api/admin/super-editor/files', { method: 'POST', body: fd });
+      if (!res.ok) {
+        const errText = await res.text().catch(() => '');
+        setUploadError(`업로드 실패 (${res.status}) — ${errText.slice(0, 80) || '서버 오류'}`);
+        setArtworkUploadStatus(artworkId, 'error');
+        return;
+      }
+      const data = await res.json();
+      const serverFile: SEFile | undefined = data.file;
+      if (!serverFile) { setArtworkUploadStatus(artworkId, 'error'); return; }
+
+      pendingFilesRef.current.delete(artworkId);
+      setSeFiles(prev => [serverFile, ...prev]);
+
+      const serverUrl = `/api/super-editor-files/${serverFile.user_id}/${serverFile.filename}`;
+      setCSnap(prev => {
+        let localUrlToRevoke: string | null = null;
+        const artworks = prev.artworks.map(a => {
+          if (a.id !== artworkId) return a;
+          if (a.imageUrl.startsWith('blob:')) localUrlToRevoke = a.imageUrl;
+          return { ...a, imageUrl: serverUrl, sourceFileId: serverFile.id, uploadStatus: undefined };
+        });
+        const next = { ...prev, artworks };
+        latestSnap.current = next;
+        dirtyRef.current   = true;
+        // React가 새 서버 URL로 리렌더/페인트할 시간을 준 뒤 로컬 blob 정리 (화면에서 사라지는 것 방지)
+        if (localUrlToRevoke) scheduleRevokeBlobUrl(localUrlToRevoke);
+        return next;
+      });
+    } catch (err) {
+      setUploadError(`업로드 중 오류: ${err instanceof Error ? err.message : '네트워크 오류'}`);
+      setArtworkUploadStatus(artworkId, 'error');
+    }
+  }
+
+  function setArtworkUploadStatus(artworkId: string, status: 'uploading' | 'error') {
+    setCSnap(prev => ({
+      ...prev,
+      artworks: prev.artworks.map(a => a.id === artworkId ? { ...a, uploadStatus: status } : a),
+    }));
+  }
+
+  // 업로드 실패한 작품 카드에서 재시도
+  function handleRetryUpload(artworkId: string) {
+    const file = pendingFilesRef.current.get(artworkId);
+    if (!file) return;
+    setArtworkUploadStatus(artworkId, 'uploading');
+    uploadOnePending(artworkId, file);
   }
 
   async function handleDeleteFile(id: string) {
@@ -243,11 +342,13 @@ export default function SuperEditorPage() {
         if (!isVideo) {
           const url = data.url;
           if (orderRef.current?.order_type === 'catalog') {
-            // 도록 모드: 새 작품 엔트리로 추가
+            // 도록 모드: 새 작품 엔트리로 자동 추가 (같은 fileId 중복 방지)
             setCSnap(prev => {
+              if (data.fileId && prev.artworks.some(a => a.sourceFileId === data.fileId)) return prev;
               const newArtwork: ArtworkEntry = {
                 id: Date.now().toString(36) + Math.random().toString(36).slice(2),
                 imageUrl: url, title: '', year: '', medium: '', size: '', description: '',
+                sourceFileId: data.fileId,
               };
               const next = { ...prev, artworks: [...prev.artworks, newArtwork] };
               latestSnap.current = next;
@@ -410,6 +511,22 @@ export default function SuperEditorPage() {
     }
   }
 
+  // 업로드 완료 직후 자동으로 작품 목록에 추가 (sourceFileId 기준 중복 방지)
+  function addArtworksFromFiles(files: SEFile[]) {
+    const existingIds = new Set(cSnap.artworks.map(a => a.sourceFileId).filter(Boolean));
+    const newArtworks: ArtworkEntry[] = files
+      .filter(f => f.file_type === 'image' && !existingIds.has(f.id))
+      .map(f => ({
+        id:       Date.now().toString(36) + Math.random().toString(36).slice(2),
+        imageUrl: `/api/super-editor-files/${f.user_id}/${f.filename}`,
+        title: '', year: '', medium: '', size: '', description: '',
+        sourceFileId: f.id,
+      }));
+    if (newArtworks.length > 0) {
+      updateC({ artworks: [...cSnap.artworks, ...newArtworks] });
+    }
+  }
+
   function handleMoveArtwork(id: string, dir: 'up' | 'down') {
     if (orderRef.current?.is_paid) return;
     const arr = [...cSnap.artworks];
@@ -424,6 +541,10 @@ export default function SuperEditorPage() {
 
   function handleDeleteArtwork(id: string) {
     if (orderRef.current?.is_paid) return;
+    const target = cSnap.artworks.find(a => a.id === id);
+    // 아직 업로드 중/실패한 로컬 미리보기였다면 재시도용 File 참조와 blob URL 정리
+    if (target?.imageUrl.startsWith('blob:')) scheduleRevokeBlobUrl(target.imageUrl);
+    pendingFilesRef.current.delete(id);
     updateC({ artworks: cSnap.artworks.filter(a => a.id !== id) });
   }
   // ──────────────────────────────────────────────────────────────────────────
@@ -587,6 +708,7 @@ export default function SuperEditorPage() {
                 locked={isLocked}
                 onMoveArtwork={handleMoveArtwork}
                 onDeleteArtwork={handleDeleteArtwork}
+                onRetryUpload={handleRetryUpload}
               />
             : <PrintForm snap={pSnap} onChange={updateP} locked={isLocked} />}
         </div>
@@ -954,8 +1076,8 @@ export default function SuperEditorPage() {
                   <div key={file.id} className={clsx('group bg-white border border-stone-200 rounded-xl overflow-hidden transition-colors', isCatalog ? 'hover:border-amber-300' : 'hover:border-violet-300')}>
                     <div className="aspect-video bg-stone-100 flex items-center justify-center relative overflow-hidden">
                       {file.file_type === 'image' ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
+                        <CachedImg
+                          id={file.id}
                           src={`/api/super-editor-files/${file.user_id}/${file.filename}`}
                           alt={file.orig_name}
                           className="w-full h-full object-cover"
@@ -978,12 +1100,36 @@ export default function SuperEditorPage() {
                         {file.orig_name}
                       </p>
                       {file.file_type === 'image' && !isLocked && (
-                        <button
-                          onClick={() => handleInsertImage(`/api/super-editor-files/${file.user_id}/${file.filename}`)}
-                          className={clsx('shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded transition-colors', isCatalog ? 'text-amber-700 hover:text-amber-900 hover:bg-amber-50' : 'text-violet-600 hover:text-violet-800 hover:bg-violet-50')}
-                        >
-                          {isCatalog ? '추가' : '삽입'}
-                        </button>
+                        isCatalog ? (
+                          // 도록: 업로드 즉시 자동 추가되므로, 여기선 상태 표시 + 빼기/누락분 수동 추가만 담당
+                          cSnap.artworks.some(a => a.sourceFileId === file.id) ? (
+                            <button
+                              onClick={() => {
+                                const match = cSnap.artworks.find(a => a.sourceFileId === file.id);
+                                if (match) handleDeleteArtwork(match.id);
+                              }}
+                              title="작품 목록에서 빼기"
+                              className="shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded transition-colors text-emerald-600 hover:text-red-600 hover:bg-red-50"
+                            >
+                              포함됨 ✕
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => addArtworksFromFiles([file])}
+                              title="작품 목록에 추가"
+                              className="shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded transition-colors text-amber-700 hover:text-amber-900 hover:bg-amber-50"
+                            >
+                              추가
+                            </button>
+                          )
+                        ) : (
+                          <button
+                            onClick={() => handleInsertImage(`/api/super-editor-files/${file.user_id}/${file.filename}`)}
+                            className="shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded transition-colors text-violet-600 hover:text-violet-800 hover:bg-violet-50"
+                          >
+                            삽입
+                          </button>
+                        )
                       )}
                     </div>
                   </div>
@@ -1276,12 +1422,13 @@ function PrintForm({ snap, onChange, locked }: { snap: PrintSnapshot; onChange: 
 }
 
 // ── 도록 편집 폼 ─────────────────────────────────────────────────────────────
-function CatalogForm({ snap, onChange, locked, onMoveArtwork, onDeleteArtwork }: {
+function CatalogForm({ snap, onChange, locked, onMoveArtwork, onDeleteArtwork, onRetryUpload }: {
   snap:            CatalogSnapshot;
   onChange:        (p: Partial<CatalogSnapshot>) => void;
   locked:          boolean;
   onMoveArtwork:   (id: string, dir: 'up' | 'down') => void;
   onDeleteArtwork: (id: string) => void;
+  onRetryUpload:   (id: string) => void;
 }) {
   const cls    = 'w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-300 disabled:bg-stone-50 disabled:text-stone-400';
   const clsS   = 'w-full border border-stone-200 rounded-md px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-amber-300 disabled:bg-stone-50 disabled:text-stone-400';
@@ -1435,9 +1582,22 @@ function CatalogForm({ snap, onChange, locked, onMoveArtwork, onDeleteArtwork }:
 
                 {/* 썸네일 + 순서 + 삭제 */}
                 <div className="flex items-center gap-2">
-                  <div className="w-10 h-10 rounded-lg overflow-hidden bg-stone-200 shrink-0">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={artwork.imageUrl} alt="" className="w-full h-full object-cover" />
+                  <div className="w-10 h-10 rounded-lg overflow-hidden bg-stone-200 shrink-0 relative">
+                    <CachedImg id={artwork.imageUrl} src={artwork.imageUrl} alt="" className="w-full h-full object-cover" />
+                    {artwork.uploadStatus === 'uploading' && (
+                      <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+                        <Loader2 size={12} className="text-white animate-spin" />
+                      </div>
+                    )}
+                    {artwork.uploadStatus === 'error' && (
+                      <button
+                        onClick={() => onRetryUpload(artwork.id)}
+                        title="업로드 실패 — 클릭해서 재시도"
+                        className="absolute inset-0 bg-red-500/70 flex items-center justify-center"
+                      >
+                        <RefreshCw size={12} className="text-white" />
+                      </button>
+                    )}
                   </div>
                   <span className="text-[11px] font-bold text-stone-500 flex-1">작품 {idx + 1}</span>
                   {!locked && (
