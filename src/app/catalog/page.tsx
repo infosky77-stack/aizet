@@ -53,37 +53,95 @@ export default function CatalogHome() {
         </div>
       </section>
 
-      {/* ── 2. 도록 샘플 미리보기 (Hero 바로 아래 — 작품이 주인공) ──────── */}
-      <section className="bg-white py-20 px-6">
-        <div className="max-w-6xl mx-auto">
-          <p className="text-[11px] font-semibold text-stone-400 uppercase tracking-[0.2em] mb-5 text-center">
+      {/* ── 2a. 도록으로 넘겨보기 — catalog-bg-2 (화사한 추상 배경) ────── */}
+      <section className="relative bg-stone-50 py-20 px-4 sm:px-6 overflow-hidden">
+        {/* 배경 이미지 */}
+        <div className="absolute inset-0 pointer-events-none select-none" aria-hidden="true">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/catalog/catalog-bg-2.jpg" alt="" className="w-full h-full object-cover" style={{ opacity: 0.5 }} />
+          <div className="absolute inset-0 bg-white/55" />
+        </div>
+
+        <div className="relative z-10 max-w-5xl mx-auto">
+          <p className="text-[11px] font-semibold text-stone-500 uppercase tracking-[0.2em] mb-5 text-center">
             샘플 — 실제 작품 이미지
           </p>
           <h2 className="text-3xl sm:text-4xl font-black text-stone-950 text-center mb-3 tracking-tight">
             이렇게 완성됩니다
           </h2>
-          <p className="text-stone-400 text-sm text-center mb-14">
+          <p className="text-stone-600 text-sm text-center mb-12">
             A4 한 페이지에 작품 한 점 — 제목·재료·연도가 캡션으로 자동 구성됩니다
           </p>
 
+          {/* 도록으로 넘겨보기 소제목 */}
+          <div className="flex items-center gap-3 mb-8">
+            <div className="h-px flex-1 bg-amber-300/60" />
+            <span className="text-[11px] font-semibold text-amber-700 tracking-[0.18em] uppercase shrink-0">도록으로 넘겨보기</span>
+            <div className="h-px flex-1 bg-amber-300/60" />
+          </div>
+
           {/* 인터랙티브 힌트 */}
-          <div className="flex justify-center mb-6">
-            <span className="text-xs text-amber-700 bg-amber-50 border border-amber-200 px-4 py-1.5 rounded-full font-semibold">
+          <div className="flex justify-center mb-8">
+            <span className="text-xs text-amber-700 bg-amber-50 border border-amber-300 px-4 py-1.5 rounded-full font-semibold shadow-sm">
               ← 페이지를 클릭하거나 드래그해서 직접 넘겨보세요 →
             </span>
           </div>
 
-          {/* 샘플 플립북 */}
-          <div className="rounded-2xl overflow-hidden shadow-lg">
+          {/* 샘플 플립북 — 크게 */}
+          <div className="rounded-2xl overflow-hidden shadow-2xl">
             <SampleFlipbook
               artworks={SAMPLE_FLIPBOOK_ARTWORKS}
               exhibitionTitle="AIZET 초대전"
               artistName="샘플 작가"
+              pageW={420}
+              pageH={594}
             />
           </div>
-          <p className="text-stone-300 text-xs text-center mt-6">
+          <p className="text-stone-500 text-xs text-center mt-6">
             ※ 위 작품은 AIZET 도록 서비스 샘플입니다.
           </p>
+        </div>
+      </section>
+
+      {/* ── 2b. 작품 갤러리 — catalog-bg-1 (차분한 추상 배경) ──────────── */}
+      <section className="relative bg-stone-50 py-20 px-4 sm:px-6 overflow-hidden">
+        {/* 배경 이미지 */}
+        <div className="absolute inset-0 pointer-events-none select-none" aria-hidden="true">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/catalog/catalog-bg-1.jpg" alt="" className="w-full h-full object-cover" style={{ opacity: 0.45 }} />
+          <div className="absolute inset-0 bg-white/55" />
+        </div>
+
+        <div className="relative z-10 max-w-3xl mx-auto">
+          {/* 작품 갤러리 소제목 */}
+          <div className="flex items-center gap-3 mb-16">
+            <div className="h-px flex-1 bg-amber-300/60" />
+            <span className="text-[11px] font-semibold text-amber-700 tracking-[0.18em] uppercase shrink-0">작품 갤러리</span>
+            <div className="h-px flex-1 bg-amber-300/60" />
+          </div>
+
+          {/* 작품 세로 배치 — 한 장씩 크게 */}
+          <div className="flex flex-col gap-20">
+            {SAMPLE_ARTWORKS.map((a, i) => (
+              <div key={i} className="flex flex-col gap-4">
+                {/* 작품 카드 — 흰 배경 + 그림자로 배경 위에 떠 보이게 */}
+                <div className="bg-white rounded-2xl shadow-xl p-5 sm:p-8 flex items-center justify-center">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={a.src}
+                    alt={a.title}
+                    className="w-full object-contain max-h-[560px] sm:max-h-[680px]"
+                    draggable={false}
+                  />
+                </div>
+                {/* 작품 정보 */}
+                <div className="text-center">
+                  <p className="font-bold text-stone-900 text-base">{a.title}</p>
+                  <p className="text-stone-500 text-sm mt-1">{a.medium} · {a.year}</p>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 

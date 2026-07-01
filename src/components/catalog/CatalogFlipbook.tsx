@@ -19,17 +19,30 @@ interface Props {
   artworks:         ArtworkEntry[];
   exhibitionTitle?: string;
   artistName?:      string;
+  pageW?:           number;
+  pageH?:           number;
 }
 
-const PAGE_W = 300;
-const PAGE_H = 424; // A4 비율
-const MARGIN = 18;
-const CAP_H  = 72;
+const BASE_W  = 300;
+const BASE_H  = 424;
+const BASE_M  = 18;
+const BASE_CAP = 72;
 
-export default function CatalogFlipbook({ artworks, exhibitionTitle, artistName }: Props) {
+export default function CatalogFlipbook({
+  artworks,
+  exhibitionTitle,
+  artistName,
+  pageW = BASE_W,
+  pageH = BASE_H,
+}: Props) {
   const bookRef = useRef<any>(null);
   const [page, setPage] = useState(0);
   const [isPortrait, setIsPortrait] = useState(false);
+
+  const scale  = pageW / BASE_W;
+  const margin = Math.round(BASE_M * scale);
+  const capH   = Math.round(BASE_CAP * scale);
+  const fs     = (px: number) => `${Math.round(px * scale)}px`;
 
   useEffect(() => {
     const check = () => setIsPortrait(window.innerWidth < 640);
@@ -38,7 +51,6 @@ export default function CatalogFlipbook({ artworks, exhibitionTitle, artistName 
     return () => window.removeEventListener('resize', check);
   }, []);
 
-  // 표지 + 작품 페이지들 + 후면
   const totalPages = artworks.length + 2;
 
   function pageLabel() {
@@ -50,18 +62,17 @@ export default function CatalogFlipbook({ artworks, exhibitionTitle, artistName 
   return (
     <div className="flex-1 flex flex-col items-center justify-center gap-5 overflow-auto py-8 bg-stone-100">
 
-      {/* 플립북 본체 */}
       <div className="drop-shadow-2xl">
         <HTMLFlipBook
-          key={String(isPortrait)}
+          key={`${String(isPortrait)}-${pageW}`}
           ref={bookRef}
-          width={PAGE_W}
-          height={PAGE_H}
+          width={pageW}
+          height={pageH}
           size="fixed"
-          minWidth={PAGE_W}
-          maxWidth={PAGE_W}
-          minHeight={PAGE_H}
-          maxHeight={PAGE_H}
+          minWidth={pageW}
+          maxWidth={pageW}
+          minHeight={pageH}
+          maxHeight={pageH}
           showCover
           drawShadow
           flippingTime={650}
@@ -82,37 +93,53 @@ export default function CatalogFlipbook({ artworks, exhibitionTitle, artistName 
         >
           {/* ── 표지 ── */}
           <div
-            style={{ width: PAGE_W, height: PAGE_H }}
-            className="relative bg-stone-50 flex flex-col items-center justify-center select-none overflow-hidden border border-stone-100"
+            style={{ width: pageW, height: pageH }}
+            className="relative bg-stone-50 flex flex-col select-none overflow-hidden border border-stone-100"
           >
-            {/* 상단 앰버 포인트 라인 */}
             <div className="absolute top-0 left-0 right-0 h-1 bg-amber-600" />
 
-            <div className="flex flex-col items-center gap-4 px-10 text-center">
-              {/* 전시명 */}
+            <div className="shrink-0 flex flex-col items-center gap-2"
+              style={{ paddingTop: fs(28), paddingBottom: fs(12), paddingLeft: fs(32), paddingRight: fs(32) }}
+            >
               {exhibitionTitle ? (
-                <p className="text-stone-900 font-black text-lg leading-snug tracking-tight">
+                <p className="font-black leading-snug tracking-tight text-center text-stone-900"
+                  style={{ fontSize: fs(14) }}>
                   {exhibitionTitle}
                 </p>
               ) : (
-                <p className="text-stone-300 text-sm italic">전시명을 입력하세요</p>
+                <p className="italic text-center text-stone-300" style={{ fontSize: fs(12) }}>전시명을 입력하세요</p>
               )}
+              <div className="h-px bg-amber-500" style={{ width: fs(32) }} />
+            </div>
 
-              {/* 앰버 구분선 */}
-              <div className="w-8 h-px bg-amber-500" />
-
-              {/* 작가명 */}
-              {artistName ? (
-                <p className="text-stone-600 text-[11px] tracking-[0.25em]">{artistName}</p>
+            <div className="flex-1 min-h-0 flex items-center justify-center bg-white border border-stone-100 shadow-sm overflow-hidden"
+              style={{ marginLeft: fs(24), marginRight: fs(24) }}
+            >
+              {artworks.length > 0 ? (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img
+                  src={artworks[0].imageUrl}
+                  alt={artworks[0].title || '대표 작품'}
+                  className="w-full h-full object-contain"
+                  draggable={false}
+                />
               ) : (
-                <p className="text-stone-300 text-[11px] tracking-[0.15em]">작가명</p>
+                <p className="text-stone-200 text-center leading-relaxed" style={{ fontSize: fs(10) }}>
+                  작품을 추가하면<br />여기에 표시됩니다
+                </p>
               )}
             </div>
 
-            {/* 하단 브랜드 */}
-            <div className="absolute bottom-5 flex flex-col items-center gap-1.5">
-              <div className="w-6 h-px bg-stone-200" />
-              <p className="text-stone-400 text-[9px] tracking-[0.2em]">CATALOG</p>
+            <div className="shrink-0 flex flex-col items-center gap-1.5"
+              style={{ paddingTop: fs(12), paddingBottom: fs(24), paddingLeft: fs(32), paddingRight: fs(32) }}
+            >
+              <div className="h-px bg-stone-200" style={{ width: fs(32) }} />
+              {artistName ? (
+                <p className="text-stone-700 font-medium tracking-[0.25em]" style={{ fontSize: fs(11) }}>{artistName}</p>
+              ) : (
+                <p className="text-stone-300 tracking-[0.15em]" style={{ fontSize: fs(11) }}>작가명</p>
+              )}
+              <p className="text-stone-400 tracking-[0.2em] mt-0.5" style={{ fontSize: fs(9) }}>CATALOG</p>
             </div>
           </div>
 
@@ -120,15 +147,14 @@ export default function CatalogFlipbook({ artworks, exhibitionTitle, artistName 
           {artworks.map((aw, idx) => (
             <div
               key={aw.id}
-              style={{ width: PAGE_W, height: PAGE_H }}
+              style={{ width: pageW, height: pageH }}
               className="bg-white flex flex-col select-none overflow-hidden"
             >
-              {/* 이미지 영역 */}
               <div
                 className="flex items-center justify-center bg-stone-50 overflow-hidden"
                 style={{
-                  margin: `${MARGIN}px ${MARGIN}px 0`,
-                  height: PAGE_H - MARGIN - CAP_H,
+                  margin: `${margin}px ${margin}px 0`,
+                  height: pageH - margin - capH,
                 }}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -140,48 +166,70 @@ export default function CatalogFlipbook({ artworks, exhibitionTitle, artistName 
                 />
               </div>
 
-              {/* 캡션 영역 */}
               <div
                 className="flex flex-col items-center border-t border-stone-100 overflow-hidden"
-                style={{ height: CAP_H, paddingLeft: MARGIN, paddingRight: MARGIN }}
+                style={{ height: capH, paddingLeft: margin, paddingRight: margin }}
               >
                 <div className="flex-1 flex flex-col items-center justify-center gap-0.5 w-full">
                   {aw.title ? (
-                    <p className="text-[10px] font-bold text-stone-800 text-center leading-tight truncate w-full">
+                    <p className="font-bold text-stone-800 text-center leading-tight truncate w-full"
+                      style={{ fontSize: fs(10) }}>
                       {aw.title}
                     </p>
                   ) : null}
                   {(aw.year || aw.medium) ? (
-                    <p className="text-[9px] text-stone-500 text-center">
+                    <p className="text-stone-500 text-center" style={{ fontSize: fs(9) }}>
                       {[aw.year, aw.medium].filter(Boolean).join(',  ')}
                     </p>
                   ) : null}
                   {aw.size ? (
-                    <p className="text-[8px] text-stone-400 text-center">{aw.size}</p>
+                    <p className="text-stone-400 text-center" style={{ fontSize: fs(8) }}>{aw.size}</p>
                   ) : null}
                   {!aw.title && !aw.year && !aw.medium && (
-                    <p className="text-[9px] text-stone-300 italic text-center">
+                    <p className="text-stone-300 italic text-center" style={{ fontSize: fs(9) }}>
                       작품 정보를 입력하세요
                     </p>
                   )}
                 </div>
-                <p className="text-[8px] text-stone-300 pb-1.5">p.{idx + 1}</p>
+                <p className="text-stone-300 pb-1.5" style={{ fontSize: fs(8) }}>p.{idx + 1}</p>
               </div>
             </div>
           ))}
 
           {/* ── 후면 ── */}
           <div
-            style={{ width: PAGE_W, height: PAGE_H }}
-            className="relative bg-stone-50 flex flex-col items-center justify-center select-none overflow-hidden border border-stone-100"
+            style={{ width: pageW, height: pageH }}
+            className="relative bg-stone-50 flex flex-col select-none overflow-hidden border border-stone-100"
           >
-            {/* 하단 앰버 포인트 라인 */}
+            <div className="absolute top-0 left-0 right-0 h-1 bg-amber-600" />
             <div className="absolute bottom-0 left-0 right-0 h-1 bg-amber-600" />
 
-            <div className="flex flex-col items-center gap-3">
-              <AizetLogo className="text-xl font-black tracking-tight" zetColor="#44403c" />
-              <div className="w-6 h-px bg-stone-200" />
-              <p className="text-stone-400 text-[9px] tracking-[0.2em]">FULL AUTO CATALOG</p>
+            <div className="flex-1 flex flex-col items-center justify-center gap-5"
+              style={{ paddingLeft: fs(40), paddingRight: fs(40) }}
+            >
+              {(exhibitionTitle || artistName) && (
+                <div className="flex flex-col items-center gap-1.5 text-center">
+                  {exhibitionTitle && (
+                    <p className="text-stone-600 font-bold tracking-wider" style={{ fontSize: fs(11) }}>{exhibitionTitle}</p>
+                  )}
+                  {artistName && (
+                    <p className="text-stone-400 tracking-[0.2em]" style={{ fontSize: fs(10) }}>{artistName}</p>
+                  )}
+                </div>
+              )}
+
+              <div className="h-px bg-amber-400" style={{ width: fs(32) }} />
+
+              <div className="flex flex-col items-center gap-2">
+                <div style={{ fontSize: fs(20) }}>
+                  <AizetLogo className="font-black tracking-tight" zetColor="#44403c" />
+                </div>
+                <p className="text-stone-400 tracking-[0.25em]" style={{ fontSize: fs(9) }}>FULL AUTO CATALOG</p>
+              </div>
+
+              <div className="h-px bg-stone-200" style={{ width: fs(24) }} />
+
+              <p className="text-stone-300 tracking-wider" style={{ fontSize: fs(8) }}>aizet.co.kr</p>
             </div>
           </div>
         </HTMLFlipBook>
