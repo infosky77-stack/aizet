@@ -21,11 +21,12 @@ interface Props {
   artistName?:      string;
   pageW?:           number;
   pageH?:           number;
+  forcePortrait?:   boolean; // 항상 1페이지씩 표시 (표지 정렬 보장)
 }
 
-const BASE_W  = 300;
-const BASE_H  = 424;
-const BASE_M  = 18;
+const BASE_W   = 300;
+const BASE_H   = 424;
+const BASE_M   = 18;
 const BASE_CAP = 72;
 
 export default function CatalogFlipbook({
@@ -34,21 +35,81 @@ export default function CatalogFlipbook({
   artistName,
   pageW = BASE_W,
   pageH = BASE_H,
+  forcePortrait,
 }: Props) {
-  const bookRef = useRef<any>(null);
+  const bookRef    = useRef<any>(null);
+  const bookWrapRef = useRef<HTMLDivElement>(null);
+  const touchRef   = useRef<{ x: number; y: number; locked: boolean } | null>(null);
   const [page, setPage] = useState(0);
   const [isPortrait, setIsPortrait] = useState(false);
+
+  const portraitMode = forcePortrait ?? isPortrait;
 
   const scale  = pageW / BASE_W;
   const margin = Math.round(BASE_M * scale);
   const capH   = Math.round(BASE_CAP * scale);
   const fs     = (px: number) => `${Math.round(px * scale)}px`;
 
+  // 화면 크기 감지 (모바일: 640px 미만 → 1페이지 세로 모드)
   useEffect(() => {
     const check = () => setIsPortrait(window.innerWidth < 640);
     check();
     window.addEventListener('resize', check);
     return () => window.removeEventListener('resize', check);
+  }, []);
+
+  // 커스텀 터치 핸들러 — react-pageflip 내부 스와이프 대신 사용
+  // 왼쪽 스와이프 → 다음 장 / 오른쪽 스와이프 → 이전 장 (일관된 방향 보장)
+  useEffect(() => {
+    const el = bookWrapRef.current;
+    if (!el) return;
+
+    const onStart = (e: TouchEvent) => {
+      touchRef.current = {
+        x: e.touches[0].clientX,
+        y: e.touches[0].clientY,
+        locked: false,
+      };
+    };
+
+    const onMove = (e: TouchEvent) => {
+      if (!touchRef.current) return;
+      const dx = Math.abs(e.touches[0].clientX - touchRef.current.x);
+      const dy = Math.abs(e.touches[0].clientY - touchRef.current.y);
+      // 수평 스와이프가 확실히 우세할 때만 스크롤 차단
+      if (!touchRef.current.locked && dx > 8 && dx > dy) {
+        touchRef.current.locked = true;
+      }
+      if (touchRef.current.locked) e.preventDefault();
+    };
+
+    const onEnd = (e: TouchEvent) => {
+      if (!touchRef.current) return;
+      const dx = e.changedTouches[0].clientX - touchRef.current.x;
+      const dy = e.changedTouches[0].clientY - touchRef.current.y;
+      const wasLocked = touchRef.current.locked;
+      touchRef.current = null;
+
+      // 수평 스와이프가 아니거나 너무 짧으면 무시
+      if (!wasLocked || Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(dy)) return;
+
+      if (dx < 0) {
+        bookRef.current?.pageFlip()?.flipNext(); // 왼쪽 스와이프 → 다음 장
+      } else {
+        bookRef.current?.pageFlip()?.flipPrev(); // 오른쪽 스와이프 → 이전 장
+      }
+    };
+
+    el.addEventListener('touchstart', onStart, { passive: true });
+    // capture: true — react-pageflip 내부 핸들러보다 먼저 실행, preventDefault 우선권 확보
+    el.addEventListener('touchmove', onMove, { passive: false, capture: true });
+    el.addEventListener('touchend', onEnd, { passive: true });
+
+    return () => {
+      el.removeEventListener('touchstart', onStart);
+      el.removeEventListener('touchmove', onMove, { capture: true } as EventListenerOptions);
+      el.removeEventListener('touchend', onEnd);
+    };
   }, []);
 
   const totalPages = artworks.length + 2;
@@ -62,9 +123,10 @@ export default function CatalogFlipbook({
   return (
     <div className="flex-1 flex flex-col items-center justify-center gap-5 overflow-auto py-8 bg-stone-100">
 
-      <div className="drop-shadow-2xl">
+      {/* bookWrapRef — 커스텀 터치 핸들러 대상 영역 */}
+      <div ref={bookWrapRef} className="drop-shadow-2xl">
         <HTMLFlipBook
-          key={`${String(isPortrait)}-${pageW}`}
+          key={`${String(portraitMode)}-${pageW}`}
           ref={bookRef}
           width={pageW}
           height={pageH}
@@ -75,15 +137,15 @@ export default function CatalogFlipbook({
           maxHeight={pageH}
           showCover
           drawShadow
-          flippingTime={650}
-          usePortrait={isPortrait}
+          flippingTime={600}
+          usePortrait={portraitMode}
           startZIndex={0}
           autoSize={false}
           maxShadowOpacity={0.45}
           mobileScrollSupport
           clickEventForward
           useMouseEvents
-          swipeDistance={30}
+          swipeDistance={999}
           showPageCorners
           disableFlipByClick={false}
           className=""

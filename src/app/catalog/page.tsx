@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
+import { useState, useEffect } from 'react';
 import { ArrowRight, BookOpen, Star } from 'lucide-react';
 import { CATALOG_STRENGTHS, SAMPLE_ARTWORKS } from '@/lib/catalog/data';
 
@@ -22,6 +23,20 @@ const SAMPLE_FLIPBOOK_ARTWORKS = SAMPLE_ARTWORKS.map((a, i) => ({
 
 
 export default function CatalogHome() {
+  // 모바일에서 화면폭에 맞게 플립북 크기 조정, 데스크톱은 380 고정
+  const [flipW, setFlipW] = useState(380);
+  const [flipH, setFlipH] = useState(Math.round(380 * 424 / 300));
+  useEffect(() => {
+    const update = () => {
+      const w = Math.min(380, Math.max(260, window.innerWidth - 32));
+      setFlipW(w);
+      setFlipH(Math.round(w * 424 / 300));
+    };
+    update();
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
+  }, []);
+
   return (
     <div className="bg-white">
 
@@ -58,26 +73,26 @@ export default function CatalogHome() {
         {/* 배경 이미지 */}
         <div className="absolute inset-0 pointer-events-none select-none" aria-hidden="true">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/catalog/catalog-bg-2.jpg" alt="" className="w-full h-full object-cover" style={{ opacity: 0.5 }} />
-          <div className="absolute inset-0 bg-white/55" />
+          <img src="/catalog/catalog-bg-2.jpg" alt="" className="w-full h-full object-cover" style={{ opacity: 0.65 }} />
+          <div className="absolute inset-0 bg-white/28" />
         </div>
 
         <div className="relative z-10 max-w-5xl mx-auto">
-          <p className="text-[11px] font-semibold text-stone-500 uppercase tracking-[0.2em] mb-5 text-center">
+          <p className="text-[11px] font-semibold text-stone-700 uppercase tracking-[0.2em] mb-5 text-center">
             샘플 — 실제 작품 이미지
           </p>
           <h2 className="text-3xl sm:text-4xl font-black text-stone-950 text-center mb-3 tracking-tight">
             이렇게 완성됩니다
           </h2>
-          <p className="text-stone-600 text-sm text-center mb-12">
+          <p className="text-stone-800 text-sm text-center mb-12">
             A4 한 페이지에 작품 한 점 — 제목·재료·연도가 캡션으로 자동 구성됩니다
           </p>
 
           {/* 도록으로 넘겨보기 소제목 */}
           <div className="flex items-center gap-3 mb-8">
-            <div className="h-px flex-1 bg-amber-300/60" />
-            <span className="text-[11px] font-semibold text-amber-700 tracking-[0.18em] uppercase shrink-0">도록으로 넘겨보기</span>
-            <div className="h-px flex-1 bg-amber-300/60" />
+            <div className="h-px flex-1 bg-amber-500/70" />
+            <span className="text-[11px] font-semibold text-amber-800 tracking-[0.18em] uppercase shrink-0">도록으로 넘겨보기</span>
+            <div className="h-px flex-1 bg-amber-500/70" />
           </div>
 
           {/* 인터랙티브 힌트 */}
@@ -93,8 +108,9 @@ export default function CatalogHome() {
               artworks={SAMPLE_FLIPBOOK_ARTWORKS}
               exhibitionTitle="AIZET 초대전"
               artistName="샘플 작가"
-              pageW={420}
-              pageH={594}
+              pageW={flipW}
+              pageH={flipH}
+              forcePortrait
             />
           </div>
           <p className="text-stone-500 text-xs text-center mt-6">
@@ -108,16 +124,16 @@ export default function CatalogHome() {
         {/* 배경 이미지 */}
         <div className="absolute inset-0 pointer-events-none select-none" aria-hidden="true">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/catalog/catalog-bg-1.jpg" alt="" className="w-full h-full object-cover" style={{ opacity: 0.45 }} />
-          <div className="absolute inset-0 bg-white/55" />
+          <img src="/catalog/catalog-bg-1.jpg" alt="" className="w-full h-full object-cover" style={{ opacity: 0.6 }} />
+          <div className="absolute inset-0 bg-white/28" />
         </div>
 
         <div className="relative z-10 max-w-3xl mx-auto">
           {/* 작품 갤러리 소제목 */}
           <div className="flex items-center gap-3 mb-16">
-            <div className="h-px flex-1 bg-amber-300/60" />
-            <span className="text-[11px] font-semibold text-amber-700 tracking-[0.18em] uppercase shrink-0">작품 갤러리</span>
-            <div className="h-px flex-1 bg-amber-300/60" />
+            <div className="h-px flex-1 bg-amber-500/70" />
+            <span className="text-[11px] font-semibold text-amber-800 tracking-[0.18em] uppercase shrink-0">작품 갤러리</span>
+            <div className="h-px flex-1 bg-amber-500/70" />
           </div>
 
           {/* 작품 세로 배치 — 한 장씩 크게 */}
@@ -137,7 +153,7 @@ export default function CatalogHome() {
                 {/* 작품 정보 */}
                 <div className="text-center">
                   <p className="font-bold text-stone-900 text-base">{a.title}</p>
-                  <p className="text-stone-500 text-sm mt-1">{a.medium} · {a.year}</p>
+                  <p className="text-stone-700 text-sm mt-1">{a.medium} · {a.year}</p>
                 </div>
               </div>
             ))}
