@@ -38,7 +38,9 @@
     "/home/aizet/.aizet-next/types/**/*.ts",
     "/home/aizet/.aizet-next/dev/types/**/*.ts",
     ".aizet-next/types/**/*.ts",
-    ".aizet-next/dev/types/**/*.ts"
+    ".aizet-next/dev/types/**/*.ts",
+    "/tmp/claude-1001/-home-aizet/d599746d-24f8-442a-ac55-5d5234d494f5/scratchpad/verify-dist/types/**/*.ts",
+    "/tmp/claude-1001/-home-aizet/d599746d-24f8-442a-ac55-5d5234d494f5/scratchpad/verify-dist/dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules"

@@ -157,6 +157,9 @@ function SuperEditorIndexContent() {
             maxLength={100}
             className="w-full border border-stone-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-300"
           />
+          <p className="text-xs text-stone-400 -mt-2">
+            제목을 입력하면 같은 이름의 폴더가 생성됩니다
+          </p>
 
           <div className="flex gap-2">
             <button

@@ -65,6 +65,11 @@ async function putBlobInDB(id: string, blob: Blob): Promise<void> {
 const objectUrlCache = new Map<string, string>();
 const inflight        = new Map<string, Promise<string>>();
 
+/** 이미 캐시에 해석되어 있으면 즉시 반환(동기), 없으면 undefined — fetch를 트리거하지 않음 */
+export function peekCachedImageUrl(id: string): string | undefined {
+  return objectUrlCache.get(id);
+}
+
 /**
  * id로 캐시된 이미지를 반환. 없으면 serverUrl에서 받아 IndexedDB에 저장 후 반환.
  * id는 안정적인 식별자여야 함(서버 파일 id 또는 UUID가 포함된 URL 등) — 원본 파일명 금지.

@@ -2,9 +2,12 @@ import { NextRequest } from 'next/server';
 import { writeFile, mkdir, unlink } from 'fs/promises';
 import { existsSync } from 'fs';
 import path from 'path';
-import { randomUUID } from 'crypto';
+import { randomUUID, createHash } from 'crypto';
 import { getSessionFromRequest } from '@/lib/auth';
-import { insertFile, listFiles, deleteFile, getFile, FileType } from '@/lib/db/super-editor-files';
+import {
+  insertFile, listFiles, deleteFile, getFile, renameFile, reorderFiles,
+  findExactDuplicate, listOrigNames, resolveAvailableName, FileType,
+} from '@/lib/db/super-editor-files';
 import { getValidAccessToken } from '@/lib/drive-auth';
 import { ensureAizetFolder, listDriveFiles } from '@/lib/drive-folder';
 
@@ -31,8 +34,29 @@ function userDir(userId: string): string {
   return path.join(process.cwd(), 'data', 'super-editor-files', userId);
 }
 
-// GET /api/admin/super-editor/files?type=image|video|audio
+function sha256(buffer: Buffer): string {
+  return createHash('sha256').update(buffer).digest('hex');
+}
+
+// 중복/이름충돌 판정 — 윈도우 탐색기 방식, 주문(폴더) 단위로 격리:
+//  - 이름·내용 완전 동일          → outcome 'duplicate' (저장 안 함, 기존 레코드 반환)
+//  - 이름만 같고 내용 다름        → outcome 'renamed'   ("이름 (1).ext" 로 저장)
+//  - 그 외(새 이름 또는 내용 다름) → outcome 'created'
+// orderId가 null이면(독립 파일 관리자 페이지) "주문 미지정 파일들끼리"만 비교 — 다른 주문 폴더와는 무관.
+function judgeNameConflict(
+  userId: string, desiredName: string, contentHash: string, orderId: string | null,
+): { outcome: 'duplicate'; existing: ReturnType<typeof findExactDuplicate> } | { outcome: 'created' | 'renamed'; finalName: string } {
+  const exact = findExactDuplicate(userId, desiredName, contentHash, orderId);
+  if (exact) return { outcome: 'duplicate', existing: exact };
+
+  const existingNames = listOrigNames(userId, orderId);
+  const finalName = resolveAvailableName(existingNames, desiredName);
+  return { outcome: finalName === desiredName ? 'created' : 'renamed', finalName };
+}
+
+// GET /api/admin/super-editor/files?type=image|video|audio&orderId=xxx
 // GET /api/admin/super-editor/files?source=drive  → Drive 파일 목록
+// orderId 생략 시 계정 전체(독립 파일 관리자 페이지 — 기존 동작 그대로 유지)
 export async function GET(req: NextRequest) {
   const session = getSessionFromRequest(req);
   if (!session) return Response.json({ error: 'Unauthorized' }, { status: 401 });
@@ -55,8 +79,9 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  const type = req.nextUrl.searchParams.get('type') as FileType | null;
-  const files = listFiles(session.sub, type ?? undefined);
+  const type    = req.nextUrl.searchParams.get('type') as FileType | null;
+  const orderId = req.nextUrl.searchParams.get('orderId');
+  const files = listFiles(session.sub, type ?? undefined, orderId ?? undefined);
   return Response.json({ files });
 }
 
@@ -70,11 +95,12 @@ export async function POST(req: NextRequest) {
 
   if (contentType.includes('application/json')) {
     // Drive 가져오기
-    const { driveFileId, driveName, driveMime, driveSize } = await req.json() as {
+    const { driveFileId, driveName, driveMime, driveSize, orderId } = await req.json() as {
       driveFileId: string;
       driveName:   string;
       driveMime:   string;
       driveSize:   string;
+      orderId?:    string;
     };
 
     if (!driveFileId || !driveMime) {
@@ -103,23 +129,33 @@ export async function POST(req: NextRequest) {
     }
 
     const buffer = Buffer.from(await dlRes.arrayBuffer());
+    const contentHash = sha256(buffer);
+    const judged = judgeNameConflict(session.sub, driveName, contentHash, orderId ?? null);
+    if (judged.outcome === 'duplicate') {
+      return Response.json({ file: judged.existing, outcome: 'duplicate' });
+    }
+
     const ext = EXT_MAP[driveMime] ?? 'bin';
     const filename = `${randomUUID()}.${ext}`;
     const dir = userDir(session.sub);
     if (!existsSync(dir)) await mkdir(dir, { recursive: true });
     await writeFile(path.join(dir, filename), buffer);
 
-    const record = insertFile(
-      session.sub, filename, driveName, fileType, driveMime,
-      parseInt(driveSize ?? '0', 10) || buffer.byteLength,
+    const record = insertFile({
+      userId: session.sub, filename, origName: judged.finalName, fileType, mimeType: driveMime,
+      sizeBytes: parseInt(driveSize ?? '0', 10) || buffer.byteLength, contentHash, orderId,
+    });
+    return Response.json(
+      { file: record, outcome: judged.outcome, originalName: judged.outcome === 'renamed' ? driveName : undefined },
+      { status: 201 },
     );
-    return Response.json({ file: record }, { status: 201 });
   }
 
   // multipart 업로드
   const formData = await req.formData();
   const file = formData.get('file') as File | null;
   if (!file) return Response.json({ error: 'No file provided' }, { status: 400 });
+  const orderId = (formData.get('orderId') as string | null) ?? undefined;
 
   if (file.size > MAX_SIZE) {
     return Response.json({ error: 'File too large (max 200 MB)' }, { status: 413 });
@@ -131,16 +167,53 @@ export async function POST(req: NextRequest) {
     return Response.json({ error: 'Unsupported file type' }, { status: 400 });
   }
 
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const contentHash = sha256(buffer);
+  const judged = judgeNameConflict(session.sub, file.name, contentHash, orderId ?? null);
+  if (judged.outcome === 'duplicate') {
+    // 이름·내용 완전 동일 — 디스크에 새로 쓰지 않고 기존 레코드를 그대로 반환
+    return Response.json({ file: judged.existing, outcome: 'duplicate' });
+  }
+
   const ext = EXT_MAP[mime] ?? 'bin';
   const filename = `${randomUUID()}.${ext}`;
   const dir = userDir(session.sub);
   if (!existsSync(dir)) await mkdir(dir, { recursive: true });
-
-  const buffer = Buffer.from(await file.arrayBuffer());
   await writeFile(path.join(dir, filename), buffer);
 
-  const record = insertFile(session.sub, filename, file.name, fileType, mime, file.size);
-  return Response.json({ file: record }, { status: 201 });
+  const record = insertFile({
+    userId: session.sub, filename, origName: judged.finalName, fileType, mimeType: mime,
+    sizeBytes: file.size, contentHash, orderId,
+  });
+  return Response.json(
+    { file: record, outcome: judged.outcome, originalName: judged.outcome === 'renamed' ? file.name : undefined },
+    { status: 201 },
+  );
+}
+
+// PATCH { fileId, name }        → 이름 변경 (충돌 시 서버가 자동으로 "(1)" 접미사)
+// PATCH { order: string[] }     → 순서 변경 (앞에 있는 id가 먼저 표시됨)
+export async function PATCH(req: NextRequest) {
+  const session = getSessionFromRequest(req);
+  if (!session) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const body = await req.json().catch(() => null) as { fileId?: string; name?: string; order?: string[] } | null;
+  if (!body) return Response.json({ error: 'Invalid body' }, { status: 400 });
+
+  if (Array.isArray(body.order)) {
+    reorderFiles(session.sub, body.order);
+    return Response.json({ ok: true });
+  }
+
+  if (body.fileId && typeof body.name === 'string') {
+    const trimmed = body.name.trim();
+    if (!trimmed) return Response.json({ error: 'name required' }, { status: 400 });
+    const updated = renameFile(body.fileId, session.sub, trimmed);
+    if (!updated) return Response.json({ error: 'Not found' }, { status: 404 });
+    return Response.json({ file: updated });
+  }
+
+  return Response.json({ error: 'fileId+name or order required' }, { status: 400 });
 }
 
 // DELETE /api/admin/super-editor/files?fileId=xxx

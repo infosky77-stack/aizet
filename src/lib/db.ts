@@ -273,4 +273,23 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_super_editor_files_user ON super_editor_files(user_id);
 `);
 
+// ── super_editor_files 신규 컬럼 추가 (기존 row 보존, 멱등) ───────────────────
+{
+  const existing = (db.pragma('table_info(super_editor_files)') as Array<{ name: string }>).map(c => c.name);
+  const toAdd: [string, string][] = [
+    ['content_hash', "TEXT NOT NULL DEFAULT ''"],
+    ['sort_order',   'INTEGER'],
+    // order_id: NULL = 주문 미지정(구 데이터, 독립 파일 관리자 페이지 업로드) — 그대로 둬서 하위호환
+    ['order_id',     'TEXT'],
+  ];
+  for (const [col, def] of toAdd) {
+    if (!existing.includes(col)) {
+      db.exec(`ALTER TABLE super_editor_files ADD COLUMN ${col} ${def}`);
+    }
+  }
+  // 기존 row는 sort_order가 NULL — created_at 역순(최신 먼저)과 동일하게 백필
+  db.exec(`UPDATE super_editor_files SET sort_order = -created_at WHERE sort_order IS NULL`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_super_editor_files_order ON super_editor_files(order_id)`);
+}
+
 export default db;

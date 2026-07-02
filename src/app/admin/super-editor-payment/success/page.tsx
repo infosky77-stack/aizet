@@ -2,9 +2,38 @@
 
 import { useEffect, useRef, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { CheckCircle, AlertCircle, Loader2, Clock, ArrowRight } from 'lucide-react';
+import { CheckCircle, AlertCircle, Loader2, Clock, ArrowRight, Download } from 'lucide-react';
+import { useFileLedgerStore } from '@/lib/super-editor/ledger/store';
+import { buildCatalogPdf, type CatalogPdfInput } from '@/lib/super-editor/pdf/buildCatalogPdf';
 
-type Phase = 'confirming' | 'done' | 'error';
+type Phase = 'confirming' | 'generating' | 'done' | 'queued' | 'error';
+
+// 결제 완료된 도록 주문의 PDF를 브라우저에서 직접 생성해 서버에 보관.
+// 실패하면 catalog-server-fallback으로 기존 서버(python) 렌더 경로를 태워 절대 멈춰있지 않게 한다.
+async function generateCatalogAndStore(mediaOrderId: string): Promise<{ outputUuid: string } | { fallback: true }> {
+  const orderRes = await fetch(`/api/admin/super-editor?orderId=${mediaOrderId}`);
+  if (!orderRes.ok) throw new Error('주문 조회 실패');
+  const { order } = await orderRes.json();
+  const snapshot = JSON.parse(order.snapshot || '{}') as CatalogPdfInput;
+
+  const ledger = useFileLedgerStore.getState();
+  ledger.setCurrentOrder(mediaOrderId);
+  await ledger.refreshFromServer();
+  const entries = useFileLedgerStore.getState().entries;
+
+  const pdfBytes = await buildCatalogPdf(snapshot, entries);
+
+  const formData = new FormData();
+  formData.append('orderId', mediaOrderId);
+  formData.append('pdf', new Blob([pdfBytes as BlobPart], { type: 'application/pdf' }), 'catalog.pdf');
+
+  const storeRes = await fetch('/api/admin/super-editor/catalog-store-render', {
+    method: 'POST', body: formData,
+  });
+  if (!storeRes.ok) throw new Error('PDF 보관 실패');
+  const data = await storeRes.json();
+  return { outputUuid: data.outputUuid };
+}
 
 function SuperEditorPaymentSuccessContent() {
   const searchParams   = useSearchParams();
@@ -14,9 +43,10 @@ function SuperEditorPaymentSuccessContent() {
   const amount         = searchParams.get('amount')        ?? '';
   const mediaOrderId   = searchParams.get('mediaOrderId')  ?? '';
 
-  const [phase,    setPhase]    = useState<Phase>('confirming');
-  const [jobId,    setJobId]    = useState('');
-  const [errorMsg, setErrorMsg] = useState('');
+  const [phase,      setPhase]      = useState<Phase>('confirming');
+  const [jobId,      setJobId]      = useState('');
+  const [outputUuid, setOutputUuid] = useState('');
+  const [errorMsg,   setErrorMsg]   = useState('');
   const ranOnce = useRef(false);
 
   useEffect(() => {
@@ -45,8 +75,28 @@ function SuperEditorPaymentSuccessContent() {
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({ paymentOrderId }),
       }).catch(() => {});
+
+      if (data.orderType === 'catalog') {
+        setPhase('generating');
+        try {
+          const result = await generateCatalogAndStore(mediaOrderId);
+          if ('outputUuid' in result) {
+            setOutputUuid(result.outputUuid);
+            setPhase('done');
+          }
+        } catch {
+          // 클라이언트 생성 실패 — 서버 렌더 안전망으로 전환
+          await fetch('/api/admin/super-editor/catalog-server-fallback', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ orderId: mediaOrderId }),
+          }).catch(() => {});
+          setPhase('queued');
+        }
+        return;
+      }
+
       setJobId(data.jobId ?? '');
-      setPhase('done');
+      setPhase('queued');
     } catch {
       setErrorMsg('네트워크 오류가 발생했습니다.');
       setPhase('error');
@@ -89,27 +139,56 @@ function SuperEditorPaymentSuccessContent() {
         <div className="bg-emerald-50 border border-emerald-200 rounded-2xl px-5 py-4 flex items-center gap-3">
           <CheckCircle size={22} className="text-emerald-500 shrink-0" />
           <div>
-            <p className="font-bold text-emerald-700 text-sm">결제 완료 · 큐 등록</p>
-            <p className="text-xs text-emerald-600">자동 처리 대기열에 추가되었습니다</p>
+            <p className="font-bold text-emerald-700 text-sm">결제 완료</p>
+            <p className="text-xs text-emerald-600">
+              {phase === 'generating' ? 'PDF를 만드는 중입니다' : phase === 'done' ? 'PDF가 준비됐습니다' : '자동 처리 대기열에 추가되었습니다'}
+            </p>
           </div>
         </div>
 
         {/* 상태 카드 */}
         <div className="bg-white rounded-2xl shadow-sm border border-stone-100 p-6 flex flex-col gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center">
-              <Clock size={20} className="text-violet-600" />
+          {phase === 'done' ? (
+            <>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center">
+                  <CheckCircle size={20} className="text-emerald-600" />
+                </div>
+                <div>
+                  <p className="font-semibold text-stone-700 text-sm">PDF 생성 완료</p>
+                  <p className="text-xs text-stone-400">바로 다운로드할 수 있습니다</p>
+                </div>
+              </div>
+              <a
+                href={`/api/admin/render-output/${outputUuid}`}
+                download
+                className="w-full py-3 bg-amber-600 hover:bg-amber-700 text-white font-semibold rounded-xl text-sm transition-colors flex items-center justify-center gap-2"
+              >
+                <Download size={15} />도록 PDF 다운로드
+              </a>
+            </>
+          ) : (
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center">
+                {phase === 'generating'
+                  ? <Loader2 size={20} className="text-violet-600 animate-spin" />
+                  : <Clock size={20} className="text-violet-600" />}
+              </div>
+              <div>
+                <p className="font-semibold text-stone-700 text-sm">
+                  {phase === 'generating' ? 'PDF 생성 중...' : '처리 대기 중'}
+                </p>
+                <p className="text-xs text-stone-400">
+                  {phase === 'generating' ? '잠시만 기다려 주세요' : jobId ? `잡 ID: ${jobId.slice(0, 8)}…` : '처리 중'}
+                </p>
+              </div>
             </div>
-            <div>
-              <p className="font-semibold text-stone-700 text-sm">처리 대기 중</p>
-              <p className="text-xs text-stone-400">
-                {jobId ? `잡 ID: ${jobId.slice(0, 8)}…` : '처리 중'}
-              </p>
-            </div>
-          </div>
-          <p className="text-xs text-stone-500 leading-relaxed">
-            서버에서 순서대로 처리합니다. 완료되면 주문 목록에서 결과를 확인하실 수 있습니다.
-          </p>
+          )}
+          {phase === 'queued' && (
+            <p className="text-xs text-stone-500 leading-relaxed">
+              서버에서 순서대로 처리합니다. 완료되면 주문 목록에서 결과를 확인하실 수 있습니다.
+            </p>
+          )}
           <div className="flex flex-col gap-2 pt-1">
             <button
               onClick={() => router.replace('/admin/super-editor')}

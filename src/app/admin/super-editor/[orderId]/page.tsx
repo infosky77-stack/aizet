@@ -5,13 +5,18 @@ import { useParams, useRouter } from 'next/navigation';
 import {
   ArrowLeft, Save, CheckCircle, AlertCircle, Loader2,
   Film, Printer, BookOpen, Lock, CreditCard, Clock,
-  FolderOpen, Image, Music, Trash2, Upload, ExternalLink, X, Type,
-  Smartphone, RefreshCw, Download, ChevronUp, ChevronDown, Plus,
+  FolderOpen, Image, Music, Trash2, ExternalLink, X, Type,
+  Smartphone, RefreshCw, Download, ChevronUp, ChevronDown,
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import dynamic from 'next/dynamic';
 import { CachedImg } from '@/components/ui/CachedImg';
-import { scheduleRevokeBlobUrl } from '@/lib/imageCache';
+import { FileManagerPanel } from '@/components/super-editor/FileManagerPanel';
+import { FullscreenDropZone } from '@/components/super-editor/FullscreenDropZone';
+import { useFileLedgerStore, useOrderedFileEntries } from '@/lib/super-editor/ledger/store';
+import { getEntryStatus, resolveDisplayUrl, findLocation } from '@/lib/super-editor/ledger/selectors';
+import type { FileEntry } from '@/lib/super-editor/ledger/types';
+import { buildCatalogPdf } from '@/lib/super-editor/pdf/buildCatalogPdf';
 
 const CatalogFlipbook = dynamic(
   () => import('@/components/catalog/CatalogFlipbook'),
@@ -22,18 +27,6 @@ type OrderType   = 'video' | 'print' | 'catalog';
 type OrderStatus = 'editing' | 'queued' | 'processing' | 'done' | 'failed';
 type SaveStatus  = 'idle' | 'saving' | 'saved' | 'error';
 type PanelTab    = 'preview' | 'files';
-type SEFileType  = 'image' | 'video' | 'audio';
-
-interface SEFile {
-  id:         string;
-  user_id:    string;
-  filename:   string;
-  orig_name:  string;
-  file_type:  SEFileType;
-  mime_type:  string;
-  size_bytes: number;
-  created_at: number;
-}
 
 interface MediaOrder {
   id:          string;
@@ -73,7 +66,8 @@ interface ArtworkEntry {
   medium:        string;
   size:          string;
   description:   string;
-  sourceFileId?: string; // 업로드 자동추가 중복 방지용 (SEFile.id) — 기존 스냅샷엔 없을 수 있음
+  sourceFileId?: string; // 영속 — 실제 서버 파일 id(중복 추가 방지, "포함됨" 판정용) — 기존 스냅샷엔 없을 수 있음
+  sourceEntryId?: string; // 세션 한정 — 원장(ledger) 항목 id. 업로드 진행 중 실시간 상태 동기화용, 새로고침 후엔 의미 없음(저장 대상 아님)
   uploadStatus?: 'uploading' | 'error'; // 로컬 낙관적 미리보기 상태 — 서버 저장 대상 아님(휘발성)
 }
 interface CatalogSnapshot {
@@ -111,17 +105,15 @@ export default function SuperEditorPage() {
   const [paying,       setPaying]       = useState(false);
   const [payError,     setPayError]     = useState('');
   const [panelTab,     setPanelTab]     = useState<PanelTab>('preview');
-  const [seFiles,      setSeFiles]      = useState<SEFile[]>([]);
   const [pdfResetLoading, setPdfResetLoading] = useState(false);
+  const [testRenderState, setTestRenderState] = useState<'idle' | 'generating' | 'error'>('idle');
   const catalogTabInit = useRef(false);
-  const [filesLoading, setFilesLoading] = useState(false);
-  const [uploading,    setUploading]    = useState(false);
-  const [uploadError,  setUploadError]  = useState('');
-  const [deletingFile, setDeletingFile] = useState<string | null>(null);
   const [mobilePanelView, setMobilePanelView] = useState<'edit' | 'right'>('right');
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  // 낙관적 업로드 재시도용 — artworkId → 아직 서버에 안 올라간 로컬 File (저장 스냅샷엔 안 들어감)
-  const pendingFilesRef = useRef<Map<string, File>>(new Map());
+  const ledgerEntries = useOrderedFileEntries();
+  // 이 세션에서 처음 마운트될 때 이미 있던(=과거에 업로드된) 파일 id 집합 — 도록 자동추가가
+  // "이 세션에서 새로 들어온 파일"만 대상으로 삼기 위한 기준선(사용자 전체 공용 라이브러리가
+  // 새 도록에 통째로 딸려들어오는 걸 막음). 최초 refreshFromServer 완료 직후 한 번만 채워짐.
+  const seenAtMountRef = useRef<Set<string> | null>(null);
 
   // QR / 모바일 전송
   const [qrDataUrl,  setQrDataUrl]  = useState<string | null>(null);
@@ -169,138 +161,85 @@ export default function SuperEditorPage() {
     }
   }, [orderId]);
 
-  async function fetchFiles() {
-    setFilesLoading(true);
-    const res = await fetch('/api/admin/super-editor/files');
-    if (res.ok) {
-      const data = await res.json();
-      setSeFiles(data.files ?? []);
-    }
-    setFilesLoading(false);
-  }
-
   function handlePanelTab(tab: PanelTab) {
     setPanelTab(tab);
-    if (tab === 'files' && seFiles.length === 0 && !filesLoading) fetchFiles();
   }
 
-  async function uploadFiles(fileList: FileList) {
-    setUploading(true);
-    setUploadError('');
-    const files = Array.from(fileList);
+  // 원장(ledger)이 유일한 진실 원천 — 이 effect 하나가 두 가지를 함께 담당한다:
+  //  1) 이미 연결된 작품 카드의 미리보기/업로드상태를 원장 최신값으로 동기화(낙관적 표시 유지)
+  //  2) 이 세션에서 새로 들어온(마운트 이전엔 없던) 이미지 파일을 작품으로 자동추가
+  // 여러 곳에서 각자 artwork.uploadStatus를 직접 mutate하던 기존 방식을 없애고, 원장 하나를
+  // 구독해서 파생시키는 방식으로 바꿔 "표시가 실제 상태와 어긋나는" 경우를 구조적으로 없앴다.
+  useEffect(() => {
+    if (order?.order_type !== 'catalog' || !seenAtMountRef.current) return;
+    setCSnap(prev => {
+      let changed = false;
+      // sourceEntryId(이번 세션 업로드)뿐 아니라 sourceFileId(리팩터 이전 데이터·재조회로 얻은 것)도
+      // "이미 연결됨"으로 잡아야 함 — 안 그러면 새로고침마다 같은 파일이 작품으로 중복 추가될 수 있음.
+      const linkedIds = new Set(prev.artworks.map(a => a.sourceEntryId).filter(Boolean));
+      const linkedFileIds = new Set(prev.artworks.map(a => a.sourceFileId).filter(Boolean));
 
-    if (orderRef.current?.order_type === 'catalog') {
-      // 도록: 로컬 blob으로 즉시 표시(낙관적 UI) → 백그라운드로 서버 업로드 → 완료 시 조용히 교체
-      await uploadFilesOptimistic(files);
-      setUploading(false);
-      return;
-    }
-
-    // 영상·인쇄 — 기존 방식 그대로 (서버 업로드 완료 후 파일 목록에 반영)
-    const uploaded: SEFile[] = [];
-    try {
-      for (const file of files) {
-        const fd = new FormData();
-        fd.append('file', file);
-        const res = await fetch('/api/admin/super-editor/files', { method: 'POST', body: fd });
-        if (res.ok) {
-          const data = await res.json();
-          if (data.file) uploaded.push(data.file);
-        } else {
-          const errText = await res.text().catch(() => '');
-          setUploadError(`업로드 실패 (${res.status}) — ${errText.slice(0, 80) || '서버 오류'}`);
-        }
-      }
-    } catch (err) {
-      setUploadError(`업로드 중 오류: ${err instanceof Error ? err.message : '네트워크 오류'}`);
-    } finally {
-      if (uploaded.length > 0) setSeFiles(prev => [...uploaded, ...prev]);
-      setUploading(false);
-    }
-  }
-
-  // 도록: 파일 선택 즉시 로컬 blob URL로 작품 목록에 낙관적 추가 후, 파일별로 백그라운드 업로드
-  async function uploadFilesOptimistic(files: File[]) {
-    const pending = files.map(file => ({
-      file,
-      artworkId: Date.now().toString(36) + Math.random().toString(36).slice(2),
-      localUrl:  URL.createObjectURL(file),
-    }));
-
-    const optimisticArtworks: ArtworkEntry[] = pending.map(p => ({
-      id: p.artworkId, imageUrl: p.localUrl,
-      title: '', year: '', medium: '', size: '', description: '',
-      uploadStatus: 'uploading',
-    }));
-    pending.forEach(p => pendingFilesRef.current.set(p.artworkId, p.file));
-    updateC({ artworks: [...cSnap.artworks, ...optimisticArtworks] });
-
-    // 파일별로 순차 업로드 — 하나 실패해도 나머지는 계속 진행
-    for (const p of pending) {
-      await uploadOnePending(p.artworkId, p.file);
-    }
-  }
-
-  // 낙관적 작품 하나를 실제로 서버에 업로드하고, 성공하면 로컬 blob → 서버 URL로 조용히 교체
-  async function uploadOnePending(artworkId: string, file: File) {
-    try {
-      const fd = new FormData();
-      fd.append('file', file);
-      const res = await fetch('/api/admin/super-editor/files', { method: 'POST', body: fd });
-      if (!res.ok) {
-        const errText = await res.text().catch(() => '');
-        setUploadError(`업로드 실패 (${res.status}) — ${errText.slice(0, 80) || '서버 오류'}`);
-        setArtworkUploadStatus(artworkId, 'error');
-        return;
-      }
-      const data = await res.json();
-      const serverFile: SEFile | undefined = data.file;
-      if (!serverFile) { setArtworkUploadStatus(artworkId, 'error'); return; }
-
-      pendingFilesRef.current.delete(artworkId);
-      setSeFiles(prev => [serverFile, ...prev]);
-
-      const serverUrl = `/api/super-editor-files/${serverFile.user_id}/${serverFile.filename}`;
-      setCSnap(prev => {
-        let localUrlToRevoke: string | null = null;
-        const artworks = prev.artworks.map(a => {
-          if (a.id !== artworkId) return a;
-          if (a.imageUrl.startsWith('blob:')) localUrlToRevoke = a.imageUrl;
-          return { ...a, imageUrl: serverUrl, sourceFileId: serverFile.id, uploadStatus: undefined };
-        });
-        const next = { ...prev, artworks };
-        latestSnap.current = next;
-        dirtyRef.current   = true;
-        // React가 새 서버 URL로 리렌더/페인트할 시간을 준 뒤 로컬 blob 정리 (화면에서 사라지는 것 방지)
-        if (localUrlToRevoke) scheduleRevokeBlobUrl(localUrlToRevoke);
-        return next;
+      let artworks = prev.artworks.map(a => {
+        if (!a.sourceEntryId) return a;
+        const e = ledgerEntries.find(x => x.id === a.sourceEntryId);
+        if (!e) return a;
+        const st = getEntryStatus(e);
+        const serverRef = findLocation(e, 'serverLight')?.ref;
+        const nextUploadStatus: ArtworkEntry['uploadStatus'] = st === 'ready' ? undefined : st === 'error' ? 'error' : 'uploading';
+        const nextUrl = resolveDisplayUrl(e) || a.imageUrl;
+        const nextSourceFileId = serverRef ?? a.sourceFileId;
+        if (a.uploadStatus === nextUploadStatus && a.imageUrl === nextUrl && a.sourceFileId === nextSourceFileId) return a;
+        changed = true;
+        return { ...a, imageUrl: nextUrl, uploadStatus: nextUploadStatus, sourceFileId: nextSourceFileId };
       });
-    } catch (err) {
-      setUploadError(`업로드 중 오류: ${err instanceof Error ? err.message : '네트워크 오류'}`);
-      setArtworkUploadStatus(artworkId, 'error');
-    }
-  }
 
-  function setArtworkUploadStatus(artworkId: string, status: 'uploading' | 'error') {
-    setCSnap(prev => ({
-      ...prev,
-      artworks: prev.artworks.map(a => a.id === artworkId ? { ...a, uploadStatus: status } : a),
-    }));
-  }
+      const newOnes = ledgerEntries.filter((e) => {
+        if (e.kind !== 'image' || seenAtMountRef.current!.has(e.id) || linkedIds.has(e.id)) return false;
+        const serverRef = findLocation(e, 'serverLight')?.ref;
+        if (serverRef && linkedFileIds.has(serverRef)) return false;
+        return true;
+      });
+      if (newOnes.length > 0) {
+        changed = true;
+        artworks = [...artworks, ...newOnes.map((e) => ({
+          id: Date.now().toString(36) + Math.random().toString(36).slice(2),
+          imageUrl: resolveDisplayUrl(e), title: '', year: '', medium: '', size: '', description: '',
+          sourceEntryId: e.id, sourceFileId: findLocation(e, 'serverLight')?.ref,
+        }))];
+      }
 
-  // 업로드 실패한 작품 카드에서 재시도
+      if (!changed) return prev;
+      const next = { ...prev, artworks };
+      latestSnap.current = next;
+      dirtyRef.current   = true;
+      return next;
+    });
+  }, [ledgerEntries, order?.order_type]);
+
+  // 업로드 실패한 작품 카드에서 재시도 — 실제 재시도는 원장에 위임(원본 File은 원장이 들고 있음)
   function handleRetryUpload(artworkId: string) {
-    const file = pendingFilesRef.current.get(artworkId);
-    if (!file) return;
-    setArtworkUploadStatus(artworkId, 'uploading');
-    uploadOnePending(artworkId, file);
+    const artwork = cSnap.artworks.find(a => a.id === artworkId);
+    if (artwork?.sourceEntryId) useFileLedgerStore.getState().retry(artwork.sourceEntryId);
   }
 
-  async function handleDeleteFile(id: string) {
-    setDeletingFile(id);
-    await fetch(`/api/admin/super-editor/files?fileId=${id}`, { method: 'DELETE' });
-    setSeFiles(prev => prev.filter(f => f.id !== id));
-    setDeletingFile(null);
+  function isEntryIncludedInCatalog(entry: FileEntry): boolean {
+    const serverRef = findLocation(entry, 'serverLight')?.ref;
+    return cSnap.artworks.some(a => a.sourceEntryId === entry.id || (!!serverRef && a.sourceFileId === serverRef));
+  }
+
+  function handleToggleCatalogInclude(entry: FileEntry) {
+    const serverRef = findLocation(entry, 'serverLight')?.ref;
+    const match = cSnap.artworks.find(a => a.sourceEntryId === entry.id || (!!serverRef && a.sourceFileId === serverRef));
+    if (match) {
+      handleDeleteArtwork(match.id);
+    } else {
+      const newArtwork: ArtworkEntry = {
+        id: Date.now().toString(36) + Math.random().toString(36).slice(2),
+        imageUrl: resolveDisplayUrl(entry), title: '', year: '', medium: '', size: '', description: '',
+        sourceEntryId: entry.id, sourceFileId: serverRef,
+      };
+      updateC({ artworks: [...cSnap.artworks, newArtwork] });
+    }
   }
 
   async function fetchQr() {
@@ -339,27 +278,19 @@ export default function SuperEditorPage() {
 
         const isVideo = data.fileType === 'video';
 
-        if (!isVideo) {
+        // 파일 관리자 탭(원장)에 반영 — 다른 기기에서 올린 파일이라 원장이 직접 만든 게 아니므로
+        // 서버에서 새로 조회해서 채운다. 도록의 "자동추가"는 이 refresh가 만드는 새 원장 엔트리를
+        // 위 catalog effect가 감지해서 처리하므로 여기서 따로 artwork를 만들 필요가 없다.
+        void useFileLedgerStore.getState().refreshFromServer();
+
+        if (!isVideo && orderRef.current?.order_type !== 'catalog') {
+          // 영상·인쇄: 모바일에서 온 이미지는 기존과 동일하게 캔버스에 바로 삽입
           const url = data.url;
-          if (orderRef.current?.order_type === 'catalog') {
-            // 도록 모드: 새 작품 엔트리로 자동 추가 (같은 fileId 중복 방지)
-            setCSnap(prev => {
-              if (data.fileId && prev.artworks.some(a => a.sourceFileId === data.fileId)) return prev;
-              const newArtwork: ArtworkEntry = {
-                id: Date.now().toString(36) + Math.random().toString(36).slice(2),
-                imageUrl: url, title: '', year: '', medium: '', size: '', description: '',
-                sourceFileId: data.fileId,
-              };
-              const next = { ...prev, artworks: [...prev.artworks, newArtwork] };
-              latestSnap.current = next;
-              dirtyRef.current   = true;
-              return next;
-            });
-          } else if (orderRef.current?.order_type === 'video') {
-            const newBlock: CanvasBlock = {
-              id: Date.now().toString(36) + Math.random().toString(36).slice(2),
-              type: 'image', content: url,
-            };
+          const newBlock: CanvasBlock = {
+            id: Date.now().toString(36) + Math.random().toString(36).slice(2),
+            type: 'image', content: url,
+          };
+          if (orderRef.current?.order_type === 'video') {
             setVSnap(prev => {
               const next = { ...prev, canvas: { blocks: [...prev.canvas.blocks, newBlock] } };
               latestSnap.current = next;
@@ -367,10 +298,6 @@ export default function SuperEditorPage() {
               return next;
             });
           } else {
-            const newBlock: CanvasBlock = {
-              id: Date.now().toString(36) + Math.random().toString(36).slice(2),
-              type: 'image', content: url,
-            };
             setPSnap(prev => {
               const next = { ...prev, canvas: { blocks: [...prev.canvas.blocks, newBlock] } };
               latestSnap.current = next;
@@ -380,14 +307,6 @@ export default function SuperEditorPage() {
           }
           setSaveStatus('saving');
           setPanelTab('preview');
-        }
-
-        if (data.fileId && data.filename) {
-          setSeFiles(prev => [{
-            id: data.fileId!, user_id: '', filename: data.filename!,
-            orig_name: data.filename!, file_type: (data.fileType as SEFileType) ?? 'image',
-            mime_type: '', size_bytes: 0, created_at: Date.now(),
-          }, ...prev]);
         }
 
         const note = isVideo
@@ -408,6 +327,20 @@ export default function SuperEditorPage() {
     return () => clearInterval(intervalRef.current);
   }, [saveNow]);
 
+  // 파일 원장 하이드레이션 — 이 주문(도록/영상/인쇄) 소속 파일만 불러온다.
+  // setCurrentOrder가 원장을 완전히 리셋(entries 비움)한 뒤 이 주문 스코프로 새로 하이드레이트하므로,
+  // 다른 주문 화면을 보다가 (풀 새로고침 없이) 이 화면으로 넘어와도 이전 주문 파일이 안 남는다.
+  // seenAtMountRef는 하이드레이션 완료 직후의 id 집합을 기준선으로 남겨서, 이후 "이 세션에서 새로
+  // 들어온 파일"만 도록에 자동추가되도록(이미 저장돼 있던 작품이 중복으로 다시 추가되는 것 방지)한다.
+  useEffect(() => {
+    seenAtMountRef.current = null;
+    const ledger = useFileLedgerStore.getState();
+    ledger.setCurrentOrder(orderId);
+    ledger.refreshFromServer().then(() => {
+      seenAtMountRef.current = new Set(Object.keys(useFileLedgerStore.getState().entries));
+    });
+  }, [orderId]);
+
   // 초기 로드
   useEffect(() => {
     fetch(`/api/admin/super-editor?orderId=${orderId}`)
@@ -420,7 +353,6 @@ export default function SuperEditorPage() {
         if (o.order_type === 'catalog' && !catalogTabInit.current) {
           catalogTabInit.current = true;
           setPanelTab('files');
-          fetchFiles();
         }
         const snap = JSON.parse(o.snapshot || '{}');
         if (o.order_type === 'video') {
@@ -511,22 +443,6 @@ export default function SuperEditorPage() {
     }
   }
 
-  // 업로드 완료 직후 자동으로 작품 목록에 추가 (sourceFileId 기준 중복 방지)
-  function addArtworksFromFiles(files: SEFile[]) {
-    const existingIds = new Set(cSnap.artworks.map(a => a.sourceFileId).filter(Boolean));
-    const newArtworks: ArtworkEntry[] = files
-      .filter(f => f.file_type === 'image' && !existingIds.has(f.id))
-      .map(f => ({
-        id:       Date.now().toString(36) + Math.random().toString(36).slice(2),
-        imageUrl: `/api/super-editor-files/${f.user_id}/${f.filename}`,
-        title: '', year: '', medium: '', size: '', description: '',
-        sourceFileId: f.id,
-      }));
-    if (newArtworks.length > 0) {
-      updateC({ artworks: [...cSnap.artworks, ...newArtworks] });
-    }
-  }
-
   function handleMoveArtwork(id: string, dir: 'up' | 'down') {
     if (orderRef.current?.is_paid) return;
     const arr = [...cSnap.artworks];
@@ -539,12 +455,11 @@ export default function SuperEditorPage() {
     updateC({ artworks: arr });
   }
 
+  // 작품 목록에서 빼는 것 — 원본 파일 자체를 라이브러리에서 지우는 게 아님(그건 파일 관리자의 삭제).
+  // blob URL 정리는 더 이상 여기서 하지 않는다 — 그 책임은 원장(ledger)이 진다(entry가 지워지거나
+  // 서버로 확정될 때 원장이 알아서 revoke).
   function handleDeleteArtwork(id: string) {
     if (orderRef.current?.is_paid) return;
-    const target = cSnap.artworks.find(a => a.id === id);
-    // 아직 업로드 중/실패한 로컬 미리보기였다면 재시도용 File 참조와 blob URL 정리
-    if (target?.imageUrl.startsWith('blob:')) scheduleRevokeBlobUrl(target.imageUrl);
-    pendingFilesRef.current.delete(id);
     updateC({ artworks: cSnap.artworks.filter(a => a.id !== id) });
   }
   // ──────────────────────────────────────────────────────────────────────────
@@ -567,16 +482,30 @@ export default function SuperEditorPage() {
     finally { setPaying(false); }
   }
 
-  // 테스트 PDF 생성 (결제 없이)
+  // 테스트 PDF 생성 (결제 없이) — 서버 왕복 없이 브라우저에서 바로 생성 후 즉시 다운로드.
+  // order.status는 건드리지 않는다(휘발성 미리보기라 서버에 보관하지 않음 — 계속 'editing'에 머무름).
   async function handleTestRender() {
     if (!order || cSnap.artworks.length === 0) return;
     dirtyRef.current = true;
     await saveNow();
-    await fetch('/api/admin/super-editor/catalog-test-render', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ orderId }),
-    });
-    setOrder(prev => prev ? { ...prev, status: 'queued' } : prev);
+    setTestRenderState('generating');
+    try {
+      const entries = useFileLedgerStore.getState().entries;
+      const pdfBytes = await buildCatalogPdf(cSnap, entries);
+      const blob = new Blob([pdfBytes as BlobPart], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${order.title || '도록'}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 30_000);
+      setTestRenderState('idle');
+    } catch (e) {
+      console.error('[handleTestRender]', e);
+      setTestRenderState('error');
+    }
   }
 
   // 편집 모드 복귀
@@ -617,6 +546,10 @@ export default function SuperEditorPage() {
   }[order.order_type];
 
   return (
+    <FullscreenDropZone
+      active={!isLocked}
+      onDropped={() => setPanelTab('files')}
+    >
     <div className="flex flex-col lg:flex-row h-full overflow-hidden">
 
       {/* ── 모바일 패널 전환 탭 (lg 이상에서는 숨김) ──────────────── */}
@@ -719,20 +652,35 @@ export default function SuperEditorPage() {
           {/* ── 도록: 테스트 PDF 생성 (결제 없이) ── */}
           {isCatalog && !isLocked && (
             <>
-              {order.status === 'editing' && (
-                <button
-                  onClick={handleTestRender}
-                  disabled={cSnap.artworks.length === 0}
-                  className={clsx(
-                    'w-full py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-colors',
-                    cSnap.artworks.length > 0
-                      ? 'bg-amber-600 hover:bg-amber-700 text-white shadow-sm'
-                      : 'bg-stone-200 text-stone-400 cursor-not-allowed',
+              {order.status === 'editing' && testRenderState !== 'generating' && (
+                <>
+                  <button
+                    onClick={handleTestRender}
+                    disabled={cSnap.artworks.length === 0}
+                    className={clsx(
+                      'w-full py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-colors',
+                      cSnap.artworks.length > 0
+                        ? 'bg-amber-600 hover:bg-amber-700 text-white shadow-sm'
+                        : 'bg-stone-200 text-stone-400 cursor-not-allowed',
+                    )}
+                  >
+                    <BookOpen size={15} />
+                    {cSnap.artworks.length === 0 ? '작품을 추가해야 PDF를 만들 수 있어요' : '도록 PDF 만들기 (테스트)'}
+                  </button>
+                  {testRenderState === 'error' && (
+                    <p className="text-xs text-red-500 text-center mt-1">PDF 생성 중 오류가 발생했습니다. 다시 시도해 주세요.</p>
                   )}
-                >
-                  <BookOpen size={15} />
-                  {cSnap.artworks.length === 0 ? '작품을 추가해야 PDF를 만들 수 있어요' : '도록 PDF 만들기 (테스트)'}
-                </button>
+                </>
+              )}
+
+              {order.status === 'editing' && testRenderState === 'generating' && (
+                <div className="flex flex-col items-center gap-2 py-3 bg-amber-50 rounded-xl border border-amber-200">
+                  <div className="flex items-center gap-2">
+                    <Loader2 size={14} className="text-amber-600 animate-spin" />
+                    <span className="text-sm text-amber-700 font-medium">PDF 생성 중...</span>
+                  </div>
+                  <p className="text-[11px] text-amber-600">완료되면 바로 다운로드됩니다(브라우저에서 생성 중 — 서버 대기 아님)</p>
+                </div>
               )}
 
               {(order.status === 'queued' || order.status === 'processing') && (
@@ -858,8 +806,8 @@ export default function SuperEditorPage() {
           >
             <FolderOpen size={12} />
             {isCatalog ? '① 작품 이미지' : '파일 관리자'}
-            {seFiles.length > 0 && (
-              <span className={clsx('text-[10px] px-1.5 py-0.5 rounded-full', isCatalog ? 'bg-amber-100 text-amber-700' : 'bg-violet-100 text-violet-600')}>{seFiles.length}</span>
+            {ledgerEntries.length > 0 && (
+              <span className={clsx('text-[10px] px-1.5 py-0.5 rounded-full', isCatalog ? 'bg-amber-100 text-amber-700' : 'bg-violet-100 text-violet-600')}>{ledgerEntries.length}</span>
             )}
           </button>
 
@@ -874,31 +822,12 @@ export default function SuperEditorPage() {
               </button>
             </div>
           )}
-          {panelTab === 'files' && (
+          {panelTab === 'files' && !isCatalog && (
             <div className="ml-auto flex items-center gap-2 px-3">
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                disabled={uploading}
-                className={clsx(
-                  'flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors',
-                  uploading ? 'bg-stone-100 text-stone-400' : isCatalog ? 'bg-amber-100 hover:bg-amber-200 text-amber-700' : 'bg-violet-100 hover:bg-violet-200 text-violet-700',
-                )}
-              >
-                {uploading ? <Loader2 size={11} className="animate-spin" /> : <Upload size={11} />}
-                {uploading ? '업로드 중' : '업로드'}
-              </button>
-              {!isCatalog && (
-                <a href="/admin/super-editor/files" target="_blank"
-                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold text-stone-500 hover:bg-stone-100 transition-colors">
-                  <ExternalLink size={11} />전체 관리
-                </a>
-              )}
-              <input
-                ref={fileInputRef} type="file" multiple
-                accept={isCatalog ? 'image/*' : 'image/*,video/*,audio/*'}
-                className="hidden"
-                onChange={e => { if (e.target.files?.length) { uploadFiles(e.target.files); e.target.value = ''; } }}
-              />
+              <a href="/admin/super-editor/files" target="_blank"
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold text-stone-500 hover:bg-stone-100 transition-colors">
+                <ExternalLink size={11} />전체 관리
+              </a>
             </div>
           )}
         </div>
@@ -972,17 +901,6 @@ export default function SuperEditorPage() {
         {panelTab === 'files' && (
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
 
-            {/* 업로드 에러 표시 */}
-            {uploadError && (
-              <div className="flex items-center gap-2 px-3 py-2 bg-red-50 border border-red-200 rounded-xl text-xs text-red-600 font-medium">
-                <AlertCircle size={13} className="shrink-0" />
-                <span className="flex-1">{uploadError}</span>
-                <button onClick={() => setUploadError('')} className="shrink-0 hover:text-red-800">
-                  <X size={12} />
-                </button>
-              </div>
-            )}
-
             {/* QR 무선 전송 */}
             <div className="bg-white rounded-xl border border-stone-200 overflow-hidden">
               <button
@@ -1027,119 +945,25 @@ export default function SuperEditorPage() {
               )}
             </div>
 
-            {/* 파일 목록 */}
-            {filesLoading ? (
-              <div className="flex justify-center py-12">
-                <Loader2 size={24} className="animate-spin text-stone-300" />
-              </div>
-            ) : seFiles.length === 0 ? (
-              isCatalog ? (
-                <label
-                  className="flex flex-col items-center gap-4 py-12 px-4 cursor-pointer border-2 border-dashed border-amber-200 rounded-2xl hover:border-amber-400 hover:bg-amber-50 transition-colors bg-white text-center"
-                  onDragOver={e => { e.preventDefault(); e.stopPropagation(); }}
-                  onDrop={e => { e.preventDefault(); e.stopPropagation(); if (e.dataTransfer.files?.length) { uploadFiles(e.dataTransfer.files); } }}
-                >
-                  <input
-                    type="file" multiple accept="image/*" className="hidden"
-                    onChange={e => { if (e.target.files?.length) { uploadFiles(e.target.files); e.target.value = ''; } }}
-                  />
-                  <div className="w-16 h-16 rounded-2xl bg-amber-100 flex items-center justify-center">
-                    <Upload size={28} className="text-amber-600" />
-                  </div>
-                  <div>
-                    <p className="font-bold text-stone-700 text-base">① 여기에 작품 이미지를 올려주세요</p>
-                    <p className="text-sm text-stone-400 mt-1">클릭하거나 이미지 파일을 드래그해서 올리세요</p>
-                    <p className="text-xs text-stone-300 mt-2">JPG · PNG · WEBP 지원</p>
-                  </div>
-                  <p className="text-xs text-amber-600 font-semibold bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-full">
-                    또는 위 [업로드] 버튼이나 QR로 스마트폰 전송
-                  </p>
-                </label>
-              ) : (
-                <label
-                  className="flex flex-col items-center gap-3 py-16 text-stone-400 cursor-pointer border-2 border-dashed border-stone-200 rounded-2xl hover:border-violet-300 hover:bg-white transition-colors"
-                  onDragOver={e => { e.preventDefault(); e.stopPropagation(); }}
-                  onDrop={e => { e.preventDefault(); e.stopPropagation(); if (e.dataTransfer.files?.length) { uploadFiles(e.dataTransfer.files); } }}
-                >
-                  <input
-                    type="file" multiple accept="image/*,video/*,audio/*" className="hidden"
-                    onChange={e => { if (e.target.files?.length) { uploadFiles(e.target.files); e.target.value = ''; } }}
-                  />
-                  <Upload size={32} className="opacity-30" />
-                  <p className="text-sm">클릭해서 소재를 업로드하세요</p>
-                  <p className="text-xs text-stone-300">이미지 · 영상 · 오디오</p>
-                </label>
-              )
-            ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {seFiles.map(file => (
-                  <div key={file.id} className={clsx('group bg-white border border-stone-200 rounded-xl overflow-hidden transition-colors', isCatalog ? 'hover:border-amber-300' : 'hover:border-violet-300')}>
-                    <div className="aspect-video bg-stone-100 flex items-center justify-center relative overflow-hidden">
-                      {file.file_type === 'image' ? (
-                        <CachedImg
-                          id={file.id}
-                          src={`/api/super-editor-files/${file.user_id}/${file.filename}`}
-                          alt={file.orig_name}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : file.file_type === 'video' ? (
-                        <Film size={24} className="text-stone-300" />
-                      ) : (
-                        <Music size={24} className="text-stone-300" />
-                      )}
-                      <button
-                        onClick={() => handleDeleteFile(file.id)}
-                        disabled={deletingFile === file.id}
-                        className="absolute top-1 right-1 p-1 bg-white/80 hover:bg-red-50 hover:text-red-500 text-stone-400 rounded-md opacity-0 group-hover:opacity-100 transition-all"
-                      >
-                        {deletingFile === file.id ? <Loader2 size={11} className="animate-spin" /> : <Trash2 size={11} />}
-                      </button>
-                    </div>
-                    <div className="px-2 py-1.5 flex items-center gap-1">
-                      <p className="text-[10px] font-medium text-stone-600 truncate flex-1" title={file.orig_name}>
-                        {file.orig_name}
-                      </p>
-                      {file.file_type === 'image' && !isLocked && (
-                        isCatalog ? (
-                          // 도록: 업로드 즉시 자동 추가되므로, 여기선 상태 표시 + 빼기/누락분 수동 추가만 담당
-                          cSnap.artworks.some(a => a.sourceFileId === file.id) ? (
-                            <button
-                              onClick={() => {
-                                const match = cSnap.artworks.find(a => a.sourceFileId === file.id);
-                                if (match) handleDeleteArtwork(match.id);
-                              }}
-                              title="작품 목록에서 빼기"
-                              className="shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded transition-colors text-emerald-600 hover:text-red-600 hover:bg-red-50"
-                            >
-                              포함됨 ✕
-                            </button>
-                          ) : (
-                            <button
-                              onClick={() => addArtworksFromFiles([file])}
-                              title="작품 목록에 추가"
-                              className="shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded transition-colors text-amber-700 hover:text-amber-900 hover:bg-amber-50"
-                            >
-                              추가
-                            </button>
-                          )
-                        ) : (
-                          <button
-                            onClick={() => handleInsertImage(`/api/super-editor-files/${file.user_id}/${file.filename}`)}
-                            className="shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded transition-colors text-violet-600 hover:text-violet-800 hover:bg-violet-50"
-                          >
-                            삽입
-                          </button>
-                        )
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+            {/* 파일 관리자 — 썸네일/목록, 상태 표시, 이름변경·삭제·정렬, 중복판정 알림 전부
+                이 컴포넌트 하나가 원장(useFileLedgerStore)만 보고 처리한다 */}
+            <FileManagerPanel
+              accent={isCatalog ? 'amber' : 'violet'}
+              accept={isCatalog ? 'image/*' : 'image/*,video/*,audio/*'}
+              locked={isLocked}
+              isIncluded={isCatalog ? isEntryIncludedInCatalog : undefined}
+              includedLabel="포함됨"
+              onToggleInclude={isCatalog ? handleToggleCatalogInclude : undefined}
+              onInsert={!isCatalog ? (entry) => handleInsertImage(resolveDisplayUrl(entry)) : undefined}
+              insertLabel="삽입"
+              emptyTitle={isCatalog ? '① 여기에 작품 이미지를 올려주세요' : '클릭해서 소재를 업로드하세요'}
+              emptyHint={isCatalog ? '클릭하거나 이미지 파일을 드래그해서 올리세요 · 또는 위 QR로 스마트폰 전송' : '이미지 · 영상 · 오디오'}
+            />
           </div>
         )}
       </div>
     </div>
+    </FullscreenDropZone>
   );
 }
 

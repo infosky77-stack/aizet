@@ -73,7 +73,10 @@ export async function POST(
   const buffer = Buffer.from(await file.arrayBuffer());
   await writeFile(path.join(dir, filename), buffer);
 
-  const record = insertFile(entry.userId, filename, file.name || filename, fileType, mime, file.size);
+  const record = insertFile({
+    userId: entry.userId, filename, origName: file.name || filename, fileType, mimeType: mime,
+    sizeBytes: file.size, orderId: entry.orderId,
+  });
   const url = `/api/super-editor-files/${entry.userId}/${filename}`;
 
   // SSE로 PC 편집 화면에 notify (공유 store 사용 → 같은 채널 Map)

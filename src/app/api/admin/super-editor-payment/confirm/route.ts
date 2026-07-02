@@ -47,10 +47,17 @@ export async function POST(req: NextRequest) {
     return Response.json({ error: data.message ?? '결제 승인 실패' }, { status: tossRes.status });
   }
 
-  // 결제 승인 → media_orders 잠금 + 큐 등록
+  // 결제 승인 → media_orders 잠금
   confirmImagePayment(paymentOrderId, paymentKey);
   markPaid(mediaOrderId, paymentOrderId);
-  const job = enqueueJob(mediaOrderId, mediaOrder.order_type);
 
-  return Response.json({ ok: true, jobId: job.id });
+  // 도록(catalog)은 서버 큐에 태우지 않는다 — 결제 성공 화면에서 브라우저가 직접 PDF를 만들어
+  // catalog-store-render로 보관한다(51MB대 서버 렌더 대신 수 MB급 클라이언트 생성).
+  // 실패 시엔 성공 화면이 catalog-server-fallback으로 이 경로(enqueueJob)와 동일한 결과를 낸다.
+  if (mediaOrder.order_type === 'catalog') {
+    return Response.json({ ok: true, orderType: 'catalog' });
+  }
+
+  const job = enqueueJob(mediaOrderId, mediaOrder.order_type);
+  return Response.json({ ok: true, jobId: job.id, orderType: mediaOrder.order_type });
 }
