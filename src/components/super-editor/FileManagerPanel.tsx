@@ -8,6 +8,7 @@ import { useEffect, useRef, useState } from 'react';
 import {
   Upload, Image as ImageIcon, Film, Music, Trash2, Loader2, RefreshCw, X, Pencil,
   LayoutGrid, List as ListIcon, ChevronUp, ChevronDown, HardDrive, CloudUpload,
+  FolderCheck, FolderOpen,
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { CachedImg } from '@/components/ui/CachedImg';
@@ -16,6 +17,10 @@ import { useOrderedFileEntries, useLedgerNotices, useFileLedgerStore } from '@/l
 import { getEntryStatus, getEntryError, resolveDisplayUrl, getPresentLocationKinds } from '@/lib/super-editor/ledger/selectors';
 import { ingestFromPicker } from '@/lib/super-editor/ledger/ingest/fromPicker';
 import { ingestFromDrop } from '@/lib/super-editor/ledger/ingest/fromDrop';
+import {
+  isFileSystemAccessSupported, connectRootFolder, reconfirmPermission, getFolderConnectionStatus,
+  type FolderConnectionStatus,
+} from '@/lib/super-editor/ledger/locations/userFolderAdapter';
 
 type Accent = 'violet' | 'amber';
 type ViewMode = 'grid' | 'list';
@@ -54,6 +59,9 @@ function LocationBadges({ entry }: { entry: FileEntry }) {
       {kinds.includes('local') && (
         <span title="이 기기에 저장됨" className="text-stone-400"><HardDrive size={10} /></span>
       )}
+      {kinds.includes('userFolder') && (
+        <span title="내 컴퓨터 폴더에 원본 백업됨" className="text-emerald-500"><FolderCheck size={10} /></span>
+      )}
       {kinds.includes('serverLight') && (
         <span title="서버에 저장됨" className="text-stone-400"><CloudUpload size={10} /></span>
       )}
@@ -73,12 +81,36 @@ export function FileManagerPanel({
   const retry          = useFileLedgerStore((s) => s.retry);
   const renameEntry    = useFileLedgerStore((s) => s.renameEntry);
   const reorderEntries = useFileLedgerStore((s) => s.reorderEntries);
+  const backfillFolderBackup = useFileLedgerStore((s) => s.backfillFolderBackup);
 
   const [viewMode,   setViewMode]   = useState<ViewMode>('grid');
   const [dragging,   setDragging]   = useState(false);
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameDraft, setRenameDraft] = useState('');
+  const [folderStatus, setFolderStatus] = useState<FolderConnectionStatus>('unsupported');
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // 원본 백업 폴더 연결 상태 — 지원 브라우저에서만 조용히(제스처 없이) 확인
+  useEffect(() => {
+    if (!isFileSystemAccessSupported()) return;
+    getFolderConnectionStatus().then(setFolderStatus);
+  }, []);
+
+  async function handleConnectFolder() {
+    const res = await connectRootFolder();
+    if (res.ok) {
+      setFolderStatus('granted');
+      backfillFolderBackup(); // 이미 추가돼 있던 파일들도 소급 백업
+    }
+  }
+
+  async function handleReconfirmFolder() {
+    const res = await reconfirmPermission();
+    if (res.ok) {
+      setFolderStatus('granted');
+      backfillFolderBackup();
+    }
+  }
 
   const accentText = accent === 'amber' ? 'text-amber-700' : 'text-violet-700';
   const accentBg   = accent === 'amber' ? 'bg-amber-100 hover:bg-amber-200 text-amber-700' : 'bg-violet-100 hover:bg-violet-200 text-violet-700';
@@ -155,6 +187,29 @@ export function FileManagerPanel({
           </button>
           <input ref={fileInputRef} type="file" multiple accept={accept} className="hidden"
             onChange={(e) => { ingestFromPicker(e.target.files); e.target.value = ''; }} />
+
+          {/* 원본 백업 폴더 연결 — 원본이 재산이라 상태를 명확히 보여준다. 미지원 브라우저는 숨김 */}
+          {folderStatus === 'granted' && (
+            <span title="새 파일을 추가하면 이 폴더에도 자동으로 백업됩니다"
+              className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-medium text-emerald-600 bg-emerald-50">
+              <FolderCheck size={12} />원본 폴더 연결됨
+            </span>
+          )}
+          {folderStatus === 'prompt' && (
+            <button onClick={handleReconfirmFolder}
+              title="새로고침 등으로 폴더 접근 권한이 초기화됐습니다 — 클릭해서 다시 허용해주세요"
+              className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-medium text-amber-700 bg-amber-50 hover:bg-amber-100">
+              <FolderOpen size={12} />폴더 접근 재확인 필요
+            </button>
+          )}
+          {folderStatus === 'not-connected' && (
+            <button onClick={handleConnectFolder}
+              title="원본을 내 컴퓨터 폴더에도 저장해 안전하게 이중 보관합니다"
+              className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-medium text-stone-500 bg-stone-100 hover:bg-stone-200">
+              <FolderOpen size={12} />원본 백업 폴더 연결
+            </button>
+          )}
+
           <div className="ml-auto flex items-center gap-0.5 border border-stone-200 rounded-lg p-0.5 bg-white">
             <button onClick={() => setViewMode('grid')}
               className={clsx('p-1.5 rounded-md transition-colors', viewMode === 'grid' ? clsx('bg-stone-100', accentText) : 'text-stone-400 hover:text-stone-600')}>

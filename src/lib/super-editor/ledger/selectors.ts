@@ -15,6 +15,10 @@ export function getEntryStatus(entry: FileEntry): FileEntryStatus {
   // serverLight(공유 라이브러리 권위)가 실패하면 local이 성공했더라도 에러로 보여준다 —
   // local은 어디까지나 보조 사본이라, 공유 저장이 실패했다는 사실을 가려서는 안 된다.
   if (server?.status === 'error') return 'error';
+  // 작업 중에는 서버에 자동으로 안 올라간다(로컬 우선 전환) — serverLight가 아예 없는 게
+  // 정상적인 최종 상태다. local(OPFS) 저장만 완료되면 "준비됨"으로 본다.
+  const local = findLocation(entry, 'local');
+  if (local?.status === 'present') return 'ready';
   return 'uploading';
 }
 
@@ -42,10 +46,16 @@ export function resolveDisplayUrl(entry: FileEntry): string {
   return entry.previewUrl ?? '';
 }
 
-/** 어느 위치에 존재하는지 배지 표시용 — 순서 고정(로컬 → 서버 → 드라이브) */
+/** 어느 위치에 존재하는지 배지 표시용 — 순서 고정(로컬 → 사용자 폴더 → 서버 → 드라이브) */
 export function getPresentLocationKinds(entry: FileEntry): FileLocationKind[] {
-  const order: FileLocationKind[] = ['local', 'serverLight', 'userDrive'];
+  const order: FileLocationKind[] = ['local', 'userFolder', 'serverLight', 'userDrive'];
   return order.filter((kind) => findLocation(entry, kind)?.status === 'present');
+}
+
+/** local + userFolder 둘 다 present면 원본이 이중으로 보관된 것 — UI에서 안심 문구/뱃지에 사용 */
+export function isDoublyBackedUp(entry: FileEntry): boolean {
+  return findLocation(entry, 'local')?.status === 'present'
+      && findLocation(entry, 'userFolder')?.status === 'present';
 }
 
 export function getOrderedEntries(entries: Record<string, FileEntry>): FileEntry[] {

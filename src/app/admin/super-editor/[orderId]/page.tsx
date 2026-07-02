@@ -336,7 +336,12 @@ export default function SuperEditorPage() {
     seenAtMountRef.current = null;
     const ledger = useFileLedgerStore.getState();
     ledger.setCurrentOrder(orderId);
-    ledger.refreshFromServer().then(() => {
+    // 로컬(OPFS) 전용 파일 복원과 서버 파일 조회(QR 업로드 등)를 병행 — 서로 다른 위치를 채울 뿐
+    // 서로의 결과를 지우지 않으므로 순서 상관없이 동시에 돌려도 안전하다.
+    Promise.all([
+      ledger.hydrateFromLocalIndex(orderId),
+      ledger.refreshFromServer(),
+    ]).then(() => {
       seenAtMountRef.current = new Set(Object.keys(useFileLedgerStore.getState().entries));
     });
   }, [orderId]);

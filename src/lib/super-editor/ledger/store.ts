@@ -10,8 +10,10 @@ import { useShallow } from 'zustand/react/shallow';
 import { scheduleRevokeBlobUrl } from '@/lib/imageCache';
 import type { FileEntry, FileEntryKind, FileLocationRef, LedgerNotice, SEFileDTO } from './types';
 import { findLocation, getEntryStatus, getOrderedEntries } from './selectors';
-import { localAdapter } from './locations/localAdapter';
+import { localAdapter, refFor as localRefFor } from './locations/localAdapter';
 import { serverLightAdapter, renameOnServer, reorderOnServer, fetchServerFiles } from './locations/serverLightAdapter';
+import { userFolderAdapter, getFolderConnectionStatus } from './locations/userFolderAdapter';
+import { putLocalIndexEntry, removeLocalIndexEntry, listLocalIndexEntries } from './locations/localIndex';
 
 let idCounter = 0;
 function genId(): string {
@@ -83,9 +85,16 @@ interface FileLedgerState {
   setCurrentOrder: (orderId: string) => void;
   hydrate: (files: SEFileDTO[]) => void;
   refreshFromServer: () => Promise<void>;
+  /** 로컬 인덱스(IndexedDB)에서 이 주문의 로컬 전용 파일들을 복원 — 결제 왕복 등으로 메모리가
+   *  리셋된 뒤에도 OPFS에 있는 원본을 다시 원장에 등록한다. refreshFromServer와 독립적으로 병행 가능
+   *  (서로 다른 위치를 채울 뿐, 같은 entries를 지우지 않음). */
+  hydrateFromLocalIndex: (orderId: string) => Promise<void>;
   adoptServerFile: (file: SEFileDTO) => FileEntry;
   ingestFile: (file: File) => FileEntry;
   retry: (id: string) => void;
+  /** 폴더 연결(또는 재연결) 직후 호출 — 이미 로컬에 있지만 아직 사용자 폴더에는 없는 파일들을 소급 백업.
+   *  완료를 기다릴 수 있도록 Promise를 반환한다(결제 완료 페이지에서 "백업 몇 개 남았는지" 확인용). */
+  backfillFolderBackup: () => Promise<void>;
   removeEntry: (id: string) => void;
   renameEntry: (id: string, name: string) => Promise<void>;
   reorderEntries: (ids: string[]) => Promise<void>;
@@ -124,6 +133,36 @@ export const useFileLedgerStore = create<FileLedgerState>((set, get) => ({
     get().hydrate(files);
   },
 
+  hydrateFromLocalIndex: async (orderId) => {
+    const localEntries = await listLocalIndexEntries(orderId);
+    if (localEntries.length === 0) return;
+    // 새로고침/결제왕복 직후라 previewUrl(원래 File 객체의 blob URL)은 이미 사라진 상태 —
+    // 여기서 OPFS 바이트를 다시 blob URL로 해석해 previewUrl 자리에 채워야 화면에 바로 보인다.
+    // (resolveDisplayUrl은 동기 함수라 나중에 알아서 채워주지 않는다 — 여기서 미리 해둬야 함.)
+    const withUrls = await Promise.all(localEntries.map(async (le) => ({
+      le, url: await localAdapter.resolveUrl(localRefFor(le.entryId)),
+    })));
+    set((state) => {
+      const entries = { ...state.entries };
+      for (const { le, url } of withUrls) {
+        if (entries[le.entryId]) continue; // 이미 원장에 있으면(같은 세션 내) 건드리지 않음
+        entries[le.entryId] = {
+          id:         le.entryId,
+          kind:       le.kind,
+          origName:   le.origName,
+          mimeType:   le.mimeType,
+          sizeBytes:  le.sizeBytes,
+          orderId:    le.orderId,
+          locations:  [{ kind: 'local', status: 'present', ref: localRefFor(le.entryId), updatedAt: le.createdAt }],
+          previewUrl: url ?? undefined,
+          sortOrder:  le.sortOrder,
+          createdAt:  le.createdAt,
+        };
+      }
+      return { entries };
+    });
+  },
+
   adoptServerFile: (f) => {
     const matchId = findMatchingEntryId(get().entries, f);
     const keyId = matchId ?? f.id;
@@ -133,8 +172,24 @@ export const useFileLedgerStore = create<FileLedgerState>((set, get) => ({
   },
 
   ingestFile: (file) => {
-    const id = genId();
     const orderId = get().currentOrderId ?? undefined;
+
+    // 서버가 즉시 없으니(작업 중 서버 왕복 0) 중복 판정도 클라이언트에서 1차로 한다 —
+    // 같은 주문 안에서 파일명+크기가 같으면 같은 파일로 간주. 정밀 판정(content-hash)은
+    // 결제 완료 시 서버 업로드가 붙기 전까지는 없음 — 필요 시 Phase B에서 보강.
+    const dup = Object.values(get().entries).find(
+      (e) => e.orderId === orderId && e.origName === file.name && e.sizeBytes === file.size,
+    );
+    if (dup) {
+      const notice: LedgerNotice = {
+        id: genNoticeId(), kind: 'duplicate',
+        message: `"${file.name}" — 이름과 크기가 동일한 파일이 이미 있어 제외했습니다.`,
+      };
+      set((state) => ({ notices: [...state.notices, notice] }));
+      return dup;
+    }
+
+    const id = genId();
     const entry: FileEntry = {
       id,
       kind:       kindFromMime(file.type),
@@ -150,9 +205,16 @@ export const useFileLedgerStore = create<FileLedgerState>((set, get) => ({
     };
     set((state) => ({ entries: { ...state.entries, [id]: entry } }));
 
-    // 위치별로 독립적으로 시도 — 하나가 실패/미지원이어도 나머지에 영향 없음
+    // 위치별로 독립적으로 시도 — 하나가 실패/미지원이어도 나머지에 영향 없음.
+    // 서버(serverLight)는 더 이상 여기서 자동으로 쏘지 않는다 — 작업 중 서버 왕복 0이 핵심 목표.
     if (localAdapter.isSupported()) void attemptLocalSave(id, file);
-    void attemptServerSave(id, file, orderId);
+    if (userFolderAdapter.isSupported()) {
+      // 폴더가 실제로 연결(권한 granted)돼 있을 때만 시도 — 미연결을 "에러"로 보여주지 않기 위해
+      // 여기서 먼저 조용히 상태를 확인한다(제스처 불필요, requestPermission이 아니라 queryPermission).
+      void getFolderConnectionStatus().then((status) => {
+        if (status === 'granted') void attemptFolderSave(id, file, orderId);
+      });
+    }
 
     return entry;
   },
@@ -172,6 +234,24 @@ export const useFileLedgerStore = create<FileLedgerState>((set, get) => ({
     void attemptServerSave(id, file, entry.orderId);
   },
 
+  backfillFolderBackup: async () => {
+    const orderId = get().currentOrderId;
+    if (!orderId) return;
+    const tasks: Promise<void>[] = [];
+    for (const entry of Object.values(get().entries)) {
+      if (entry.orderId !== orderId) continue;
+      const local  = findLocation(entry, 'local');
+      const folder = findLocation(entry, 'userFolder');
+      if (local?.status !== 'present' || folder?.status === 'present') continue;
+      tasks.push(
+        fileFromLocalEntry(entry).then((file) => {
+          if (file) return attemptFolderSave(entry.id, file, orderId);
+        }),
+      );
+    }
+    await Promise.all(tasks);
+  },
+
   removeEntry: (id) => {
     const entry = get().entries[id];
     if (!entry) return;
@@ -185,6 +265,9 @@ export const useFileLedgerStore = create<FileLedgerState>((set, get) => ({
     if (server?.status === 'present' && server.ref) void serverLightAdapter.remove(server.ref);
     const local = findLocation(entry, 'local');
     if (local?.status === 'present' && local.ref) void localAdapter.remove(local.ref);
+    if (local?.status === 'present') void removeLocalIndexEntry(id);
+    const folder = findLocation(entry, 'userFolder');
+    if (folder?.status === 'present' && folder.ref) void userFolderAdapter.remove(folder.ref);
   },
 
   renameEntry: async (id, name) => {
@@ -231,11 +314,54 @@ export const useFileLedgerStore = create<FileLedgerState>((set, get) => ({
 
 async function attemptLocalSave(entryId: string, file: File): Promise<void> {
   const result = await localAdapter.save(entryId, file, { mimeType: file.type, origName: file.name });
-  if (!result.ok || !result.ref) return; // 실패해도 조용히 생략 — serverLight 흐름에 영향 없음
+  if (!result.ok || !result.ref) return; // 실패해도 조용히 생략 — 다른 위치 흐름에 영향 없음
   useFileLedgerStore.setState((state) => {
     const entry = state.entries[entryId];
     if (!entry) return state; // 그 사이 삭제됨
     const locations = upsertLocation(entry.locations, { kind: 'local', status: 'present', ref: result.ref!, updatedAt: Date.now() });
+    return { entries: { ...state.entries, [entryId]: { ...entry, locations } } };
+  });
+  // OPFS 저장 성공 시 로컬 인덱스에도 기록 — 이게 있어야 결제 왕복(메모리 리셋) 후에도
+  // hydrateFromLocalIndex()로 이 파일을 다시 찾을 수 있다.
+  const saved = useFileLedgerStore.getState().entries[entryId];
+  if (saved?.orderId) {
+    void putLocalIndexEntry({
+      entryId, orderId: saved.orderId, origName: saved.origName, mimeType: saved.mimeType,
+      sizeBytes: saved.sizeBytes, kind: saved.kind, sortOrder: saved.sortOrder, createdAt: saved.createdAt,
+    });
+  }
+}
+
+// entry.retryFile은 이번 세션에 방금 추가된 파일에만 있다(메모리 전용, 새로고침/결제왕복 후 사라짐).
+// hydrateFromLocalIndex로 복원된 entry는 retryFile이 없으므로, OPFS에서 다시 blob을 읽어 File로
+// 감싸준다 — backfillFolderBackup이 "재방문 후에도" 원본 폴더 백업을 마저 할 수 있게 하는 핵심.
+async function fileFromLocalEntry(entry: FileEntry): Promise<File | null> {
+  if (entry.retryFile) return entry.retryFile;
+  const local = findLocation(entry, 'local');
+  if (local?.status !== 'present') return null;
+  const url = await localAdapter.resolveUrl(local.ref);
+  if (!url) return null;
+  try {
+    const res = await fetch(url);
+    const blob = await res.blob();
+    return new File([blob], entry.origName, { type: entry.mimeType });
+  } catch {
+    return null;
+  }
+}
+
+async function attemptFolderSave(entryId: string, file: File, orderId?: string): Promise<void> {
+  const result = await userFolderAdapter.save(entryId, file, { mimeType: file.type, origName: file.name, orderId });
+  useFileLedgerStore.setState((state) => {
+    const entry = state.entries[entryId];
+    if (!entry) return state; // 그 사이 삭제됨 — 응답은 무시
+    if (!result.ok || !result.ref) {
+      const locations = upsertLocation(entry.locations, {
+        kind: 'userFolder', status: 'error', ref: '', updatedAt: Date.now(), error: result.error,
+      });
+      return { entries: { ...state.entries, [entryId]: { ...entry, locations } } };
+    }
+    const locations = upsertLocation(entry.locations, { kind: 'userFolder', status: 'present', ref: result.ref, updatedAt: Date.now() });
     return { entries: { ...state.entries, [entryId]: { ...entry, locations } } };
   });
 }

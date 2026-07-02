@@ -2,17 +2,18 @@
 //
 // 핵심 철학: 원장은 "파일"이 아니라 "파일이 어디 사는지에 대한 참조"를 관리한다.
 // 하나의 FileEntry(물리적으로 하나의 파일, contentHash로 식별)는 0개 이상의 위치(locations)에
-// 동시에 존재할 수 있다 — 로컬 기기, 서버, (나중에) 사용자 구글 드라이브.
+// 동시에 존재할 수 있다 — 로컬 기기(OPFS), 사용자가 지정한 실제 컴퓨터 폴더(userFolder),
+// 서버, (스텁으로만 존재, 미사용) 사용자 구글 드라이브.
 // 상태(status)나 표시용 URL은 이 파일에 저장하지 않는다 — locations[] 로부터 항상 계산해서
 // selectors.ts 가 파생시킨다. "저장된 status와 실제 locations가 서로 어긋나는" 버그 클래스를
 // 구조적으로 없애기 위함(=단일 진실 원천 원칙).
 
-export type FileLocationKind = 'local' | 'userDrive' | 'serverLight' | 'cache';
+export type FileLocationKind = 'local' | 'userDrive' | 'userFolder' | 'serverLight' | 'cache';
 
 export interface FileLocationRef {
   kind:      FileLocationKind;
   status:    'pending' | 'present' | 'error';
-  /** 위치별로 의미가 다른 참조값 — OPFS 파일명 / 서버 파일 id / Drive 파일 id / 캐시 키 */
+  /** 위치별로 의미가 다른 참조값 — OPFS 파일명 / 사용자 폴더 내 파일명 / 서버 파일 id / Drive 파일 id / 캐시 키 */
   ref:       string;
   updatedAt: number;
   error?:    string;

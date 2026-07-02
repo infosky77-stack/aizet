@@ -38,7 +38,9 @@ export function peekLocalBlobUrl(ref: string): string | undefined {
   return resolvedUrlCache.get(ref);
 }
 
-function refFor(entryId: string): string {
+// entryId → OPFS 파일명 규칙. 로컬 인덱스에서 복원할 때(store.ts의 hydrateFromLocalIndex)도
+// 이 규칙을 그대로 알아야 해서 export 한다 — 포맷이 여기 한 곳에만 있게 유지.
+export function refFor(entryId: string): string {
   return `${entryId}.bin`;
 }
 
