@@ -58,6 +58,10 @@ export function isDoublyBackedUp(entry: FileEntry): boolean {
       && findLocation(entry, 'userFolder')?.status === 'present';
 }
 
-export function getOrderedEntries(entries: Record<string, FileEntry>): FileEntry[] {
-  return Object.values(entries).sort((a, b) => a.sortOrder - b.sortOrder);
+// 원장 전체에서 이 주문 소속만 골라 정렬 — entries는 여러 주문의 엔트리를 함께 담고 있으므로
+// (스코프 전환 시 리셋하지 않는 orderId 키잉 구조) 읽는 쪽은 반드시 여기를 거쳐야 한다.
+export function getOrderedEntries(entries: Record<string, FileEntry>, orderId: string): FileEntry[] {
+  return Object.values(entries)
+    .filter((e) => e.orderId === orderId)
+    .sort((a, b) => a.sortOrder - b.sortOrder);
 }

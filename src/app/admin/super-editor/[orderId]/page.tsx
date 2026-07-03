@@ -14,7 +14,7 @@ import { CachedImg } from '@/components/ui/CachedImg';
 import { FileManagerPanel } from '@/components/super-editor/FileManagerPanel';
 import { FullscreenDropZone } from '@/components/super-editor/FullscreenDropZone';
 import { useFileLedgerStore, useOrderedFileEntries } from '@/lib/super-editor/ledger/store';
-import { getEntryStatus, resolveDisplayUrl, findLocation } from '@/lib/super-editor/ledger/selectors';
+import { getEntryStatus, getOrderedEntries, resolveDisplayUrl, findLocation } from '@/lib/super-editor/ledger/selectors';
 import type { FileEntry } from '@/lib/super-editor/ledger/types';
 import { buildCatalogPdf } from '@/lib/super-editor/pdf/buildCatalogPdf';
 
@@ -109,7 +109,7 @@ export default function SuperEditorPage() {
   const [testRenderState, setTestRenderState] = useState<'idle' | 'generating' | 'error'>('idle');
   const catalogTabInit = useRef(false);
   const [mobilePanelView, setMobilePanelView] = useState<'edit' | 'right'>('right');
-  const ledgerEntries = useOrderedFileEntries();
+  const ledgerEntries = useOrderedFileEntries(orderId);
   // 이 세션에서 처음 마운트될 때 이미 있던(=과거에 업로드된) 파일 id 집합 — 도록 자동추가가
   // "이 세션에서 새로 들어온 파일"만 대상으로 삼기 위한 기준선(사용자 전체 공용 라이브러리가
   // 새 도록에 통째로 딸려들어오는 걸 막음). 최초 refreshFromServer 완료 직후 한 번만 채워짐.
@@ -281,7 +281,7 @@ export default function SuperEditorPage() {
         // 파일 관리자 탭(원장)에 반영 — 다른 기기에서 올린 파일이라 원장이 직접 만든 게 아니므로
         // 서버에서 새로 조회해서 채운다. 도록의 "자동추가"는 이 refresh가 만드는 새 원장 엔트리를
         // 위 catalog effect가 감지해서 처리하므로 여기서 따로 artwork를 만들 필요가 없다.
-        void useFileLedgerStore.getState().refreshFromServer();
+        void useFileLedgerStore.getState().refreshFromServer(orderId);
 
         if (!isVideo && orderRef.current?.order_type !== 'catalog' && orderRef.current?.order_type !== 'magazine') {
           // 영상·인쇄: 모바일에서 온 이미지는 기존과 동일하게 캔버스에 바로 삽입
@@ -328,21 +328,22 @@ export default function SuperEditorPage() {
   }, [saveNow]);
 
   // 파일 원장 하이드레이션 — 이 주문(도록/영상/인쇄) 소속 파일만 불러온다.
-  // setCurrentOrder가 원장을 완전히 리셋(entries 비움)한 뒤 이 주문 스코프로 새로 하이드레이트하므로,
-  // 다른 주문 화면을 보다가 (풀 새로고침 없이) 이 화면으로 넘어와도 이전 주문 파일이 안 남는다.
+  // 원장은 orderId 키잉이라 스코프 전환/리셋이 없다 — 다른 주문 엔트리가 메모리에 남아 있어도
+  // 읽는 쪽(useOrderedFileEntries(orderId))이 걸러 보므로 이전 주문 파일이 화면에 섞이지 않는다.
   // seenAtMountRef는 하이드레이션 완료 직후의 id 집합을 기준선으로 남겨서, 이후 "이 세션에서 새로
   // 들어온 파일"만 도록에 자동추가되도록(이미 저장돼 있던 작품이 중복으로 다시 추가되는 것 방지)한다.
   useEffect(() => {
     seenAtMountRef.current = null;
     const ledger = useFileLedgerStore.getState();
-    ledger.setCurrentOrder(orderId);
     // 로컬(OPFS) 전용 파일 복원과 서버 파일 조회(QR 업로드 등)를 병행 — 서로 다른 위치를 채울 뿐
     // 서로의 결과를 지우지 않으므로 순서 상관없이 동시에 돌려도 안전하다.
     Promise.all([
       ledger.hydrateFromLocalIndex(orderId),
-      ledger.refreshFromServer(),
+      ledger.refreshFromServer(orderId),
     ]).then(() => {
-      seenAtMountRef.current = new Set(Object.keys(useFileLedgerStore.getState().entries));
+      seenAtMountRef.current = new Set(
+        getOrderedEntries(useFileLedgerStore.getState().entries, orderId).map((e) => e.id),
+      );
     });
   }, [orderId]);
 
@@ -556,6 +557,7 @@ export default function SuperEditorPage() {
 
   return (
     <FullscreenDropZone
+      orderId={orderId}
       active={!isLocked}
       onDropped={() => setPanelTab('files')}
     >
@@ -957,6 +959,7 @@ export default function SuperEditorPage() {
             {/* 파일 관리자 — 썸네일/목록, 상태 표시, 이름변경·삭제·정렬, 중복판정 알림 전부
                 이 컴포넌트 하나가 원장(useFileLedgerStore)만 보고 처리한다 */}
             <FileManagerPanel
+              orderId={orderId}
               accent={isCatalog ? 'amber' : 'violet'}
               accept={isCatalog ? 'image/*' : 'image/*,video/*,audio/*'}
               locked={isLocked}

@@ -11,6 +11,8 @@ import { ingestFromDrop } from '@/lib/super-editor/ledger/ingest/fromDrop';
 
 interface Props {
   children: ReactNode;
+  /** 드롭된 파일을 어느 주문의 원장에 넣을지 */
+  orderId:  string;
   active?:  boolean; // false면 리스너 자체를 붙이지 않음(예: 결제 완료로 잠긴 화면)
   onDropped?: () => void; // 드롭 성공 후 콜백(예: 파일 관리자 탭으로 전환)
 }
@@ -19,7 +21,7 @@ function hasFiles(e: DragEvent): boolean {
   return Array.from(e.dataTransfer?.types ?? []).includes('Files');
 }
 
-export function FullscreenDropZone({ children, active = true, onDropped }: Props) {
+export function FullscreenDropZone({ children, orderId, active = true, onDropped }: Props) {
   const [dragCount, setDragCount] = useState(0);
 
   useEffect(() => {
@@ -44,7 +46,7 @@ export function FullscreenDropZone({ children, active = true, onDropped }: Props
       e.preventDefault();
       setDragCount(0);
       try {
-        ingestFromDrop(e.dataTransfer);
+        ingestFromDrop(e.dataTransfer, orderId);
         onDropped?.();
       } catch (err) {
         // 드롭 처리 실패해도 화면 자체는 계속 정상 동작해야 함
@@ -63,7 +65,7 @@ export function FullscreenDropZone({ children, active = true, onDropped }: Props
       window.removeEventListener('dragleave', onDragLeave);
       window.removeEventListener('drop', onDrop);
     };
-  }, [active, onDropped]);
+  }, [active, onDropped, orderId]);
 
   return (
     <div className="relative h-full">

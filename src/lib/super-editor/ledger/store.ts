@@ -4,6 +4,11 @@
 // 반영하는 역할만 한다. 실제 I/O(파일 쓰기·네트워크 호출)는 전부 locations/*Adapter.ts 안에 있다.
 // 어댑터 하나가 실패해도(reject 없이 { ok:false } 로 돌아오므로) 다른 어댑터·다른 파일 처리에는
 // 영향이 없다 — 이게 "한 모듈/한 파일 실패가 전체를 안 무너뜨린다"는 안전성 원칙의 실제 구현.
+//
+// 스코프는 전역 currentOrderId 전환이 아니라 엔트리마다 붙어 있는 orderId다. 주문을 오가도
+// entries를 리셋하지 않고, 읽는 쪽(useOrderedFileEntries)이 orderId로 걸러서 본다 — 그래서
+// "응답이 도착했을 때 스코프가 이미 바뀌어 있는" 부류의 경쟁 상태가 구조적으로 존재하지 않는다.
+// 스코프가 필요한 액션(refreshFromServer/ingestFile/backfillFolderBackup)은 orderId를 인자로 받는다.
 
 import { create } from 'zustand';
 import { useShallow } from 'zustand/react/shallow';
@@ -78,23 +83,19 @@ function findMatchingEntryId(entries: Record<string, FileEntry>, f: SEFileDTO): 
 interface FileLedgerState {
   entries: Record<string, FileEntry>;
   notices: LedgerNotice[];
-  /** 지금 원장이 "열어놓은 폴더" — 이 주문의 파일만 담김. null이면 무주문(스코프 없음) */
-  currentOrderId: string | null;
 
-  /** 다른 주문으로 전환 — 기존 entries/notices를 전부 비우고 새 스코프로 리셋(주문 간 누수 방지) */
-  setCurrentOrder: (orderId: string) => void;
   hydrate: (files: SEFileDTO[]) => void;
-  refreshFromServer: () => Promise<void>;
+  refreshFromServer: (orderId: string) => Promise<void>;
   /** 로컬 인덱스(IndexedDB)에서 이 주문의 로컬 전용 파일들을 복원 — 결제 왕복 등으로 메모리가
    *  리셋된 뒤에도 OPFS에 있는 원본을 다시 원장에 등록한다. refreshFromServer와 독립적으로 병행 가능
    *  (서로 다른 위치를 채울 뿐, 같은 entries를 지우지 않음). */
   hydrateFromLocalIndex: (orderId: string) => Promise<void>;
   adoptServerFile: (file: SEFileDTO) => FileEntry;
-  ingestFile: (file: File) => FileEntry;
+  ingestFile: (file: File, orderId: string) => FileEntry;
   retry: (id: string) => void;
   /** 폴더 연결(또는 재연결) 직후 호출 — 이미 로컬에 있지만 아직 사용자 폴더에는 없는 파일들을 소급 백업.
    *  완료를 기다릴 수 있도록 Promise를 반환한다(결제 완료 페이지에서 "백업 몇 개 남았는지" 확인용). */
-  backfillFolderBackup: () => Promise<void>;
+  backfillFolderBackup: (orderId: string) => Promise<void>;
   removeEntry: (id: string) => void;
   renameEntry: (id: string, name: string) => Promise<void>;
   reorderEntries: (ids: string[]) => Promise<void>;
@@ -104,9 +105,6 @@ interface FileLedgerState {
 export const useFileLedgerStore = create<FileLedgerState>((set, get) => ({
   entries: {},
   notices: [],
-  currentOrderId: null,
-
-  setCurrentOrder: (orderId) => set(() => ({ currentOrderId: orderId, entries: {}, notices: [] })),
 
   hydrate: (files) => set((state) => {
     const entries = { ...state.entries };
@@ -128,10 +126,10 @@ export const useFileLedgerStore = create<FileLedgerState>((set, get) => ({
     return { entries };
   }),
 
-  refreshFromServer: async () => {
-    const orderId = get().currentOrderId;
-    const files = await fetchServerFiles(orderId ?? undefined);
-    if (get().currentOrderId !== orderId) return; // 응답 대기 중 스코프가 바뀌었으면 버림(교차 주문 오염 방지)
+  // 늦게 도착한 응답도 그냥 병합하면 된다 — 엔트리마다 orderId가 붙어 있고 읽는 쪽이 걸러 보므로
+  // "스코프가 바뀌어서 버려야 하는 응답"이라는 개념 자체가 없다.
+  refreshFromServer: async (orderId) => {
+    const files = await fetchServerFiles(orderId);
     get().hydrate(files);
   },
 
@@ -144,7 +142,6 @@ export const useFileLedgerStore = create<FileLedgerState>((set, get) => ({
     const withUrls = await Promise.all(localEntries.map(async (le) => ({
       le, url: await localAdapter.resolveUrl(localRefFor(le.entryId)),
     })));
-    if (get().currentOrderId !== orderId) return; // 응답 대기 중 스코프가 바뀌었으면 버림(교차 주문 오염 방지)
     set((state) => {
       const entries = { ...state.entries };
       for (const { le, url } of withUrls) {
@@ -174,9 +171,7 @@ export const useFileLedgerStore = create<FileLedgerState>((set, get) => ({
     return merged;
   },
 
-  ingestFile: (file) => {
-    const orderId = get().currentOrderId ?? undefined;
-
+  ingestFile: (file, orderId) => {
     // 서버가 즉시 없으니(작업 중 서버 왕복 0) 중복 판정도 클라이언트에서 1차로 한다 —
     // 같은 주문 안에서 파일명+크기가 같으면 같은 파일로 간주. 정밀 판정(content-hash)은
     // 결제 완료 시 서버 업로드가 붙기 전까지는 없음 — 필요 시 Phase B에서 보강.
@@ -237,9 +232,7 @@ export const useFileLedgerStore = create<FileLedgerState>((set, get) => ({
     void attemptServerSave(id, file, entry.orderId);
   },
 
-  backfillFolderBackup: async () => {
-    const orderId = get().currentOrderId;
-    if (!orderId) return;
+  backfillFolderBackup: async (orderId) => {
     const tasks: Promise<void>[] = [];
     for (const entry of Object.values(get().entries)) {
       if (entry.orderId !== orderId) continue;
@@ -415,8 +408,8 @@ async function attemptServerSave(entryId: string, file: File, orderId?: string):
 
 // ── 컴포넌트용 훅 ──────────────────────────────────────────────────────────
 
-export function useOrderedFileEntries(): FileEntry[] {
-  return useFileLedgerStore(useShallow((state) => getOrderedEntries(state.entries)));
+export function useOrderedFileEntries(orderId: string): FileEntry[] {
+  return useFileLedgerStore(useShallow((state) => getOrderedEntries(state.entries, orderId)));
 }
 
 export function useLedgerNotices(): LedgerNotice[] {

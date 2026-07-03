@@ -1,9 +1,9 @@
 'use client';
 
-// 잡지 폴더 팝업 안에서 콘텐츠(주문) 하나의 파일을 관리하는 뷰 — 원장(useFileLedgerStore)
-// 스코프를 이 orderId로 전환한 뒤 기존 FileManagerPanel을 그대로 재사용한다.
-// [orderId]/page.tsx의 마운트 시 하이드레이션 패턴(setCurrentOrder → hydrateFromLocalIndex
-// + refreshFromServer 병행)을 그대로 따른다.
+// 잡지 폴더 팝업 안에서 콘텐츠(주문) 하나의 파일을 관리하는 뷰 — 원장은 orderId 키잉이라
+// 스코프 전환 없이 이 주문의 파일을 하이드레이트만 하고, 기존 FileManagerPanel을 그대로 재사용한다.
+// [orderId]/page.tsx의 마운트 시 하이드레이션 패턴(hydrateFromLocalIndex + refreshFromServer 병행)을
+// 그대로 따른다.
 
 import { useEffect, useState } from 'react';
 import { ArrowLeft, ExternalLink, Loader2 } from 'lucide-react';
@@ -27,10 +27,9 @@ export function ContentFileViewer({ orderId, title, isPaid, onBack, onOpenFullEd
     let cancelled = false;
     setLoading(true);
     const ledger = useFileLedgerStore.getState();
-    ledger.setCurrentOrder(orderId);
     Promise.all([
       ledger.hydrateFromLocalIndex(orderId),
-      ledger.refreshFromServer(),
+      ledger.refreshFromServer(orderId),
     ]).finally(() => {
       if (!cancelled) setLoading(false);
     });
@@ -63,6 +62,7 @@ export function ContentFileViewer({ orderId, title, isPaid, onBack, onOpenFullEd
         </div>
       ) : (
         <FileManagerPanel
+          orderId={orderId}
           accent="amber"
           accept="image/*,video/*,audio/*"
           locked={isPaid}

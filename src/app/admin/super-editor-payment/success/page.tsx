@@ -27,12 +27,11 @@ async function generateCatalogAndStore(mediaOrderId: string): Promise<{ outputUu
   const snapshot = JSON.parse(order.snapshot || '{}') as CatalogPdfInput;
 
   const ledger = useFileLedgerStore.getState();
-  ledger.setCurrentOrder(mediaOrderId);
   // Toss 결제창을 다녀오며 브라우저 메모리가 리셋됐으므로, 로컬(OPFS) 전용 원본을 먼저 복원한 뒤
   // 서버 파일(QR 업로드 등)을 병합한다 — 이게 없으면 로컬 전용 원본이 PDF 재료에서 통째로 빠진다.
   await Promise.all([
     ledger.hydrateFromLocalIndex(mediaOrderId),
-    ledger.refreshFromServer(),
+    ledger.refreshFromServer(mediaOrderId),
   ]);
   const entries = useFileLedgerStore.getState().entries;
 
@@ -52,7 +51,7 @@ async function generateCatalogAndStore(mediaOrderId: string): Promise<{ outputUu
   // 제스처 없이 조용히 마저 백업. 'prompt'/'not-connected'면 여기선 건너뛰고 화면에서 버튼으로 안내
   // (requestPermission/showDirectoryPicker는 반드시 클릭 안에서 호출해야 하므로).
   const folderStatus = await getFolderConnectionStatus();
-  if (folderStatus === 'granted') await ledger.backfillFolderBackup();
+  if (folderStatus === 'granted') await ledger.backfillFolderBackup(mediaOrderId);
 
   const finalEntries = Object.values(useFileLedgerStore.getState().entries).filter((e) => e.orderId === mediaOrderId);
   const pendingCount = finalEntries.filter((e) => {
@@ -106,7 +105,7 @@ function SuperEditorPaymentSuccessContent() {
       const status = await getFolderConnectionStatus();
       const res = status === 'not-connected' ? await connectRootFolder() : await reconfirmPermission();
       if (res.ok) {
-        await useFileLedgerStore.getState().backfillFolderBackup();
+        await useFileLedgerStore.getState().backfillFolderBackup(mediaOrderId);
         const remain = Object.values(useFileLedgerStore.getState().entries)
           .filter((e) => e.orderId === mediaOrderId)
           .filter((e) => {

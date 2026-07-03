@@ -1,8 +1,8 @@
 'use client';
 
 // 파일 관리자 탭 — 표시/조작 전용 컴포넌트. 파일 상태는 전혀 소유하지 않고 전부 원장(useFileLedgerStore)
-// 에서 읽는다. 도록/영상/인쇄물처럼 파일을 "무엇에 쓸지"는 order-type마다 다르므로 그 부분만
-// isIncluded/onToggleInclude/onInsert 콜백으로 위임받는다 — 이 컴포넌트 자체는 order 개념을 모른다.
+// 에서 읽는다(orderId로 걸러서). 도록/영상/인쇄물처럼 파일을 "무엇에 쓸지"는 order-type마다 다르므로
+// 그 부분만 isIncluded/onToggleInclude/onInsert 콜백으로 위임받는다.
 
 import { useEffect, useRef, useState } from 'react';
 import {
@@ -26,6 +26,8 @@ type Accent = 'violet' | 'amber';
 type ViewMode = 'grid' | 'list';
 
 interface FileManagerPanelProps {
+  /** 이 패널이 다루는 주문 — 원장에서 이 주문 소속 파일만 읽고, 새 파일도 이 주문으로 넣는다 */
+  orderId:         string;
   accent:          Accent;
   accept?:         string;
   locked:          boolean;
@@ -70,11 +72,11 @@ function LocationBadges({ entry }: { entry: FileEntry }) {
 }
 
 export function FileManagerPanel({
-  accent, accept = 'image/*,video/*,audio/*', locked,
+  orderId, accent, accept = 'image/*,video/*,audio/*', locked,
   isIncluded, includedLabel = '포함됨', onToggleInclude, onInsert, insertLabel = '삽입',
   emptyTitle = '파일이 없습니다', emptyHint = '클릭하거나 파일을 끌어다 놓으세요',
 }: FileManagerPanelProps) {
-  const entries = useOrderedFileEntries();
+  const entries = useOrderedFileEntries(orderId);
   const notices = useLedgerNotices();
   const dismissNotice = useFileLedgerStore((s) => s.dismissNotice);
   const removeEntry   = useFileLedgerStore((s) => s.removeEntry);
@@ -100,7 +102,7 @@ export function FileManagerPanel({
     const res = await connectRootFolder();
     if (res.ok) {
       setFolderStatus('granted');
-      backfillFolderBackup(); // 이미 추가돼 있던 파일들도 소급 백업
+      backfillFolderBackup(orderId); // 이미 추가돼 있던 파일들도 소급 백업
     }
   }
 
@@ -108,7 +110,7 @@ export function FileManagerPanel({
     const res = await reconfirmPermission();
     if (res.ok) {
       setFolderStatus('granted');
-      backfillFolderBackup();
+      backfillFolderBackup(orderId);
     }
   }
 
@@ -129,7 +131,7 @@ export function FileManagerPanel({
 
   function handleDrop(e: React.DragEvent) {
     e.preventDefault(); e.stopPropagation(); setDragging(false);
-    ingestFromDrop(e.dataTransfer);
+    ingestFromDrop(e.dataTransfer, orderId);
   }
 
   function startRename(entry: FileEntry) {
@@ -186,7 +188,7 @@ export function FileManagerPanel({
             <Upload size={12} />업로드
           </button>
           <input ref={fileInputRef} type="file" multiple accept={accept} className="hidden"
-            onChange={(e) => { ingestFromPicker(e.target.files); e.target.value = ''; }} />
+            onChange={(e) => { ingestFromPicker(e.target.files, orderId); e.target.value = ''; }} />
 
           {/* 원본 백업 폴더 연결 — 원본이 재산이라 상태를 명확히 보여준다. 미지원 브라우저는 숨김 */}
           {folderStatus === 'granted' && (
@@ -235,7 +237,7 @@ export function FileManagerPanel({
           )}
         >
           <input type="file" multiple accept={accept} className="hidden"
-            onChange={(e) => { ingestFromPicker(e.target.files); e.target.value = ''; }} />
+            onChange={(e) => { ingestFromPicker(e.target.files, orderId); e.target.value = ''; }} />
           <Upload size={30} className="opacity-30" />
           <p className="text-sm font-medium">{emptyTitle}</p>
           <p className="text-xs text-stone-300">{emptyHint}</p>
