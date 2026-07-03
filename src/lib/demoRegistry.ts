@@ -143,4 +143,13 @@ export const DEMO_REGISTRY: DemoEntry[] = [
     adminPath:  '/admin/super-editor',
     adminKind:  'shared',
   },
+  {
+    slug:      'seokmodo',
+    name:      '석모도 국제 재생의학·웰니스 허브',
+    icon:      'Sparkles',
+    color:     'bg-fuchsia-100 text-fuchsia-700',
+    publicPath: '/seokmodo.html',
+    adminPath:  null,
+    adminKind:  null,
+  },
 ];

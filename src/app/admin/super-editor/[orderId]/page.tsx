@@ -23,7 +23,7 @@ const CatalogFlipbook = dynamic(
   { ssr: false },
 );
 
-type OrderType   = 'video' | 'print' | 'catalog';
+type OrderType   = 'video' | 'print' | 'catalog' | 'magazine';
 type OrderStatus = 'editing' | 'queued' | 'processing' | 'done' | 'failed';
 type SaveStatus  = 'idle' | 'saving' | 'saved' | 'error';
 type PanelTab    = 'preview' | 'files';
@@ -140,7 +140,7 @@ export default function SuperEditorPage() {
       let snap = latestSnap.current;
       // 도록: 아직 로컬 미리보기(blob URL) 상태인 작품은 저장 대상에서 제외
       // (업로드 완료 후 서버 URL로 교체되면 다음 auto-save 때 자동으로 포함됨)
-      if (orderRef.current.order_type === 'catalog') {
+      if (orderRef.current.order_type === 'catalog' || orderRef.current.order_type === 'magazine') {
         const c = snap as CatalogSnapshot;
         snap = { ...c, artworks: c.artworks.filter(a => !a.imageUrl.startsWith('blob:')) };
       }
@@ -171,7 +171,7 @@ export default function SuperEditorPage() {
   // 여러 곳에서 각자 artwork.uploadStatus를 직접 mutate하던 기존 방식을 없애고, 원장 하나를
   // 구독해서 파생시키는 방식으로 바꿔 "표시가 실제 상태와 어긋나는" 경우를 구조적으로 없앴다.
   useEffect(() => {
-    if (order?.order_type !== 'catalog' || !seenAtMountRef.current) return;
+    if ((order?.order_type !== 'catalog' && order?.order_type !== 'magazine') || !seenAtMountRef.current) return;
     setCSnap(prev => {
       let changed = false;
       // sourceEntryId(이번 세션 업로드)뿐 아니라 sourceFileId(리팩터 이전 데이터·재조회로 얻은 것)도
@@ -283,7 +283,7 @@ export default function SuperEditorPage() {
         // 위 catalog effect가 감지해서 처리하므로 여기서 따로 artwork를 만들 필요가 없다.
         void useFileLedgerStore.getState().refreshFromServer();
 
-        if (!isVideo && orderRef.current?.order_type !== 'catalog') {
+        if (!isVideo && orderRef.current?.order_type !== 'catalog' && orderRef.current?.order_type !== 'magazine') {
           // 영상·인쇄: 모바일에서 온 이미지는 기존과 동일하게 캔버스에 바로 삽입
           const url = data.url;
           const newBlock: CanvasBlock = {
@@ -311,7 +311,7 @@ export default function SuperEditorPage() {
 
         const note = isVideo
           ? '📹 동영상이 파일 관리자에 추가됐습니다'
-          : orderRef.current?.order_type === 'catalog'
+          : (orderRef.current?.order_type === 'catalog' || orderRef.current?.order_type === 'magazine')
           ? '📱 작품이 도록에 추가됐습니다'
           : '📱 이미지가 캔버스에 삽입됐습니다';
         setMobileNote(note);
@@ -355,7 +355,7 @@ export default function SuperEditorPage() {
         setOrder(o);
         orderRef.current = o;
         // 도록 모드: 처음 진입 시 "작품 이미지" 탭으로
-        if (o.order_type === 'catalog' && !catalogTabInit.current) {
+        if ((o.order_type === 'catalog' || o.order_type === 'magazine') && !catalogTabInit.current) {
           catalogTabInit.current = true;
           setPanelTab('files');
         }
@@ -364,7 +364,7 @@ export default function SuperEditorPage() {
           const v = { ...DEFAULT_VIDEO, ...snap };
           setVSnap(v);
           latestSnap.current = v;
-        } else if (o.order_type === 'catalog') {
+        } else if (o.order_type === 'catalog' || o.order_type === 'magazine') {
           const c = { ...DEFAULT_CATALOG, ...snap };
           setCSnap(c);
           latestSnap.current = c;
@@ -435,7 +435,7 @@ export default function SuperEditorPage() {
 
   // ── 도록 헬퍼 ──────────────────────────────────────────────────────────────
   function handleInsertImage(url: string) {
-    if (order?.order_type === 'catalog') {
+    if (order?.order_type === 'catalog' || order?.order_type === 'magazine') {
       const newArtwork: ArtworkEntry = {
         id: Date.now().toString(36) + Math.random().toString(36).slice(2),
         imageUrl: url, title: '', year: '', medium: '', size: '', description: '',
@@ -541,13 +541,17 @@ export default function SuperEditorPage() {
   }
 
   const isLocked  = order.is_paid === 1;
-  const isCatalog = order.order_type === 'catalog';
+  // 잡지(magazine) leaf는 도록(catalog)과 완전히 동일한 편집기 엔진을 공유한다 —
+  // 폴더 트리(super_editor_folders)는 이 편집기 레벨에서는 아예 존재를 모르고,
+  // order_type만으로 도록과 동일하게 취급된다.
+  const isCatalog = order.order_type === 'catalog' || order.order_type === 'magazine';
 
   // 아이콘·색상 테마
   const typeTheme = {
-    video:   { icon: <Film size={14} className="text-violet-600" />,  bg: 'bg-violet-100', ring: 'focus:ring-violet-300' },
-    print:   { icon: <Printer size={14} className="text-indigo-600" />, bg: 'bg-indigo-100', ring: 'focus:ring-indigo-300' },
-    catalog: { icon: <BookOpen size={14} className="text-amber-700" />,  bg: 'bg-amber-100',   ring: 'focus:ring-amber-300'   },
+    video:    { icon: <Film size={14} className="text-violet-600" />,  bg: 'bg-violet-100', ring: 'focus:ring-violet-300' },
+    print:    { icon: <Printer size={14} className="text-indigo-600" />, bg: 'bg-indigo-100', ring: 'focus:ring-indigo-300' },
+    catalog:  { icon: <BookOpen size={14} className="text-amber-700" />,  bg: 'bg-amber-100',   ring: 'focus:ring-amber-300'   },
+    magazine: { icon: <BookOpen size={14} className="text-amber-700" />,  bg: 'bg-amber-100',   ring: 'focus:ring-amber-300'   },
   }[order.order_type];
 
   return (
@@ -639,7 +643,7 @@ export default function SuperEditorPage() {
         <div className="flex-1 overflow-y-auto px-4 py-4 space-y-5">
           {order.order_type === 'video'
             ? <VideoForm snap={vSnap} onChange={updateV} locked={isLocked} />
-            : order.order_type === 'catalog'
+            : (order.order_type === 'catalog' || order.order_type === 'magazine')
             ? <CatalogForm
                 snap={cSnap}
                 onChange={updateC}

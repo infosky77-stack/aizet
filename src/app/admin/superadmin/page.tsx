@@ -6,7 +6,7 @@ import { useSession } from '@/hooks/useSession';
 import {
   Shield, ExternalLink, Settings,
   Scale, HeartPulse, Scissors, Dumbbell, Home,
-  ShoppingBag, UtensilsCrossed, Leaf, Printer, BookOpen, Landmark,
+  ShoppingBag, UtensilsCrossed, Leaf, Printer, BookOpen, Landmark, Sparkles,
   // 새 데모 추가 시 필요한 아이콘을 여기에 import
 } from 'lucide-react';
 import { DEMO_REGISTRY, DemoEntry } from '@/lib/demoRegistry';
@@ -14,7 +14,7 @@ import { DEMO_REGISTRY, DemoEntry } from '@/lib/demoRegistry';
 /* ── 아이콘 맵 (demoRegistry의 icon 문자열 → 컴포넌트) ─────────────────────── */
 const ICON_MAP: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
   Scale, HeartPulse, Scissors, Dumbbell, Home,
-  ShoppingBag, UtensilsCrossed, Leaf, Printer, BookOpen, Landmark,
+  ShoppingBag, UtensilsCrossed, Leaf, Printer, BookOpen, Landmark, Sparkles,
 };
 
 /* ── 관리자 종류 뱃지 ─────────────────────────────────────────────────────────── */

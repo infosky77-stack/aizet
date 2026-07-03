@@ -2,7 +2,7 @@
 
 import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Film, Printer, BookOpen, Plus, Clock, CheckCircle, Loader2, Trash2 } from 'lucide-react';
+import { Film, Printer, BookOpen, Plus, Clock, CheckCircle, Loader2, Trash2, FolderTree } from 'lucide-react';
 import { clsx } from 'clsx';
 
 type OrderType   = 'video' | 'print' | 'catalog';
@@ -95,18 +95,27 @@ function SuperEditorIndexContent() {
               : '영상 / 인쇄 / 도록 콘텐츠 편집 및 자동 컴파일'}
           </p>
         </div>
-        <button
-          onClick={() => setShowForm(v => !v)}
-          className={clsx(
-            'flex items-center gap-2 px-4 py-2 text-white text-sm font-semibold rounded-xl transition-colors',
-            isCatalogMode
-              ? 'bg-stone-800 hover:bg-stone-700'
-              : 'bg-violet-600 hover:bg-violet-700',
-          )}
-        >
-          <Plus size={15} />
-          {isCatalogMode ? '새 작품집' : '새 주문'}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => router.push('/admin/super-editor/folders')}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-xl border border-stone-200 text-stone-600 hover:border-violet-300 hover:text-violet-700 transition-colors"
+          >
+            <FolderTree size={15} />
+            잡지 폴더
+          </button>
+          <button
+            onClick={() => setShowForm(v => !v)}
+            className={clsx(
+              'flex items-center gap-2 px-4 py-2 text-white text-sm font-semibold rounded-xl transition-colors',
+              isCatalogMode
+                ? 'bg-stone-800 hover:bg-stone-700'
+                : 'bg-violet-600 hover:bg-violet-700',
+            )}
+          >
+            <Plus size={15} />
+            {isCatalogMode ? '새 작품집' : '새 주문'}
+          </button>
+        </div>
       </div>
 
       {/* 새 주문 폼 */}
@@ -158,7 +167,7 @@ function SuperEditorIndexContent() {
             className="w-full border border-stone-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-300"
           />
           <p className="text-xs text-stone-400 -mt-2">
-            제목을 입력하면 같은 이름의 폴더가 생성됩니다
+            제목은 언제든지 다시 수정할 수 있습니다
           </p>
 
           <div className="flex gap-2">

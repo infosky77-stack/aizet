@@ -4,6 +4,7 @@ import {
   createMediaOrder, getMediaOrder, listMediaOrders,
   updateSnapshot, deleteMediaOrder,
 } from '@/lib/db/media-orders';
+import { getFolder } from '@/lib/db/order-folders';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -32,12 +33,19 @@ export async function POST(req: NextRequest) {
   const session = getSessionFromRequest(req);
   if (!session) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const { orderType, title } = await req.json();
-  if (orderType !== 'video' && orderType !== 'print' && orderType !== 'catalog') {
-    return Response.json({ error: 'orderType must be video, print, or catalog' }, { status: 400 });
+  const { orderType, title, folderId } = await req.json();
+  if (orderType !== 'video' && orderType !== 'print' && orderType !== 'catalog' && orderType !== 'magazine') {
+    return Response.json({ error: 'orderType must be video, print, catalog, or magazine' }, { status: 400 });
   }
 
-  const order = createMediaOrder(session.sub, orderType, title ?? '제목 없음');
+  if (folderId) {
+    const folder = getFolder(folderId);
+    if (!folder || folder.user_id !== session.sub) {
+      return Response.json({ error: 'Folder not found' }, { status: 404 });
+    }
+  }
+
+  const order = createMediaOrder(session.sub, orderType, title ?? '제목 없음', folderId ?? null);
   return Response.json({ order });
 }
 

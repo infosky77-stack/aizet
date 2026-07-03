@@ -220,6 +220,18 @@ const INDUSTRIES_LIST: IndustryItem[] = [
     features: ['AI 맞춤 구성', '업종별 특화 기능', '자유로운 커스텀', '전담 온보딩', '24/7 지원', '무제한 수정'],
     href: '/signup',
   },
+  {
+    icon: <Sparkles size={22} />,
+    name: '석모도 국제 재생의학·웰니스 허브',
+    color: 'bg-fuchsia-100 text-fuchsia-700',
+    sub: '재생의학·웰니스 프로그램 안내',
+    gradient: 'from-fuchsia-600 to-fuchsia-900',
+    mockupTitle: '석모도 국제 재생의학·웰니스 허브',
+    mockupSub: '재생의학·웰니스 프로그램 안내',
+    cta: '자세히 보기',
+    features: ['재생의학 프로그램 안내', '웰니스 시설 소개', '오시는 길'],
+    href: '/seokmodo.html',
+  },
 ];
 
 /* ─── Industry Modal ──────────────────────────────────── */
@@ -647,22 +659,43 @@ function Industries() {
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4">
-          {INDUSTRIES_LIST.map((ind) => (
-            <Link
-              key={ind.name}
-              href={ind.href!}
-              className="group bg-white border border-stone-300 rounded-xl sm:rounded-2xl p-3 sm:p-5 shadow-lg hover:shadow-2xl hover:-translate-y-1 hover:border-amber-400 transition-all duration-200 flex flex-col gap-1.5 sm:gap-3"
-            >
-              <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl flex items-center justify-center ${ind.color}`}>
-                {ind.icon}
-              </div>
-              <div>
-                <p className="font-bold text-stone-900 text-sm sm:text-base break-keep">{ind.name}</p>
-                <p className="hidden sm:block text-sm text-stone-500 mt-1 break-keep">{ind.sub}</p>
-              </div>
-              <ChevronRight size={10} className="text-stone-500 group-hover:text-amber-500 transition-colors" />
-            </Link>
-          ))}
+          {INDUSTRIES_LIST.map((ind) => {
+            const cardClassName = "group bg-white border border-stone-300 rounded-xl sm:rounded-2xl p-3 sm:p-5 shadow-lg hover:shadow-2xl hover:-translate-y-1 hover:border-amber-400 transition-all duration-200 flex flex-col gap-1.5 sm:gap-3";
+            const cardContent = (
+              <>
+                <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl flex items-center justify-center ${ind.color}`}>
+                  {ind.icon}
+                </div>
+                <div>
+                  <p className="font-bold text-stone-900 text-sm sm:text-base break-keep">{ind.name}</p>
+                  <p className="hidden sm:block text-sm text-stone-500 mt-1 break-keep">{ind.sub}</p>
+                </div>
+                <ChevronRight size={10} className="text-stone-500 group-hover:text-amber-500 transition-colors" />
+              </>
+            );
+
+            // 정적 HTML 파일(예: /seokmodo.html)은 next/link 클라이언트 라우팅 대상이 아니므로
+            // 일반 <a> 태그로 새 탭에 연다. 나머지 항목은 기존 Link 라우팅 그대로 유지.
+            if (ind.href!.endsWith('.html')) {
+              return (
+                <a
+                  key={ind.name}
+                  href={ind.href!}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={cardClassName}
+                >
+                  {cardContent}
+                </a>
+              );
+            }
+
+            return (
+              <Link key={ind.name} href={ind.href!} className={cardClassName}>
+                {cardContent}
+              </Link>
+            );
+          })}
         </div>
       </div>
     </section>
@@ -1687,7 +1720,17 @@ function Footer() {
 
         <div className="border-t border-stone-800 pt-7 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
           <p>© 2026 AIZET Inc. All rights reserved.</p>
-          <p>aizet.co.kr · 서울특별시 마포구 와우산로</p>
+          <div className="flex items-center gap-3">
+            <p>aizet.co.kr · 서울특별시 마포구 와우산로</p>
+            <a
+              href="/briefing.html"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-stone-700 hover:text-stone-500 text-[10px] transition-colors"
+            >
+              회장님 브리핑
+            </a>
+          </div>
         </div>
       </div>
     </footer>

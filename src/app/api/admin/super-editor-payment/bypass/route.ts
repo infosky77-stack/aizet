@@ -34,6 +34,11 @@ export async function POST(req: NextRequest) {
     return Response.json({ error: 'Media order not found' }, { status: 404 });
   }
 
+  // 잡지(magazine)는 아직 결제/렌더큐 연동 전 단계 — 테스트 우회 결제도 막아둔다.
+  if (mediaOrder.order_type === 'magazine') {
+    return Response.json({ error: 'magazine 주문은 아직 결제/렌더 연동 대상이 아닙니다' }, { status: 400 });
+  }
+
   confirmImagePayment(paymentOrderId, 'test-bypass');
   markPaid(mediaOrderId, paymentOrderId);
   const job = enqueueJob(mediaOrderId, mediaOrder.order_type);

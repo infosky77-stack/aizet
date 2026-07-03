@@ -292,4 +292,32 @@ db.exec(`
   db.exec(`CREATE INDEX IF NOT EXISTS idx_super_editor_files_order ON super_editor_files(order_id)`);
 }
 
+// ── 슈퍼에디터 폴더 트리 테이블 (잡지 등 계층 구조용, 공용 코어) ───────────────
+// media_orders와 완전히 분리 — 결제 관련 컬럼(is_paid/payment_id/status)이 전혀 없어서
+// 폴더 노드는 애초에 결제 함수(markPaid 등)에 넘길 수 있는 id 종류가 아니다.
+db.exec(`
+  CREATE TABLE IF NOT EXISTS super_editor_folders (
+    id                TEXT    PRIMARY KEY,
+    user_id           TEXT    NOT NULL,
+    parent_folder_id  TEXT    REFERENCES super_editor_folders(id),
+    title             TEXT    NOT NULL DEFAULT '',
+    domain            TEXT    NOT NULL DEFAULT 'generic',
+    sort_order        INTEGER,
+    created_at        INTEGER NOT NULL,
+    updated_at        INTEGER NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_super_editor_folders_user   ON super_editor_folders(user_id);
+  CREATE INDEX IF NOT EXISTS idx_super_editor_folders_parent ON super_editor_folders(parent_folder_id);
+`);
+
+// ── media_orders 신규 컬럼 추가 (폴더 트리 연결, 멱등) ───────────────────────
+// folder_id: NULL = 폴더에 안 속함(기존 도록/영상/인쇄 — 지금처럼 단일 평면 유지)
+{
+  const existing = (db.pragma('table_info(media_orders)') as Array<{ name: string }>).map(c => c.name);
+  if (!existing.includes('folder_id')) {
+    db.exec(`ALTER TABLE media_orders ADD COLUMN folder_id TEXT`);
+  }
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_media_orders_folder ON media_orders(folder_id)`);
+}
+
 export default db;

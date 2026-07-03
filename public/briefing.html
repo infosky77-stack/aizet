@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>석모도 국제 재생의학·웰니스 허브 — 브리핑</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<style>
+  :root{
+    --water:#17403E; --water-mid:#3D746C; --mist:#F5F1E8; --mist-deep:#ECE4D4;
+    --sunset:#C08A3C; --sunset-soft:#D8A85C; --ink:#22201A; --stone:#877E6D;
+    --line:rgba(34,32,26,.13);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:"Pretendard Variable",Pretendard,-apple-system,system-ui,sans-serif;
+    background:var(--mist);color:var(--ink);font-size:16px;line-height:1.7;letter-spacing:-.01em;
+    -webkit-font-smoothing:antialiased}
+  .serif{font-family:"Noto Serif KR",serif}
+  .page{max-width:920px;margin:0 auto;background:var(--mist);box-shadow:0 0 60px rgba(0,0,0,.06)}
+  .wrap{padding:0 56px}
+  .eyebrow{font-size:12.5px;letter-spacing:.22em;color:var(--sunset);font-weight:600;margin-bottom:14px}
+
+  /* 커버 */
+  .cover{position:relative;color:var(--mist);padding:56px 56px 46px;overflow:hidden;
+    background:radial-gradient(120% 100% at 85% 120%, rgba(216,168,92,.4) 0%, rgba(216,168,92,0) 50%),
+      linear-gradient(150deg,#0E2E2C 0%, #17403E 55%, #2C5A50 100%)}
+  .cover .tag{font-size:12px;letter-spacing:.2em;color:var(--sunset-soft);font-weight:600}
+  .cover h1{font-family:"Noto Serif KR",serif;font-weight:600;font-size:clamp(28px,4.4vw,42px);
+    line-height:1.28;margin:18px 0 14px}
+  .cover .sub{font-size:16px;color:rgba(245,241,232,.82);font-weight:300;max-width:560px}
+  .cover .frame{display:inline-flex;gap:10px;margin-top:26px;font-size:13px;letter-spacing:.06em}
+  .cover .frame b{background:rgba(245,241,232,.12);border:1px solid rgba(216,168,92,.4);
+    color:var(--sunset-soft);padding:7px 16px;border-radius:100px;font-weight:600}
+  .confidential{position:absolute;top:22px;right:56px;font-size:11px;letter-spacing:.18em;
+    color:rgba(245,241,232,.5)}
+
+  section.blk{padding:44px 0}
+  .num{font-family:"Noto Serif KR",serif;color:var(--sunset);font-size:15px;font-weight:600;letter-spacing:.1em}
+  h2.head{font-family:"Noto Serif KR",serif;font-size:clamp(23px,3.2vw,30px);font-weight:600;
+    line-height:1.35;margin:8px 0 20px;letter-spacing:-.02em}
+  .lead{font-size:16.5px;color:#4A463C;line-height:1.8;max-width:680px}
+
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px 30px;margin-top:26px}
+  .item{border-top:1px solid var(--line);padding-top:16px}
+  .item h4{font-family:"Noto Serif KR",serif;font-size:17px;font-weight:600;margin-bottom:5px}
+  .item p{font-size:14.5px;color:#57533f;line-height:1.6}
+  .item .badge{font-size:11.5px;letter-spacing:.08em;color:var(--sunset);font-weight:600;display:block;margin-bottom:3px}
+
+  .rows{margin-top:22px;border-top:1px solid var(--line)}
+  .row{display:grid;grid-template-columns:150px 1fr;gap:24px;padding:15px 0;border-bottom:1px solid var(--line);align-items:baseline}
+  .row b{font-family:"Noto Serif KR",serif;font-size:18px;color:var(--water);font-weight:600}
+  .row span{font-size:14.5px;color:#57533f;line-height:1.6}
+
+  .dark{background:var(--water);color:var(--mist)}
+  .dark .lead{color:rgba(245,241,232,.82)}
+  .dark h2.head{color:var(--mist)}
+  .dark .num{color:var(--sunset-soft)}
+  .propose{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-top:28px}
+  .propose .p{border-top:2px solid var(--sunset)}
+  .propose .p{padding-top:16px}
+  .propose .p h4{font-family:"Noto Serif KR",serif;font-size:19px;font-weight:600;margin-bottom:8px;color:var(--mist)}
+  .propose .p p{font-size:14px;color:rgba(245,241,232,.8);line-height:1.65}
+  .ask{margin-top:30px;background:rgba(245,241,232,.08);border:1px solid rgba(216,168,92,.35);
+    border-radius:10px;padding:22px 24px}
+  .ask h4{font-family:"Noto Serif KR",serif;color:var(--sunset-soft);font-size:16px;margin-bottom:8px}
+  .ask p{font-size:14.5px;color:rgba(245,241,232,.85);line-height:1.7}
+
+  .note{background:var(--mist-deep);padding:24px 56px;font-size:12.5px;color:var(--stone);line-height:1.7}
+  .divider{height:1px;background:var(--line);margin:0 56px}
+
+  @media (max-width:720px){
+    .wrap,.cover,.note{padding-left:26px;padding-right:26px}
+    .confidential{right:26px}
+    .grid2,.propose{grid-template-columns:1fr}
+    .row{grid-template-columns:110px 1fr;gap:14px}
+  }
+  @media print{.page{box-shadow:none}body{font-size:12px}}
+</style>
+
+<style>
+  #lock{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;
+    background:radial-gradient(120% 100% at 80% 110%, rgba(216,168,92,.35), rgba(216,168,92,0) 55%),
+      linear-gradient(150deg,#0E2E2C,#17403E 60%,#2C5A50);font-family:"Pretendard Variable",Pretendard,sans-serif}
+  #lock .card{width:min(90vw,380px);text-align:center;color:#F5F1E8;padding:8px}
+  #lock .t{font-family:"Noto Serif KR",serif;font-size:26px;font-weight:600;letter-spacing:.02em}
+  #lock .s{font-size:14px;color:rgba(245,241,232,.7);margin:12px 0 26px}
+  #lock input{width:100%;padding:15px 18px;border-radius:10px;border:1px solid rgba(216,168,92,.4);
+    background:rgba(245,241,232,.08);color:#F5F1E8;font-size:18px;text-align:center;letter-spacing:.3em;outline:none}
+  #lock input:focus{border-color:#D8A85C}
+  #lock button{width:100%;margin-top:14px;padding:15px;border:none;border-radius:10px;cursor:pointer;
+    background:#D8A85C;color:#2a2010;font-size:16px;font-weight:600;letter-spacing:.06em;font-family:inherit}
+  #lock button:hover{background:#C08A3C}
+  #lock .err{color:#e8a; font-size:13px;margin-top:14px;min-height:18px}
+  #lock .foot{margin-top:26px;font-size:11px;letter-spacing:.16em;color:rgba(245,241,232,.4)}
+</style>
+</head>
+<body>
+<div id="lock">
+  <div class="card">
+    <div class="t">회장님 브리핑</div>
+    <div class="s">비공개 자료입니다.<br>접속 코드를 입력해 주세요.</div>
+    <input id="pw" type="password" inputmode="numeric" placeholder="○ ○ ○ ○" autocomplete="off">
+    <button id="go">입 장</button>
+    <div class="err" id="err"></div>
+    <div class="foot">CONFIDENTIAL · 석모도 국제 재생의학·웰니스 허브</div>
+  </div>
+</div>
+<div id="app"></div>
+
+<script>
+  var __D="CjxkaXYgY2xhc3M9InBhZ2UiPgoKICA8IS0tIOy7pOuyhCAtLT4KICA8ZGl2IGNsYXNzPSJjb3ZlciI+CiAgICA8ZGl2IGNsYXNzPSJjb25maWRlbnRpYWwiPkNPTkZJREVOVElBTCDCtyDruYTqs7XqsJw8L2Rpdj4KICAgIDxkaXYgY2xhc3M9InRhZyI+7ZqM7J6l64uYIOu4jOumrO2VkTwvZGl2PgogICAgPGgxIGNsYXNzPSJzZXJpZiI+7ISd66qo64+EIOq1reygnCDsnqzsg53snZjtlZkgwrcg7Juw64uI7IqkIO2XiOu4jDwvaDE+CiAgICA8cCBjbGFzcz0ic3ViIj7shLjqs4Qg7Ja065SU7JeQ64+EIOyXhuuKlCDsnqzsg53snZjtlZnsnZgg7JuQ7LKcIOychOyXkCwg7Jio7LKc6rO8IOuCmeyhsOyZgCDsppDqsbDsm4DsnYQg642U7ZWcIOy8gOyWtC4g66q47J2EIOunoeq4sOqzoCwg7KaQ6rKB6rKMIO2ajOuzte2VmOqzoCwg7Jik656YIOuCqOydhCDqs7MuPC9wPgogICAgPGRpdiBjbGFzcz0iZnJhbWUiPgogICAgICA8Yj7qsbTqsJUg4oCUIOyngOq4iDwvYj4KICAgICAgPGI+7Jyg7IKwIOKAlCDsmIHsm5A8L2I+CiAgICA8L2Rpdj4KICA8L2Rpdj4KCiAgPCEtLSAwMSDspp3qsbAgLS0+CiAgPHNlY3Rpb24gY2xhc3M9ImJsayI+PGRpdiBjbGFzcz0id3JhcCI+CiAgICA8ZGl2IGNsYXNzPSJudW0iPjAxIOKAlCDshLjqs4Qg7Jyg7J287J2YIOybkOyynCDquLDsiKA8L2Rpdj4KICAgIDxkaXYgY2xhc3M9ImV5ZWJyb3ciIHN0eWxlPSJtYXJnaW4tdG9wOjZweCI+66eQ7J20IOyVhOuLiOudvCwg7Iuk7LK0PC9kaXY+CiAgICA8aDIgY2xhc3M9ImhlYWQgc2VyaWYiPiLshLjqs4Qg7Jyg7J28IuydgCDqtaztmLjqsIAg7JWE64uZ64uI64ukLjxicj7tirntl4jsmYAg67Cp67KV66GgLCDqta3soJwg7J247KCV7Jy866GcIOymneuqheuQqeuLiOuLpC48L2gyPgogICAgPHAgY2xhc3M9ImxlYWQiPu2YkeugpSDsnZjro4zsp4Qo65287IWA66atIC8g7KCV7KKF7ZmUIOybkOyepSnsnYAgNDDsl6wg64WE7J2YIOyehOyDgeqzvCDsm5Dsspwg7Yq57ZeI66W8IOuztOycoO2VmOqzoCwg7Jes65+sIOuCmOudvCDsoJXrtoDCt+q1reumveuzkeybkOydtCDrqLzsoIAg7LC+7J2AIOyerOyDneydmO2VmSDsoITrrLjqsIDsnoXri4jri6QuPC9wPgogICAgPGRpdiBjbGFzcz0iZ3JpZDIiPgogICAgICA8ZGl2IGNsYXNzPSJpdGVtIj48c3BhbiBjbGFzcz0iYmFkZ2UiPuybkOyynCDtirntl4g8L3NwYW4+PGg0IGNsYXNzPSJzZXJpZiI+66y07ZiI7LKtIOyEuO2PrOuwsOyWkSDrsLDsp4A8L2g0PjxwPuuPmeusvOyEsSDshLHrtoQgMCUsIOyViOyghOyEscK367mE7JqpIO2YgeyLoC4g6rWt64K0IOy1nOy0iCDsm5Dsspwg6riw7IigIChXTzIwMjIxNTg5MTVBMSkuPC9wPjwvZGl2PgogICAgICA8ZGl2IGNsYXNzPSJpdGVtIj48c3BhbiBjbGFzcz0iYmFkZ2UiPuqzteyglSDtirntl4g8L3NwYW4+PGg0IGNsYXNzPSJzZXJpZiI+UE9DIOy1nOyGjOyhsOyekTwvaDQ+PHA+67OR7JuQIO2YhOyepeyXkOyEnCDsponsi5wg7KGw7KCc7ZWY64qUIOywqOyEuOuMgCDrsKnsi50uIOyEuO2PrCDtmZzshLEg67O07KG0wrfsi5zqsIQg64uo7LaVLjwvcD48L2Rpdj4KICAgICAgPGRpdiBjbGFzcz0iaXRlbSI+PHNwYW4gY2xhc3M9ImJhZGdlIj7rqbTsl60g6riw7IigPC9zcGFuPjxoNCBjbGFzcz0ic2VyaWYiPuqzoO2ZnOyEsSBOS+yEuO2PrCDtmZzshLHtmZQ8L2g0PjxwPuyImCjmlbgp6rCAIOyVhOuLjCDtmZzshLHrj4Qg7KSR7Ius7J2YIOuPheyekCDtlITroZzthqDsvZwuPC9wPjwvZGl2PgogICAgICA8ZGl2IGNsYXNzPSJpdGVtIj48c3BhbiBjbGFzcz0iYmFkZ2UiPuyerOyDnSDquLDsiKA8L3NwYW4+PGg0IGNsYXNzPSJzZXJpZiI+7JeR7IaM7KKAIOq4sOuwmCDsnqzsg508L2g0PjxwPuyEuO2PrOqwgCDrtoTruYTtlZjripQg66+47IS4IOyGjO2PrOyytOulvCDtmZzsmqntlZwg66y07IS47Y+sIOyerOyDnSDrsKnrspXroaAuPC9wPjwvZGl2PgogICAgICA8ZGl2IGNsYXNzPSJpdGVtIj48c3BhbiBjbGFzcz0iYmFkZ2UiPuq1reygnCDtmJHroKU8L3NwYW4+PGg0IGNsYXNzPSJzZXJpZiI+QVNFQU4g6riw7IigIOyZuOq1kDwvaDQ+PHA+65287Jik7IqkIOq1reumveuzkeybkCDCtyDrsqDtirjrgqgg67O06rG067aAwrftlZjrhbjsnbQg6rWt66a97J2Y64yAIMK3IDEw6rCc6rWtIOydmOyCrCDqtZDsnKEuPC9wPjwvZGl2PgogICAgICA8ZGl2IGNsYXNzPSJpdGVtIj48c3BhbiBjbGFzcz0iYmFkZ2UiPu2UjOueq+2PvDwvc3Bhbj48aDQgY2xhc3M9InNlcmlmIj7tkZzspIDtmZQgwrcg7Iuc7Iqk7YWc7ZmUPC9oND48cD7sgqzrnozsnbQg7JWE64uI6528IOyLnOyKpO2FnOyXkCDri7TquLQg64W47ZWY7JqwIOKGkiDtmZXsgrAg6rCA64ql7ZWY6rOgLCDtm4TrjIDsl5Ag7J207Ja07KeQLjwvcD48L2Rpdj4KICAgIDwvZGl2PgogIDwvZGl2Pjwvc2VjdGlvbj4KCiAgPGRpdiBjbGFzcz0iZGl2aWRlciI+PC9kaXY+CgogIDwhLS0gMDIg6rK97ZeYIC0tPgogIDxzZWN0aW9uIGNsYXNzPSJibGsiPjxkaXYgY2xhc3M9IndyYXAiPgogICAgPGRpdiBjbGFzcz0ibnVtIj4wMiDigJQg7J206rOz7J2YIOqyve2XmDwvZGl2PgogICAgPGgyIGNsYXNzPSJoZWFkIHNlcmlmIj7rs5Hsm5DsnbQg7JWE64uI6528LDxicj7svIDslrTrsJvsnLzrqbAg7KaQ6riw64qUIOqzsy48L2gyPgogICAgPHAgY2xhc3M9ImxlYWQiPjg17IS4IOyekOyCsOqwgOyXkOqyjCDqsbTqsJXsnYAgMeyInOychOyeheuLiOuLpC4g7ZWY7KeA66eMIOybkO2VmOuKlCDqsbQg7LCo6rCA7Jq0IOuzkeybkOydtCDslYTri4jrnbwsIOy8gOyWtOuwm+ycvOupsCDsppDquLDripQg6rKDLiDqt7jrnpjshJwg7J2Y66OM7J2YIOybkOumrOulvCA8Yj7rlLDrnLvtlZwg6rK97ZeYPC9iPuycvOuhnCDrsojsl63tlojsirXri4jri6QuPC9wPgogICAgPGRpdiBjbGFzcz0icm93cyI+CiAgICAgIDxkaXYgY2xhc3M9InJvdyI+PGI+TWVkaWNhbDwvYj48c3Bhbj7soJXsi50g7J2Y66OM6riw6rSA7J20IOuLtOuLue2VmOuKlCDsnqzsg53snZjtlZkg7LyA7Ja0ICjqsoDsp4TCt+2UhOuhnOq3uOueqCk8L3NwYW4+PC9kaXY+CiAgICAgIDxkaXYgY2xhc3M9InJvdyI+PGI+V2VsbG5lc3M8L2I+PHNwYW4+M8K3N8K3MTTsnbwg66ee7LakIO2ajOuztSDCtyDruZvsnZgg7IKs7Jqw64KYIMK3IO2FjOudvO2XpOultOy4oCDruZvsnZgg7Lmo64yAIMK3IOyYqOyynDwvc3Bhbj48L2Rpdj4KICAgICAgPGRpdiBjbGFzcz0icm93Ij48Yj7sppDqsbDsm4A8L2I+PHNwYW4+7JW87LGEIOuTrOu/jSDtlZzqta3si50g66+47IudIMK3IOuCmeyhsCDtlZzrsKnssKgg7Lm07Y6YIMK3IOuCmeyhsCDrnqntkoA8L3NwYW4+PC9kaXY+CiAgICAgIDxkaXYgY2xhc3M9InJvdyI+PGI+SG9zcGl0YWxpdHk8L2I+PHNwYW4+6rWt7KCcIO2YuO2FlCDruIzrnpzrk5wg7KeA7ZalIMK3IO2UhOudvOydtOu5lyDtkoDruYzrnbwgwrcg67Cw66as7Ja07ZSE66asPC9zcGFuPjwvZGl2PgogICAgPC9kaXY+CiAgPC9kaXY+PC9zZWN0aW9uPgoKICA8ZGl2IGNsYXNzPSJkaXZpZGVyIj48L2Rpdj4KCiAgPCEtLSAwMyDsgqzsl4UgLS0+CiAgPHNlY3Rpb24gY2xhc3M9ImJsayI+PGRpdiBjbGFzcz0id3JhcCI+CiAgICA8ZGl2IGNsYXNzPSJudW0iPjAzIOKAlCDsmZwg65CY64qUIOyCrOyXheyduOqwgDwvZGl2PgogICAgPGgyIGNsYXNzPSJoZWFkIHNlcmlmIj7qsJ3si6Qg7ZWY64KY7JeQIOq4sOuMgOyngCDslYrripQsPGJyPuuLpOy4tSDsiJjsnbUgKyDrhJPtmIDqsIDripQg7ZmV7J6lLjwvaDI+CiAgICA8ZGl2IGNsYXNzPSJncmlkMiI+CiAgICAgIDxkaXYgY2xhc3M9Iml0ZW0iPjxoNCBjbGFzcz0ic2VyaWYiPuuLpOy4tSDsiJjsnbUg6rWs7KGwPC9oND48cD7snZjro4wg7ZSE66Gc6re4656oKOqzoOu2gOqwgCkgwrcg7IiZ67CVIMK3IOybsOuLiOyKpCDtjKjtgqTsp4Agwrcg7Jio7LKcIOuppOuyhOyLrSDCtyDsm7Dri4jsiqQg66eI7LyTL+q1rOuPhSDCtyDqtJHsvIDslrQg65SU67CU7J207IqkKOuPheumvSDsoJztkogg7IKs7JeFKS4g7J2867CYIOumrOyhsO2KuOydmCAn6rCd7IukIOydmOyhtCfqs7wg64uk66aELjwvcD48L2Rpdj4KICAgICAgPGRpdiBjbGFzcz0iaXRlbSI+PGg0IGNsYXNzPSJzZXJpZiI+7IaM7IiYIOKGkiDrs7Ttjrg8L2g0PjxwPuyEneuqqOuPhChWVklQKeuhnCDqsoDspp3Ct+q4sOuwmCDtmZXrs7Qg4oaSIOykkeyDgey4teq5jOyngCDsvIDslrQg7ZmV64yALiAi64KY66eM7J2YIOumrOyhsO2KuCLqsIAg7JWE64uI6528IDxiPuy8gOyWtOulvCDrhJPtnojripQg7ZSM656r7Y+8PC9iPi48L3A+PC9kaXY+CiAgICAgIDxkaXYgY2xhc3M9Iml0ZW0iPjxoNCBjbGFzcz0ic2VyaWYiPuuLqOqzhOyggSDqsJzrsJwgKOumrOyKpO2BrCDihpMpPC9oND48cD4x64uo6rOE64qUIOyVvSAy66eMIO2PiSDsnIQg67aA7Yuw7YGsIOy8gOyWtCDri6jsp4AuIO2BrOqyjCDrsozsnbTsp4Ag7JWK6rOgIOqygOymneu2gO2EsCDihpIg7KCV67aAwrftiKzsnpAg7Ius7IKs7JeQIOycoOumrC48L3A+PC9kaXY+CiAgICAgIDxkaXYgY2xhc3M9Iml0ZW0iPjxoNCBjbGFzcz0ic2VyaWYiPuuzteygnCDrtojqsIDriqXtlZwg7J6Q7IKwPC9oND48cD7sp4DtlZggNDYwbcK3NTHihIMg66+464Sk656EIOyYqOyynCArIOyEuOqzhCDsnKDsnbzsnZgg7J6s7IOd7J2Y7ZWZIOybkOyynCDquLDsiKAuIOuPiOycvOuhnCDtnYnrgrQg64K8IOyImCDsl4bripQg7KeE7J6F7J6l67K9LjwvcD48L2Rpdj4KICAgIDwvZGl2PgogIDwvZGl2Pjwvc2VjdGlvbj4KCiAgPCEtLSAwNCDsoJzslYggKGRhcmspIC0tPgogIDxzZWN0aW9uIGNsYXNzPSJibGsgZGFyayI+PGRpdiBjbGFzcz0id3JhcCI+CiAgICA8ZGl2IGNsYXNzPSJudW0iPjA0IOKAlCDtmozsnqXri5jqu5gg65Oc66as64qUIOygnOyViDwvZGl2PgogICAgPGgyIGNsYXNzPSJoZWFkIHNlcmlmIj7qsbTqsJXsnYQg64SY7Ja0LCDrgqjquLDripQg6rKDLjwvaDI+CiAgICA8cCBjbGFzcz0ibGVhZCI+64+I7J20IOunjuydhOyImOuhnSDtnazshoztlZwg6rG0IOqxtOqwlSwg6re466as6rOgICLrrLTsl4fsnYQg64Ko6riw6rOgIOqwgOuKkOuDkCLsnoXri4jri6QuIOyEneuqqOuPhOuKlCDqt7gg65GQIOqwgOyngOulvCDrj5nsi5zsl5Ag65Oc66a964uI64ukLjwvcD4KICAgIDxkaXYgY2xhc3M9InByb3Bvc2UiPgogICAgICA8ZGl2IGNsYXNzPSJwIj48aDQgY2xhc3M9InNlcmlmIj7qsbTqsJUg4oCUIOyngOq4iDwvaDQ+PHA+7IS46rOEIOycoOydvOydmCDslZ7shKAg7LyA7Ja066W8LCDqsIDsnqUg66i87KCAIOuIhOumrOyLreuLiOuLpC48L3A+PC9kaXY+CiAgICAgIDxkaXYgY2xhc3M9InAiPjxoNCBjbGFzcz0ic2VyaWYiPuycoOyCsCDigJQg7JiB7JuQPC9oND48cD7shLjqs4Qg7Jyg7J287J2YIOuFuO2VmOyasOulvCDslpHsp4DroZzCt+uztO2OuOycvOuhnCDrhJPtnojripQgPGI+7Iuc67Cc7KCQPC9iPuyXkCDsnbTrpoTsnYQg64Ko6rmB64uI64ukLiDtm4TrjIDqsIAg6riw7Ja17ZWgIOuVhS48L3A+PC9kaXY+CiAgICAgIDxkaXYgY2xhc3M9InAiPjxoNCBjbGFzcz0ic2VyaWYiPuywuOyXrCDigJQg7ZWo6ruYPC9oND48cD7tlZwg7IKs656MIOyGkOyXkCDqsIftnowg64W47ZWY7Jqw66W8LCDqsoDspp3Ct+yLnOyKpO2FnO2ZlMK37ZmV7IKw7ZWY64qUIO2UjOueq+2PvOyXkCDtlajqu5gg7Jis65287YOR64uI64ukLjwvcD48L2Rpdj4KICAgIDwvZGl2PgogICAgPGRpdiBjbGFzcz0iYXNrIj4KICAgICAgPGg0IGNsYXNzPSJzZXJpZiI+7KCc7JWIPC9oND4KICAgICAgPHA+7KeA67aEwrftiKzsnpAg6rWs7KGwIOuTsSDqtazssrTsoIEg7KGw6rG07J2AIO2ajOyepeuLmOqzvCDsp4HsoJEg64W87J2Y65Oc66as6rKg7Iq164uI64ukLiDsmKTripjsnYAgPGI+IuydtCDruYTsoITsl5Ag7ZWo6ruY7ZWY7Iuc6rKg7Iq164uI6rmMIjwvYj7rpbwg7Jes7K2Z7Iq164uI64ukLjwvcD4KICAgIDwvZGl2PgogIDwvZGl2Pjwvc2VjdGlvbj4KCjwvZGl2Pgo=";
+  function __open(){
+    var v=document.getElementById('pw').value.trim();
+    if(v==="1004"){
+      document.getElementById('app').innerHTML=decodeURIComponent(escape(atob(__D)));
+      document.getElementById('lock').style.display='none';
+      document.title="석모도 브리핑";
+    } else {
+      document.getElementById('err').textContent="코드가 올바르지 않습니다.";
+      document.getElementById('pw').value="";
+    }
+  }
+  document.getElementById('go').addEventListener('click',__open);
+  document.getElementById('pw').addEventListener('keydown',function(e){if(e.key==='Enter')__open();});
+  document.getElementById('pw').focus();
+</script>
+</body>
+</html>
