@@ -1,11 +1,12 @@
 'use client';
 
-// 잡지 폴더 탐색기 팝업 — 화면 상태의 출처는 전부 URL이다.
+// 폴더 탐색기 팝업(잡지/영상 공용) — 화면 상태의 출처는 전부 URL이다.
+//   ?domain=…                 팝업 도메인(magazine|video, 누락 시 magazine — 기존 URL 호환)
 //   ?folderId=…               현재 폴더
 //   ?contentId=…              열어놓은 콘텐츠(주문)
 //   ?view=files               (잡지 콘텐츠에서) 파일 관리 오버레이 열림
 // openContent 같은 메모리 상태를 두지 않으므로 새로고침·딥링크·뒤로가기가 전부
-// URL 기준으로 일관되게 동작한다. 오버레이 룩은 그대로 유지.
+// URL 기준으로 일관되게 동작한다. 도메인별 텍스트/생성 주문타입은 folder-domains.ts가 단일 소스.
 
 import { Suspense, useCallback, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -14,6 +15,7 @@ import { FolderTreeBrowser, FolderNode, FolderPathItem } from '@/components/supe
 import { FolderTreeSidebar } from '@/components/super-editor/FolderTreeSidebar';
 import { ContentFileViewer } from '@/components/super-editor/ContentFileViewer';
 import { MagazineContentTabs } from '@/components/super-editor/MagazineContentTabs';
+import { getFolderPopupConfig, type FolderPopupConfig } from '@/lib/super-editor/folder-domains';
 
 interface OpenContent {
   id:        string;
@@ -44,18 +46,22 @@ function findOrderInTree(nodes: FolderNode[], orderId: string): OpenContent | nu
   return null;
 }
 
-function buildUrl(folderId: string | null, contentId?: string | null, view?: string | null): string {
+function buildUrl(
+  config: FolderPopupConfig,
+  folderId: string | null, contentId?: string | null, view?: string | null,
+): string {
   const params = new URLSearchParams();
+  params.set('domain', config.domain);
   if (folderId) params.set('folderId', folderId);
   if (contentId) params.set('contentId', contentId);
   if (view) params.set('view', view);
-  const qs = params.toString();
-  return qs ? `/admin/super-editor/folders?${qs}` : '/admin/super-editor/folders';
+  return `/admin/super-editor/folders?${params.toString()}`;
 }
 
 function FoldersPageContent() {
   const router       = useRouter();
   const searchParams = useSearchParams();
+  const config    = getFolderPopupConfig(searchParams.get('domain'));
   const folderId  = searchParams.get('folderId');
   const contentId = searchParams.get('contentId');
   const view      = searchParams.get('view');
@@ -68,15 +74,16 @@ function FoldersPageContent() {
 
   const fetchTree = useCallback(async () => {
     setLoading(true);
-    const qs = folderId ? `?folderId=${folderId}` : '';
-    const res = await fetch(`/api/admin/super-editor/folders${qs}`);
+    const params = new URLSearchParams({ domain: config.domain });
+    if (folderId) params.set('folderId', folderId);
+    const res = await fetch(`/api/admin/super-editor/folders?${params.toString()}`);
     if (res.ok) {
       const data = await res.json();
       setTree(data.tree ?? []);
       setPath(data.path ?? []);
     }
     setLoading(false);
-  }, [folderId]);
+  }, [folderId, config.domain]);
 
   useEffect(() => { fetchTree(); }, [fetchTree]);
 
@@ -104,14 +111,14 @@ function FoldersPageContent() {
           });
         } else {
           // 존재하지 않거나 남의 주문 — URL에서 contentId만 걷어내고 폴더 화면으로
-          router.replace(buildUrl(folderId));
+          router.replace(buildUrl(config, folderId));
         }
       });
     return () => { cancelled = true; };
-  }, [contentId, treeContent, loading, folderId, router]);
+  }, [contentId, treeContent, loading, folderId, router, config]);
 
   function handleNavigate(id: string | null) {
-    router.push(buildUrl(id));
+    router.push(buildUrl(config, id));
   }
 
   // 팝업 진입 경로가 항상 "잡지 폴더" 버튼 클릭(router.push)이므로 뒤로가기로 자연스럽게 닫히지만,
@@ -129,7 +136,7 @@ function FoldersPageContent() {
     await fetch('/api/admin/super-editor/folders', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ parentFolderId: folderId, title, domain: 'magazine' }),
+      body:    JSON.stringify({ parentFolderId: folderId, title, domain: config.domain }),
     });
     await fetchTree();
   }
@@ -139,12 +146,12 @@ function FoldersPageContent() {
     const res = await fetch('/api/admin/super-editor', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ orderType: 'magazine', title, folderId }),
+      body:    JSON.stringify({ orderType: config.orderType, title, folderId }),
     });
     if (res.ok) {
       const { order } = await res.json();
       await fetchTree();
-      router.push(buildUrl(folderId, order.id));
+      router.push(buildUrl(config, folderId, order.id));
     }
   }
 
@@ -159,11 +166,11 @@ function FoldersPageContent() {
   }
 
   function handleOpenOrder(orderId: string) {
-    router.push(buildUrl(folderId, orderId));
+    router.push(buildUrl(config, folderId, orderId));
   }
 
   function handleBackToFolder() {
-    router.push(buildUrl(folderId));
+    router.push(buildUrl(config, folderId));
   }
 
   function handleOpenFullEditor() {
@@ -177,10 +184,8 @@ function FoldersPageContent() {
         {/* 헤더 */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-stone-100 shrink-0">
           <div>
-            <h1 className="text-xl font-bold text-stone-800">잡지 폴더</h1>
-            <p className="text-sm text-stone-400 mt-0.5">
-              폴더 안에 폴더를 만들어 잡지를 원하는 만큼 깊게 구성하세요.
-            </p>
+            <h1 className="text-xl font-bold text-stone-800">{config.title}</h1>
+            <p className="text-sm text-stone-400 mt-0.5">{config.description}</p>
           </div>
           <button
             onClick={handleClose}
@@ -204,7 +209,7 @@ function FoldersPageContent() {
                   isPaid={openContent.isPaid}
                   filesOpen={view === 'files'}
                   onFilesOpenChange={(open) =>
-                    router.push(buildUrl(folderId, openContent.id, open ? 'files' : null))}
+                    router.push(buildUrl(config, folderId, openContent.id, open ? 'files' : null))}
                   onBack={handleBackToFolder}
                   onOpenFullEditor={handleOpenFullEditor}
                 />
@@ -226,6 +231,7 @@ function FoldersPageContent() {
                 childFolders={childFolders}
                 leafOrders={leafOrders}
                 path={path}
+                contentPlaceholder={config.contentPlaceholder}
                 onNavigate={handleNavigate}
                 onCreateFolder={handleCreateFolder}
                 onCreateContent={handleCreateContent}

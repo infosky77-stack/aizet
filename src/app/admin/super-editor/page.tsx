@@ -97,11 +97,18 @@ function SuperEditorIndexContent() {
         </div>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => router.push('/admin/super-editor/folders')}
+            onClick={() => router.push('/admin/super-editor/folders?domain=magazine')}
             className="flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-xl border border-stone-200 text-stone-600 hover:border-violet-300 hover:text-violet-700 transition-colors"
           >
             <FolderTree size={15} />
             잡지 폴더
+          </button>
+          <button
+            onClick={() => router.push('/admin/super-editor/folders?domain=video')}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-xl border border-stone-200 text-stone-600 hover:border-violet-300 hover:text-violet-700 transition-colors"
+          >
+            <Film size={15} />
+            영상 폴더
           </button>
           <button
             onClick={() => setShowForm(v => !v)}

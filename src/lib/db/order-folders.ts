@@ -10,8 +10,10 @@ import { MediaOrder } from '@/lib/db/media-orders';
  * 폴더 id는 애초에 markPaid() 같은 결제 함수에 넘길 수 있는 id 종류가 아니다.
  *
  * order_type을 전혀 모르는 순수 트리 구조라서 잡지뿐 아니라 명함/도록/영상도
- * 나중에 media_orders.folder_id로 그대로 얹을 수 있다. domain 필드는 UI 힌트용
- * 문자열일 뿐 이 모듈의 어떤 함수도 domain 값으로 분기하지 않는다.
+ * 나중에 media_orders.folder_id로 그대로 얹을 수 있다. domain 필드는 UI 구분용
+ * 문자열일 뿐 이 모듈의 어떤 함수도 domain "값"으로 분기하지 않는다 — listFolders/
+ * buildFolderTree의 선택적 domain 인자는 같은 값끼리 묶는 WHERE 필터일 뿐이다
+ * (잡지 팝업엔 잡지 폴더만, 영상 팝업엔 영상 폴더만 보이게).
  */
 
 export type FolderDomain = 'generic' | 'magazine' | 'card' | 'catalog' | 'video';
@@ -54,7 +56,14 @@ export function getFolder(id: string): OrderFolder | null {
 }
 
 // 유저의 폴더 전체(flat) — 트리는 buildFolderTree가 메모리에서 조립한다.
-export function listFolders(userId: string): OrderFolder[] {
+// domain을 주면 그 도메인 폴더만(팝업별 분리). 하위 폴더도 생성 시 같은 domain을 받으므로
+// flat 필터만으로 트리가 온전히 나뉜다.
+export function listFolders(userId: string, domain?: FolderDomain): OrderFolder[] {
+  if (domain) {
+    return db.prepare<[string, string], OrderFolder>(
+      'SELECT * FROM super_editor_folders WHERE user_id=? AND domain=? ORDER BY sort_order ASC, created_at ASC'
+    ).all(userId, domain) as OrderFolder[];
+  }
   return db.prepare<[string], OrderFolder>(
     'SELECT * FROM super_editor_folders WHERE user_id=? ORDER BY sort_order ASC, created_at ASC'
   ).all(userId) as OrderFolder[];
@@ -68,8 +77,9 @@ function listLeafOrders(userId: string): MediaOrder[] {
 
 // SQL 재귀(WITH RECURSIVE) 대신 flat SELECT 2번 + 메모리 조립(O(N)).
 // 유저 1명당 폴더 개수가 많지 않을 것으로 예상되는 규모에서는 이 방식이 더 단순하고 안전하다.
-export function buildFolderTree(userId: string): FolderTreeNode[] {
-  const flat = listFolders(userId);
+// leaf 주문은 folder_id가 필터된 폴더 집합에 속할 때만 붙으므로 domain 필터가 자연히 전파된다.
+export function buildFolderTree(userId: string, domain?: FolderDomain): FolderTreeNode[] {
+  const flat = listFolders(userId, domain);
   const byId = new Map<string, FolderTreeNode>(
     flat.map((f) => [f.id, { ...f, children: [], leafOrders: [] }]),
   );

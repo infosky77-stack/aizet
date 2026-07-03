@@ -42,6 +42,8 @@ interface Props {
   leafOrders:   FolderNode['leafOrders'];
   /** 최상위부터 현재 위치까지의 경로 */
   path:         FolderPathItem[];
+  /** 콘텐츠 생성 입력 placeholder — 팝업 도메인(잡지/영상)별 문구 */
+  contentPlaceholder?: string;
   onNavigate:   (folderId: string | null) => void;
   onCreateFolder:  (title: string) => Promise<void>;
   onCreateContent: (title: string) => Promise<void>;
@@ -99,6 +101,7 @@ function sortItems(items: ExplorerItem[], sort: SortState): ExplorerItem[] {
 
 export function FolderTreeBrowser({
   childFolders, leafOrders, path,
+  contentPlaceholder = '콘텐츠 제목 (예: 11월호 표지)',
   onNavigate, onCreateFolder, onCreateContent, onDeleteFolder, onOpenOrder,
 }: Props) {
   const [creatingFolder,  setCreatingFolder]  = useState(false);
@@ -256,7 +259,7 @@ export function FolderTreeBrowser({
             value={newContentTitle}
             onChange={(e) => setNewContentTitle(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleCreateContent()}
-            placeholder="콘텐츠 제목 (예: 11월호 표지)"
+            placeholder={contentPlaceholder}
             className="flex-1 border border-stone-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-300"
           />
           <button

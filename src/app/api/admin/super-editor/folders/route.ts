@@ -8,13 +8,21 @@ import {
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
+const VALID_DOMAINS: FolderDomain[] = ['generic', 'magazine', 'card', 'catalog', 'video'];
+
 // GET /api/admin/super-editor/folders            → 내 폴더 트리 전체
+// GET /api/admin/super-editor/folders?domain=x   → 해당 도메인 폴더 트리만(팝업별 분리)
 // GET /api/admin/super-editor/folders?folderId=x → 트리 + 해당 폴더까지의 breadcrumb
 export async function GET(req: NextRequest) {
   const session = getSessionFromRequest(req);
   if (!session) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const tree = buildFolderTree(session.sub);
+  const domainRaw = req.nextUrl.searchParams.get('domain');
+  const domain = domainRaw && VALID_DOMAINS.includes(domainRaw as FolderDomain)
+    ? (domainRaw as FolderDomain)
+    : undefined;
+
+  const tree = buildFolderTree(session.sub, domain);
   const folderId = req.nextUrl.searchParams.get('folderId');
   if (folderId) {
     const folder = getFolder(folderId);
