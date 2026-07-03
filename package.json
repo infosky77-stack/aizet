@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "NEXT_DIST_DIR=.aizet-next next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:sim": "bash tests/run-all.sh"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.104.2",
