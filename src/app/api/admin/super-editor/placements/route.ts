@@ -38,6 +38,13 @@ function parsePagePos(body: { pageNo?: unknown; slot?: unknown }):
   return { pageNo, slot };
 }
 
+// ledgerRef 입력 정규화 — 원장 FileEntry.id 포인터(빈 문자열/null은 미연결).
+function parseLedgerRef(value: unknown): string | null | { error: string } {
+  if (value === undefined || value === null || value === '') return null;
+  if (typeof value !== 'string') return { error: 'ledgerRef must be a string' };
+  return value;
+}
+
 // GET /api/admin/super-editor/placements?orderId=xxx → 해당 주문의 광고·원고 목록
 export async function GET(req: NextRequest) {
   const session = getSessionFromRequest(req);
@@ -65,12 +72,17 @@ export async function POST(req: NextRequest) {
   }
   const pos = parsePagePos(body);
   if ('error' in pos) return Response.json({ error: pos.error }, { status: 400 });
+  const ledgerRef = parseLedgerRef(body.ledgerRef);
+  if (ledgerRef !== null && typeof ledgerRef === 'object') {
+    return Response.json({ error: ledgerRef.error }, { status: 400 });
+  }
 
   const placement = createPlacement(session.sub, orderId, kind as PlacementKind, {
     partyName: partyName ?? '',
     sizeSpec:  sizeSpec ?? '',
     pageNo:    pos.pageNo,
     slot:      pos.slot,
+    ledgerRef,
   });
   return Response.json({ placement });
 }
@@ -94,7 +106,7 @@ export async function PUT(req: NextRequest) {
     return Response.json({ error: 'invalid status' }, { status: 400 });
   }
 
-  // pageNo/slot 필드가 요청에 아예 없으면(상태만 바꾸는 PUT 등) 기존 값 유지(undefined 전달)
+  // pageNo/slot/ledgerRef 필드가 요청에 아예 없으면(상태만 바꾸는 PUT 등) 기존 값 유지(undefined 전달)
   const hasPos = 'pageNo' in body || 'slot' in body;
   let pageNo: number | null | undefined;
   let slot:   PlacementSlot | null | undefined;
@@ -104,8 +116,16 @@ export async function PUT(req: NextRequest) {
     pageNo = pos.pageNo;
     slot   = pos.slot;
   }
+  let ledgerRef: string | null | undefined;
+  if ('ledgerRef' in body) {
+    const parsed = parseLedgerRef(body.ledgerRef);
+    if (parsed !== null && typeof parsed === 'object') {
+      return Response.json({ error: parsed.error }, { status: 400 });
+    }
+    ledgerRef = parsed;
+  }
 
-  updatePlacement(id, { partyName, sizeSpec, pageNo, slot, status: status as PlacementStatus | undefined });
+  updatePlacement(id, { partyName, sizeSpec, pageNo, slot, ledgerRef, status: status as PlacementStatus | undefined });
   return Response.json({ ok: true });
 }
 

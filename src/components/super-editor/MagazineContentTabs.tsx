@@ -56,7 +56,7 @@ export function MagazineContentTabs({
           </button>
         </div>
 
-        <PlacementsPanel orderId={orderId} locked={isPaid} />
+        <PlacementsPanel orderId={orderId} title={title} locked={isPaid} />
       </div>
 
       {/* 파일 관리 — 잡지 폴더 팝업과 같은 전체화면 오버레이 모양, 그 위에 한 겹 더 쌓임 */}

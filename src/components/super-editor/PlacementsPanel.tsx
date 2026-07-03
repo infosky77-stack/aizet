@@ -3,14 +3,19 @@
 // 잡지 콘텐츠 하나(orderId)에 딸린 광고·원고 목록 — 독립 패널.
 // magazine_placements API(가벼운 메타데이터만)만 호출한다. 광고 이미지/원고 원본 같은
 // 무거운 파일은 이 패널이 다루지 않음 — 그건 "파일" 탭(ContentFileViewer)에서 로컬 원장으로.
+// 단, 항목↔파일 연결(ledger_ref)과 조판 PDF 생성을 위해 원장을 읽기 전용으로 구독한다.
 
 import { useEffect, useState } from 'react';
-import { Megaphone, NotebookPen, Plus, Pencil, Trash2, Loader2 } from 'lucide-react';
+import { Megaphone, NotebookPen, Plus, Pencil, Trash2, Loader2, Image as ImageIcon } from 'lucide-react';
 import { clsx } from 'clsx';
 import type { Placement, PlacementKind, PlacementSlot, PlacementStatus } from '@/lib/super-editor/placements/types';
+import { MagazinePdfButton } from '@/components/super-editor/MagazinePdfButton';
+import { useFileLedgerStore, useOrderedFileEntries } from '@/lib/super-editor/ledger/store';
 
 interface Props {
   orderId: string;
+  /** 조판 PDF 미리보기 헤더/파일명에 쓰는 콘텐츠 제목 */
+  title?: string;
   /** 결제완료 등으로 잠글 필요가 있을 때 — 추가/수정/삭제 버튼을 숨긴다 */
   locked?: boolean;
 }
@@ -23,10 +28,12 @@ interface FormState {
   pageNo:    string;
   /** '' = 미정(null) */
   slot:      PlacementSlot | '';
+  /** 연결된 원장 이미지 FileEntry.id — '' = 미연결(null) */
+  ledgerRef: string;
 }
 
 function emptyForm(): FormState {
-  return { kind: 'ad', partyName: '', sizeSpec: '', pageNo: '', slot: '' };
+  return { kind: 'ad', partyName: '', sizeSpec: '', pageNo: '', slot: '', ledgerRef: '' };
 }
 
 const SLOT_LABELS: Record<PlacementSlot, string> = { full: '전면', half: '1/2', quarter: '1/4' };
@@ -51,7 +58,7 @@ const STATUS_STEPS: { key: PlacementStatus; label: string }[] = [
   { key: 'confirmed', label: '확정' },
 ];
 
-export function PlacementsPanel({ orderId, locked = false }: Props) {
+export function PlacementsPanel({ orderId, title = '', locked = false }: Props) {
   const [placements, setPlacements] = useState<Placement[]>([]);
   const [loading, setLoading]       = useState(true);
   const [formOpen, setFormOpen]     = useState(false);
@@ -59,6 +66,9 @@ export function PlacementsPanel({ orderId, locked = false }: Props) {
   const [form, setForm]             = useState<FormState>(emptyForm());
   const [busy, setBusy]             = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  // "이미지 연결" 셀렉트 후보 — 이 주문의 원장 이미지 엔트리들
+  const imageEntries = useOrderedFileEntries(orderId).filter((e) => e.kind === 'image');
 
   useEffect(() => {
     let cancelled = false;
@@ -68,6 +78,14 @@ export function PlacementsPanel({ orderId, locked = false }: Props) {
       .then((data) => { if (!cancelled) setPlacements(data.placements ?? []); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
+  }, [orderId]);
+
+  // 원장 하이드레이션 — 파일 화면을 안 거쳐도 이미지 연결 셀렉트/조판 PDF가 원장을 읽을 수 있게.
+  // orderId 키잉 구조라 다른 화면과 동시에 불러도 안전하고, 둘 다 멱등이다.
+  useEffect(() => {
+    const ledger = useFileLedgerStore.getState();
+    void ledger.hydrateFromLocalIndex(orderId);
+    void ledger.refreshFromServer(orderId);
   }, [orderId]);
 
   function openCreateForm() {
@@ -81,6 +99,7 @@ export function PlacementsPanel({ orderId, locked = false }: Props) {
       kind: p.kind, partyName: p.party_name, sizeSpec: p.size_spec,
       pageNo: p.page_no != null ? String(p.page_no) : '',
       slot:   p.slot ?? '',
+      ledgerRef: p.ledger_ref ?? '',
     });
     setEditingId(p.id);
     setFormOpen(true);
@@ -95,13 +114,14 @@ export function PlacementsPanel({ orderId, locked = false }: Props) {
     if (!form.partyName.trim()) return;
     setBusy(true);
     try {
-      const pageNo = form.pageNo.trim() ? Number(form.pageNo.trim()) : null;
-      const slot   = form.slot || null;
+      const pageNo    = form.pageNo.trim() ? Number(form.pageNo.trim()) : null;
+      const slot      = form.slot || null;
+      const ledgerRef = form.ledgerRef || null;
       if (editingId) {
         const patch = {
           partyName: form.partyName.trim(),
           sizeSpec:  form.sizeSpec.trim(),
-          pageNo, slot,
+          pageNo, slot, ledgerRef,
         };
         await fetch(`/api/admin/super-editor/placements?id=${editingId}`, {
           method:  'PUT',
@@ -109,7 +129,7 @@ export function PlacementsPanel({ orderId, locked = false }: Props) {
           body:    JSON.stringify(patch),
         });
         setPlacements((prev) => prev.map((p) => (p.id === editingId
-          ? { ...p, party_name: patch.partyName, size_spec: patch.sizeSpec, page_no: pageNo, slot }
+          ? { ...p, party_name: patch.partyName, size_spec: patch.sizeSpec, page_no: pageNo, slot, ledger_ref: ledgerRef }
           : p)));
       } else {
         const res = await fetch('/api/admin/super-editor/placements', {
@@ -119,7 +139,7 @@ export function PlacementsPanel({ orderId, locked = false }: Props) {
             orderId, kind: form.kind,
             partyName: form.partyName.trim(),
             sizeSpec:  form.sizeSpec.trim(),
-            pageNo, slot,
+            pageNo, slot, ledgerRef,
           }),
         });
         if (res.ok) {
@@ -176,14 +196,18 @@ export function PlacementsPanel({ orderId, locked = false }: Props) {
           <span className="text-stone-300">·</span>
           <span className="flex items-center gap-1"><NotebookPen size={14} className="text-violet-500" /> 원고 {manuscripts.length}건</span>
         </div>
-        {!locked && (
-          <button
-            onClick={openCreateForm}
-            className="ml-auto flex items-center gap-1.5 px-4 py-2.5 text-sm font-bold rounded-xl bg-violet-600 hover:bg-violet-700 text-white transition-colors shadow-sm"
-          >
-            <Plus size={16} /> 광고·원고 추가
-          </button>
-        )}
+        <div className="ml-auto flex items-center gap-2">
+          {/* 조판 PDF는 잠금(결제완료) 상태에서도 볼 수 있어야 한다 — 확정본 확인/재다운로드 용도 */}
+          <MagazinePdfButton orderId={orderId} title={title} placements={placements} />
+          {!locked && (
+            <button
+              onClick={openCreateForm}
+              className="flex items-center gap-1.5 px-4 py-2.5 text-sm font-bold rounded-xl bg-violet-600 hover:bg-violet-700 text-white transition-colors shadow-sm"
+            >
+              <Plus size={16} /> 광고·원고 추가
+            </button>
+          )}
+        </div>
       </div>
 
       {/* 추가/수정 폼 */}
@@ -252,6 +276,29 @@ export function PlacementsPanel({ orderId, locked = false }: Props) {
             </select>
           </div>
 
+          {/* 이미지 연결(ledger_ref) — 조판 PDF에서 이 항목 자리에 들어갈 원장 이미지.
+              미연결이면 조판 시 자리표시 박스로 나간다. 파일 업로드 자체는 "파일 관리"에서. */}
+          <div className="flex items-center gap-2">
+            <ImageIcon size={14} className="text-stone-400 shrink-0" />
+            <select
+              value={form.ledgerRef}
+              onChange={(e) => setForm((f) => ({ ...f, ledgerRef: e.target.value }))}
+              className={clsx(
+                'flex-1 border border-stone-200 rounded-xl px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-violet-300',
+                form.ledgerRef === '' && 'text-stone-400',
+              )}
+            >
+              <option value="">이미지 미연결 (조판 시 자리표시)</option>
+              {imageEntries.map((e) => (
+                <option key={e.id} value={e.id}>{e.origName}</option>
+              ))}
+              {/* 연결돼 있던 이미지가 목록에 없어도(다른 기기 로컬 전용 등) 연결을 잃지 않게 유지 */}
+              {form.ledgerRef && !imageEntries.some((e) => e.id === form.ledgerRef) && (
+                <option value={form.ledgerRef}>(연결된 이미지 — 이 기기에 없음)</option>
+              )}
+            </select>
+          </div>
+
           <div className="flex items-center gap-2 justify-end">
             <button onClick={closeForm} className="px-4 py-2 rounded-xl text-sm font-semibold text-stone-500 hover:bg-stone-100 transition-colors">
               취소
@@ -316,7 +363,12 @@ export function PlacementsPanel({ orderId, locked = false }: Props) {
                     </button>
                   )}
                   <span className="w-24 shrink-0 text-xs text-stone-500 truncate">{p.size_spec || '—'}</span>
-                  <span className="w-32 shrink-0 text-xs text-stone-500 truncate">{formatPagePos(p)}</span>
+                  <span className="w-32 shrink-0 text-xs text-stone-500 truncate flex items-center gap-1">
+                    {formatPagePos(p)}
+                    {p.ledger_ref && (
+                      <ImageIcon size={11} className="text-emerald-500 shrink-0" aria-label="이미지 연결됨" />
+                    )}
+                  </span>
                   <div className="w-[190px] shrink-0">
                     <StatusPills value={p.status} onChange={(s) => handleStatusChange(p, s)} disabled={locked} />
                   </div>
