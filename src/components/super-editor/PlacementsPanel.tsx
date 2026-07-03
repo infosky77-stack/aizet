@@ -7,7 +7,7 @@
 import { useEffect, useState } from 'react';
 import { Megaphone, NotebookPen, Plus, Pencil, Trash2, Loader2 } from 'lucide-react';
 import { clsx } from 'clsx';
-import type { Placement, PlacementKind, PlacementStatus } from '@/lib/super-editor/placements/types';
+import type { Placement, PlacementKind, PlacementSlot, PlacementStatus } from '@/lib/super-editor/placements/types';
 
 interface Props {
   orderId: string;
@@ -16,14 +16,28 @@ interface Props {
 }
 
 interface FormState {
-  kind:         PlacementKind;
-  partyName:    string;
-  sizeSpec:     string;
-  placementPos: string;
+  kind:      PlacementKind;
+  partyName: string;
+  sizeSpec:  string;
+  /** 페이지 번호 입력값 — 빈 문자열이면 미정(null) */
+  pageNo:    string;
+  /** '' = 미정(null) */
+  slot:      PlacementSlot | '';
 }
 
 function emptyForm(): FormState {
-  return { kind: 'ad', partyName: '', sizeSpec: '', placementPos: '' };
+  return { kind: 'ad', partyName: '', sizeSpec: '', pageNo: '', slot: '' };
+}
+
+const SLOT_LABELS: Record<PlacementSlot, string> = { full: '전면', half: '1/2', quarter: '1/4' };
+
+// 목록의 "게재 위치" 표시 — 구조화된 page_no/slot을 사람이 읽는 형태로 (예: "12p · 1/2")
+function formatPagePos(p: Placement): string {
+  const parts = [
+    p.page_no != null ? `${p.page_no}p` : null,
+    p.slot ? SLOT_LABELS[p.slot] : null,
+  ].filter(Boolean);
+  return parts.length ? parts.join(' · ') : '—';
 }
 
 const KIND_META: Record<PlacementKind, { label: string; nameLabel: string; icon: typeof Megaphone; color: string }> = {
@@ -65,7 +79,8 @@ export function PlacementsPanel({ orderId, locked = false }: Props) {
   function openEditForm(p: Placement) {
     setForm({
       kind: p.kind, partyName: p.party_name, sizeSpec: p.size_spec,
-      placementPos: p.placement_pos ?? '',
+      pageNo: p.page_no != null ? String(p.page_no) : '',
+      slot:   p.slot ?? '',
     });
     setEditingId(p.id);
     setFormOpen(true);
@@ -80,11 +95,13 @@ export function PlacementsPanel({ orderId, locked = false }: Props) {
     if (!form.partyName.trim()) return;
     setBusy(true);
     try {
+      const pageNo = form.pageNo.trim() ? Number(form.pageNo.trim()) : null;
+      const slot   = form.slot || null;
       if (editingId) {
         const patch = {
-          partyName:    form.partyName.trim(),
-          sizeSpec:     form.sizeSpec.trim(),
-          placementPos: form.placementPos.trim() || null,
+          partyName: form.partyName.trim(),
+          sizeSpec:  form.sizeSpec.trim(),
+          pageNo, slot,
         };
         await fetch(`/api/admin/super-editor/placements?id=${editingId}`, {
           method:  'PUT',
@@ -92,7 +109,7 @@ export function PlacementsPanel({ orderId, locked = false }: Props) {
           body:    JSON.stringify(patch),
         });
         setPlacements((prev) => prev.map((p) => (p.id === editingId
-          ? { ...p, party_name: patch.partyName, size_spec: patch.sizeSpec, placement_pos: patch.placementPos }
+          ? { ...p, party_name: patch.partyName, size_spec: patch.sizeSpec, page_no: pageNo, slot }
           : p)));
       } else {
         const res = await fetch('/api/admin/super-editor/placements', {
@@ -100,9 +117,9 @@ export function PlacementsPanel({ orderId, locked = false }: Props) {
           headers: { 'Content-Type': 'application/json' },
           body:    JSON.stringify({
             orderId, kind: form.kind,
-            partyName:    form.partyName.trim(),
-            sizeSpec:     form.sizeSpec.trim(),
-            placementPos: form.placementPos.trim() || null,
+            partyName: form.partyName.trim(),
+            sizeSpec:  form.sizeSpec.trim(),
+            pageNo, slot,
           }),
         });
         if (res.ok) {
@@ -193,7 +210,7 @@ export function PlacementsPanel({ orderId, locked = false }: Props) {
             </div>
           )}
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
             <input
               autoFocus
               value={form.partyName}
@@ -209,13 +226,30 @@ export function PlacementsPanel({ orderId, locked = false }: Props) {
               placeholder="크기 (예: 1/2페이지)"
               className="border border-stone-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-300"
             />
+            {/* 게재 위치 — 자유 텍스트 대신 구조화 입력(페이지 번호 + 페이지 안 배치).
+                이 두 값이 나중에 PDF 조판 자동화의 입력이 된다. */}
             <input
-              value={form.placementPos}
-              onChange={(e) => setForm((f) => ({ ...f, placementPos: e.target.value }))}
+              type="number"
+              min={1}
+              value={form.pageNo}
+              onChange={(e) => setForm((f) => ({ ...f, pageNo: e.target.value }))}
               onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
-              placeholder="게재 위치 (예: 12p, 표지 안쪽)"
+              placeholder="게재 페이지 (예: 12)"
               className="border border-stone-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-300"
             />
+            <select
+              value={form.slot}
+              onChange={(e) => setForm((f) => ({ ...f, slot: e.target.value as PlacementSlot | '' }))}
+              className={clsx(
+                'border border-stone-200 rounded-xl px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-violet-300',
+                form.slot === '' && 'text-stone-400',
+              )}
+            >
+              <option value="">배치 미정</option>
+              {(Object.keys(SLOT_LABELS) as PlacementSlot[]).map((s) => (
+                <option key={s} value={s}>{SLOT_LABELS[s]}</option>
+              ))}
+            </select>
           </div>
 
           <div className="flex items-center gap-2 justify-end">
@@ -282,7 +316,7 @@ export function PlacementsPanel({ orderId, locked = false }: Props) {
                     </button>
                   )}
                   <span className="w-24 shrink-0 text-xs text-stone-500 truncate">{p.size_spec || '—'}</span>
-                  <span className="w-32 shrink-0 text-xs text-stone-500 truncate">{p.placement_pos || '—'}</span>
+                  <span className="w-32 shrink-0 text-xs text-stone-500 truncate">{formatPagePos(p)}</span>
                   <div className="w-[190px] shrink-0">
                     <StatusPills value={p.status} onChange={(s) => handleStatusChange(p, s)} disabled={locked} />
                   </div>

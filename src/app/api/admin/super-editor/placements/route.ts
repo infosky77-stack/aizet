@@ -3,7 +3,7 @@ import { getSessionFromRequest } from '@/lib/auth';
 import { getMediaOrder } from '@/lib/db/media-orders';
 import {
   createPlacement, getPlacement, listPlacementsByOrder, updatePlacement, deletePlacement,
-  PlacementKind, PlacementStatus,
+  PlacementKind, PlacementSlot, PlacementStatus,
 } from '@/lib/db/magazine-placements';
 
 export const dynamic = 'force-dynamic';
@@ -15,6 +15,27 @@ export const runtime = 'nodejs';
 function ownedOrder(orderId: string, userId: string) {
   const order = getMediaOrder(orderId);
   return order && order.user_id === userId ? order : null;
+}
+
+const SLOTS: PlacementSlot[] = ['full', 'half', 'quarter'];
+
+// page_no/slot 입력 정규화 — 잘못된 값은 에러 문자열 반환(자유 텍스트가 스키마에 스미는 걸 차단).
+function parsePagePos(body: { pageNo?: unknown; slot?: unknown }):
+  { pageNo: number | null; slot: PlacementSlot | null } | { error: string } {
+  let pageNo: number | null = null;
+  if (body.pageNo !== undefined && body.pageNo !== null && body.pageNo !== '') {
+    const n = Number(body.pageNo);
+    if (!Number.isInteger(n) || n < 1) return { error: 'pageNo must be a positive integer' };
+    pageNo = n;
+  }
+  let slot: PlacementSlot | null = null;
+  if (body.slot !== undefined && body.slot !== null && body.slot !== '') {
+    if (!SLOTS.includes(body.slot as PlacementSlot)) {
+      return { error: `slot must be one of ${SLOTS.join(', ')}` };
+    }
+    slot = body.slot as PlacementSlot;
+  }
+  return { pageNo, slot };
 }
 
 // GET /api/admin/super-editor/placements?orderId=xxx → 해당 주문의 광고·원고 목록
@@ -34,18 +55,22 @@ export async function POST(req: NextRequest) {
   const session = getSessionFromRequest(req);
   if (!session) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const { orderId, kind, partyName, sizeSpec, placementPos } = await req.json();
+  const body = await req.json();
+  const { orderId, kind, partyName, sizeSpec } = body;
   if (!orderId || !ownedOrder(orderId, session.sub)) {
     return Response.json({ error: 'Not found' }, { status: 404 });
   }
   if (kind !== 'ad' && kind !== 'manuscript') {
     return Response.json({ error: 'kind must be ad or manuscript' }, { status: 400 });
   }
+  const pos = parsePagePos(body);
+  if ('error' in pos) return Response.json({ error: pos.error }, { status: 400 });
 
   const placement = createPlacement(session.sub, orderId, kind as PlacementKind, {
-    partyName:    partyName ?? '',
-    sizeSpec:     sizeSpec ?? '',
-    placementPos: placementPos ?? null,
+    partyName: partyName ?? '',
+    sizeSpec:  sizeSpec ?? '',
+    pageNo:    pos.pageNo,
+    slot:      pos.slot,
   });
   return Response.json({ placement });
 }
@@ -63,12 +88,24 @@ export async function PUT(req: NextRequest) {
     return Response.json({ error: 'Not found' }, { status: 404 });
   }
 
-  const { partyName, sizeSpec, placementPos, status } = await req.json();
+  const body = await req.json();
+  const { partyName, sizeSpec, status } = body;
   if (status && status !== 'intake' && status !== 'placed' && status !== 'confirmed') {
     return Response.json({ error: 'invalid status' }, { status: 400 });
   }
 
-  updatePlacement(id, { partyName, sizeSpec, placementPos, status: status as PlacementStatus | undefined });
+  // pageNo/slot 필드가 요청에 아예 없으면(상태만 바꾸는 PUT 등) 기존 값 유지(undefined 전달)
+  const hasPos = 'pageNo' in body || 'slot' in body;
+  let pageNo: number | null | undefined;
+  let slot:   PlacementSlot | null | undefined;
+  if (hasPos) {
+    const pos = parsePagePos(body);
+    if ('error' in pos) return Response.json({ error: pos.error }, { status: 400 });
+    pageNo = pos.pageNo;
+    slot   = pos.slot;
+  }
+
+  updatePlacement(id, { partyName, sizeSpec, pageNo, slot, status: status as PlacementStatus | undefined });
   return Response.json({ ok: true });
 }
 

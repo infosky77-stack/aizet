@@ -18,6 +18,8 @@ import db from '@/lib/db';
 
 export type PlacementKind   = 'ad' | 'manuscript';
 export type PlacementStatus = 'intake' | 'placed' | 'confirmed';
+/** 페이지 안 배치 — 전면/1/2/1/4. PDF 조판 자동화의 입력이므로 자유 텍스트 금지. */
+export type PlacementSlot   = 'full' | 'half' | 'quarter';
 
 export interface MagazinePlacement {
   id:            string;
@@ -26,7 +28,10 @@ export interface MagazinePlacement {
   kind:          PlacementKind;
   party_name:    string;
   size_spec:     string;
-  placement_pos: string | null;
+  /** 게재 페이지 번호(1부터). 미정이면 null */
+  page_no:       number | null;
+  /** 페이지 안 배치. 미정이면 null */
+  slot:          PlacementSlot | null;
   status:        PlacementStatus;
   intake_date:   number | null;
   ledger_ref:    string | null;
@@ -39,7 +44,8 @@ export interface MagazinePlacement {
 export interface CreatePlacementOpts {
   partyName?:    string;
   sizeSpec?:     string;
-  placementPos?: string | null;
+  pageNo?:       number | null;
+  slot?:         PlacementSlot | null;
   status?:       PlacementStatus;
   intakeDate?:   number | null;
   ledgerRef?:    string | null;
@@ -56,11 +62,11 @@ export function createPlacement(
   const now = Date.now();
   db.prepare(`
     INSERT INTO magazine_placements
-      (id, order_id, user_id, kind, party_name, size_spec, placement_pos, status, intake_date, ledger_ref, sort_order, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      (id, order_id, user_id, kind, party_name, size_spec, page_no, slot, status, intake_date, ledger_ref, sort_order, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     id, orderId, userId, kind,
-    opts.partyName ?? '', opts.sizeSpec ?? '', opts.placementPos ?? null,
+    opts.partyName ?? '', opts.sizeSpec ?? '', opts.pageNo ?? null, opts.slot ?? null,
     opts.status ?? 'intake', opts.intakeDate ?? now, opts.ledgerRef ?? null, opts.sortOrder ?? null,
     now, now,
   );
@@ -82,7 +88,8 @@ export function listPlacementsByOrder(orderId: string): MagazinePlacement[] {
 export interface PlacementPatch {
   partyName?:    string;
   sizeSpec?:     string;
-  placementPos?: string | null;
+  pageNo?:       number | null;
+  slot?:         PlacementSlot | null;
   status?:       PlacementStatus;
   intakeDate?:   number | null;
   ledgerRef?:    string | null;
@@ -94,20 +101,21 @@ export function updatePlacement(id: string, patch: PlacementPatch): void {
   const current = getPlacement(id);
   if (!current) return;
   const next = {
-    party_name:    patch.partyName    ?? current.party_name,
-    size_spec:     patch.sizeSpec     ?? current.size_spec,
-    placement_pos: patch.placementPos !== undefined ? patch.placementPos : current.placement_pos,
-    status:        patch.status       ?? current.status,
-    intake_date:   patch.intakeDate   !== undefined ? patch.intakeDate : current.intake_date,
-    ledger_ref:    patch.ledgerRef    !== undefined ? patch.ledgerRef : current.ledger_ref,
-    sort_order:    patch.sortOrder    !== undefined ? patch.sortOrder : current.sort_order,
+    party_name:  patch.partyName  ?? current.party_name,
+    size_spec:   patch.sizeSpec   ?? current.size_spec,
+    page_no:     patch.pageNo     !== undefined ? patch.pageNo : current.page_no,
+    slot:        patch.slot       !== undefined ? patch.slot : current.slot,
+    status:      patch.status     ?? current.status,
+    intake_date: patch.intakeDate !== undefined ? patch.intakeDate : current.intake_date,
+    ledger_ref:  patch.ledgerRef  !== undefined ? patch.ledgerRef : current.ledger_ref,
+    sort_order:  patch.sortOrder  !== undefined ? patch.sortOrder : current.sort_order,
   };
   db.prepare(`
     UPDATE magazine_placements
-    SET party_name=?, size_spec=?, placement_pos=?, status=?, intake_date=?, ledger_ref=?, sort_order=?, updated_at=?
+    SET party_name=?, size_spec=?, page_no=?, slot=?, status=?, intake_date=?, ledger_ref=?, sort_order=?, updated_at=?
     WHERE id=?
   `).run(
-    next.party_name, next.size_spec, next.placement_pos, next.status,
+    next.party_name, next.size_spec, next.page_no, next.slot, next.status,
     next.intake_date, next.ledger_ref, next.sort_order, Date.now(), id,
   );
 }

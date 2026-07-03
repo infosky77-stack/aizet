@@ -327,6 +327,9 @@ db.exec(`
 // foreign_keys pragma가 꺼져있는 이 코드베이스 관례와 동일, 삭제 시 정리는 애플리케이션
 // 코드가 담당). receivable_id는 향후 미수금 모듈을 위한 예약 컬럼 — 오늘은 항상 NULL이고
 // 어떤 코드도 쓰지 않는다(src/lib/super-editor/placements/billing.ts 참고).
+// 게재 위치는 자유 텍스트가 아니라 구조화 컬럼 두 개다 — page_no(몇 페이지) +
+// slot(페이지 안 배치: 'full'|'half'|'quarter'). 향후 PDF 조판 자동화가 이 두 값을
+// 입력으로 쓰므로 절대 여기에 자유 텍스트 위치 컬럼을 되살리지 말 것.
 db.exec(`
   CREATE TABLE IF NOT EXISTS magazine_placements (
     id             TEXT    PRIMARY KEY,
@@ -335,7 +338,8 @@ db.exec(`
     kind           TEXT    NOT NULL,
     party_name     TEXT    NOT NULL DEFAULT '',
     size_spec      TEXT    NOT NULL DEFAULT '',
-    placement_pos  TEXT,
+    page_no        INTEGER,
+    slot           TEXT,
     status         TEXT    NOT NULL DEFAULT 'intake',
     intake_date    INTEGER,
     ledger_ref     TEXT,
@@ -347,5 +351,15 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_magazine_placements_order ON magazine_placements(order_id);
   CREATE INDEX IF NOT EXISTS idx_magazine_placements_user  ON magazine_placements(user_id);
 `);
+
+// ── magazine_placements 마이그레이션: placement_pos(자유 텍스트) → page_no + slot (멱등) ──
+// 초기 스키마로 이미 생성된 DB용. 전 환경에서 데이터 0건일 때(2026-07-04 확인) 바꾸는 것이라
+// 값 이관 없이 컬럼만 교체한다.
+{
+  const cols = (db.pragma('table_info(magazine_placements)') as Array<{ name: string }>).map(c => c.name);
+  if (!cols.includes('page_no')) db.exec(`ALTER TABLE magazine_placements ADD COLUMN page_no INTEGER`);
+  if (!cols.includes('slot'))    db.exec(`ALTER TABLE magazine_placements ADD COLUMN slot TEXT`);
+  if (cols.includes('placement_pos')) db.exec(`ALTER TABLE magazine_placements DROP COLUMN placement_pos`);
+}
 
 export default db;

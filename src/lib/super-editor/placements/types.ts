@@ -8,6 +8,8 @@
 
 export type PlacementKind   = 'ad' | 'manuscript';
 export type PlacementStatus = 'intake' | 'placed' | 'confirmed';
+/** 페이지 안 배치 — 전면/1/2/1/4. PDF 조판 자동화의 입력이므로 자유 텍스트 금지. */
+export type PlacementSlot   = 'full' | 'half' | 'quarter';
 
 export interface Placement {
   id:            string;
@@ -16,7 +18,10 @@ export interface Placement {
   kind:          PlacementKind;
   party_name:    string;
   size_spec:     string;
-  placement_pos: string | null;
+  /** 게재 페이지 번호(1부터). 미정이면 null */
+  page_no:       number | null;
+  /** 페이지 안 배치. 미정이면 null */
+  slot:          PlacementSlot | null;
   status:        PlacementStatus;
   intake_date:   number | null;
   /** 무거운 원본 파일은 여기 없음 — 로컬 원장(FileEntry, src/lib/super-editor/ledger)의
