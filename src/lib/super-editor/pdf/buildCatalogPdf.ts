@@ -7,29 +7,19 @@
 // (별도 Bold 웨이트 파일이 없음 — 즉 원본도 시각적으로는 "가짜 볼드"). 그래서 여기서도 같은 폰트 객체를
 // bold 자리에 재사용한다 — 이건 생략이 아니라 원본과 동일한 동작이다.
 
-import { PDFDocument, PDFFont, PDFPage, rgb } from 'pdf-lib';
+import { PDFDocument } from 'pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
 import { resolveArtworkImageBlob, type ArtworkImageRef } from './resolveImageBytes';
 import { resizeImageToJpeg } from './resizeImage';
+import {
+  MM, PAGE_SIZES_MM, loadFontBytes, wrapText, baselineY, drawCenteredLine,
+  GRAY_TITLE, GRAY_META, GRAY_SIZE, GRAY_DESC, GRAY_LINE, GRAY_SEP,
+} from './shared';
 import type { FileEntry } from '../ledger/types';
-
-const MM = 72 / 25.4; // mm → pt
-
-const PAGE_SIZES_MM: Record<string, [number, number]> = {
-  A4: [210, 297],
-  A5: [148, 210],
-};
 
 const MARGIN = 22 * MM;
 const GAP    = 7  * MM;
 const CAP_H  = 42 * MM;
-
-const GRAY_TITLE = rgb(18 / 255, 18 / 255, 18 / 255);
-const GRAY_META  = rgb(115 / 255, 115 / 255, 115 / 255);
-const GRAY_SIZE  = rgb(160 / 255, 160 / 255, 160 / 255);
-const GRAY_DESC  = rgb(100 / 255, 100 / 255, 100 / 255);
-const GRAY_LINE  = rgb(190 / 255, 190 / 255, 190 / 255);
-const GRAY_SEP   = rgb(215 / 255, 215 / 255, 215 / 255);
 
 export interface CatalogArtworkInput extends ArtworkImageRef {
   title:       string;
@@ -44,50 +34,6 @@ export interface CatalogPdfInput {
   artist_name:      string;
   paper_size:       string;
   artworks:         CatalogArtworkInput[];
-}
-
-let fontBytesPromise: Promise<ArrayBuffer> | null = null;
-function loadFontBytes(): Promise<ArrayBuffer> {
-  if (!fontBytesPromise) {
-    fontBytesPromise = fetch('/fonts/NotoSansKR.ttf').then((res) => {
-      if (!res.ok) throw new Error('한글 폰트를 불러오지 못했습니다');
-      return res.arrayBuffer();
-    });
-  }
-  return fontBytesPromise;
-}
-
-function wrapText(text: string, font: PDFFont, size: number, maxWidth: number): string[] {
-  const words = text.split(/\s+/).filter(Boolean);
-  if (words.length === 0) return [];
-  const lines: string[] = [];
-  let current = '';
-  for (const word of words) {
-    const candidate = current ? `${current} ${word}` : word;
-    if (current && font.widthOfTextAtSize(candidate, size) > maxWidth) {
-      lines.push(current);
-      current = word;
-    } else {
-      current = candidate;
-    }
-  }
-  if (current) lines.push(current);
-  return lines;
-}
-
-// fromTop(페이지 상단부터의 거리, pt) 위치에 베이스라인이 오도록 pdf-lib 좌표(하단원점)로 변환.
-// fpdf의 top-left 셀 좌표계를 그대로 흉내내는 근사치 — size의 ~80%를 베이스라인 오프셋으로 사용.
-function baselineY(pageHeight: number, fromTop: number, size: number): number {
-  return pageHeight - fromTop - size * 0.8;
-}
-
-function drawCenteredLine(
-  page: PDFPage, font: PDFFont, text: string, size: number,
-  color: ReturnType<typeof rgb>, centerX: number, y: number,
-): void {
-  if (!text) return;
-  const width = font.widthOfTextAtSize(text, size);
-  page.drawText(text, { x: centerX - width / 2, y, size, font, color });
 }
 
 export async function buildCatalogPdf(
