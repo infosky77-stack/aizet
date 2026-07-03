@@ -129,7 +129,9 @@ export const useFileLedgerStore = create<FileLedgerState>((set, get) => ({
   }),
 
   refreshFromServer: async () => {
-    const files = await fetchServerFiles(get().currentOrderId ?? undefined);
+    const orderId = get().currentOrderId;
+    const files = await fetchServerFiles(orderId ?? undefined);
+    if (get().currentOrderId !== orderId) return; // 응답 대기 중 스코프가 바뀌었으면 버림(교차 주문 오염 방지)
     get().hydrate(files);
   },
 
@@ -142,6 +144,7 @@ export const useFileLedgerStore = create<FileLedgerState>((set, get) => ({
     const withUrls = await Promise.all(localEntries.map(async (le) => ({
       le, url: await localAdapter.resolveUrl(localRefFor(le.entryId)),
     })));
+    if (get().currentOrderId !== orderId) return; // 응답 대기 중 스코프가 바뀌었으면 버림(교차 주문 오염 방지)
     set((state) => {
       const entries = { ...state.entries };
       for (const { le, url } of withUrls) {
