@@ -241,16 +241,21 @@ export async function buildMagazinePdf(
 
     const physicals: PhysicalPage[] = [{ used: [false, false, false, false], items: [], seq: 0 }];
     for (const p of items) {
-      let rect: CellRect | null = null;
+      let placedOn: PhysicalPage | null = null;
       for (const phys of physicals) {
-        rect = tryPlace(phys, p.slot!, W, H);
-        if (rect) { phys.items.push({ placement: p, rect }); break; }
+        const rect = tryPlace(phys, p.slot!, W, H);
+        if (rect) { phys.items.push({ placement: p, rect }); placedOn = phys; break; }
       }
-      if (!rect) {
+      if (!placedOn) {
         const next: PhysicalPage = { used: [false, false, false, false], items: [], seq: physicals.length };
-        rect = tryPlace(next, p.slot!, W, H)!; // 빈 페이지에는 어떤 슬롯이든 반드시 들어간다
+        const rect = tryPlace(next, p.slot!, W, H)!; // 빈 페이지에는 어떤 슬롯이든 반드시 들어간다
         next.items.push({ placement: p, rect });
         physicals.push(next);
+        placedOn = next;
+      }
+      // 원래 지정한 물리 페이지(seq 0)가 아니라 연속 페이지에 실렸으면 — 새로 만들었든
+      // 기존 연속 페이지의 빈 칸에 들어갔든 — 사용자가 지정한 지면과 다르므로 항상 경고한다.
+      if (placedOn.seq > 0) {
         notices.push({
           placementId: p.id, label: noticeLabel(p),
           reason: `${pageNo}페이지 용량(쿼터 4칸) 초과 — "${pageNo} (계속)" 페이지로 배치했습니다`,
