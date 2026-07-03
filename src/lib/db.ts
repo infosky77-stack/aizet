@@ -320,4 +320,32 @@ db.exec(`
   db.exec(`CREATE INDEX IF NOT EXISTS idx_media_orders_folder ON media_orders(folder_id)`);
 }
 
+// ── 잡지 광고·원고 게재 항목 테이블 (magazine_placements, 독립 모듈) ─────────
+// media_orders와 완전히 분리된 별도 테이블 — 무거운 원본(광고 이미지·원고 파일)은
+// 여기 안 두고 로컬 원장(FileEntry)에 두며, ledger_ref는 그 FileEntry.id를 가리키는
+// 포인터일 뿐이다. order_id는 media_orders.id에 대한 앱 레벨 참조(FK 강제 없음 —
+// foreign_keys pragma가 꺼져있는 이 코드베이스 관례와 동일, 삭제 시 정리는 애플리케이션
+// 코드가 담당). receivable_id는 향후 미수금 모듈을 위한 예약 컬럼 — 오늘은 항상 NULL이고
+// 어떤 코드도 쓰지 않는다(src/lib/super-editor/placements/billing.ts 참고).
+db.exec(`
+  CREATE TABLE IF NOT EXISTS magazine_placements (
+    id             TEXT    PRIMARY KEY,
+    order_id       TEXT    NOT NULL,
+    user_id        TEXT    NOT NULL,
+    kind           TEXT    NOT NULL,
+    party_name     TEXT    NOT NULL DEFAULT '',
+    size_spec      TEXT    NOT NULL DEFAULT '',
+    placement_pos  TEXT,
+    status         TEXT    NOT NULL DEFAULT 'intake',
+    intake_date    INTEGER,
+    ledger_ref     TEXT,
+    sort_order     INTEGER,
+    receivable_id  TEXT,
+    created_at     INTEGER NOT NULL,
+    updated_at     INTEGER NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_magazine_placements_order ON magazine_placements(order_id);
+  CREATE INDEX IF NOT EXISTS idx_magazine_placements_user  ON magazine_placements(user_id);
+`);
+
 export default db;

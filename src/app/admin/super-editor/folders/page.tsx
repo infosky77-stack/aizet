@@ -4,12 +4,15 @@ import { Suspense, useCallback, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Loader2, X } from 'lucide-react';
 import { FolderTreeBrowser, FolderNode, FolderPathItem } from '@/components/super-editor/FolderTreeBrowser';
+import { FolderTreeSidebar } from '@/components/super-editor/FolderTreeSidebar';
 import { ContentFileViewer } from '@/components/super-editor/ContentFileViewer';
+import { MagazineContentTabs } from '@/components/super-editor/MagazineContentTabs';
 
 interface OpenContent {
-  id:     string;
-  title:  string;
-  isPaid: boolean;
+  id:        string;
+  title:     string;
+  isPaid:    boolean;
+  orderType: string;
 }
 
 function findNode(nodes: FolderNode[], id: string): FolderNode | null {
@@ -82,7 +85,7 @@ function FoldersPageContent() {
     });
     if (res.ok) {
       const { order } = await res.json();
-      setOpenContent({ id: order.id, title, isPaid: false });
+      setOpenContent({ id: order.id, title, isPaid: false, orderType: order.order_type });
       await fetchTree();
     }
   }
@@ -101,7 +104,7 @@ function FoldersPageContent() {
   function handleOpenOrder(orderId: string) {
     const order = leafOrders.find((o) => o.id === orderId);
     if (!order) return;
-    setOpenContent({ id: order.id, title: order.title, isPaid: order.is_paid === 1 });
+    setOpenContent({ id: order.id, title: order.title, isPaid: order.is_paid === 1, orderType: order.order_type });
   }
 
   function handleOpenFullEditor() {
@@ -128,32 +131,47 @@ function FoldersPageContent() {
           </button>
         </div>
 
-        {/* 본문 (스크롤은 이 안에서만) */}
-        <div className="flex-1 overflow-y-auto px-6 py-5">
-          {openContent ? (
-            <ContentFileViewer
-              orderId={openContent.id}
-              title={openContent.title}
-              isPaid={openContent.isPaid}
-              onBack={() => setOpenContent(null)}
-              onOpenFullEditor={handleOpenFullEditor}
-            />
-          ) : loading ? (
-            <div className="flex justify-center py-12">
-              <Loader2 size={28} className="animate-spin text-stone-300" />
-            </div>
-          ) : (
-            <FolderTreeBrowser
-              childFolders={childFolders}
-              leafOrders={leafOrders}
-              path={path}
-              onNavigate={handleNavigate}
-              onCreateFolder={handleCreateFolder}
-              onCreateContent={handleCreateContent}
-              onDeleteFolder={handleDeleteFolder}
-              onOpenOrder={handleOpenOrder}
-            />
+        {/* 본문 — 폴더 탐색 중일 때만 왼쪽에 사이드바(폴더 트리), 오른쪽에 목록. 콘텐츠를 열면 기존처럼 전체 폭. */}
+        <div className="flex-1 flex overflow-hidden">
+          {!openContent && (
+            <FolderTreeSidebar tree={tree} currentFolderId={folderId} onNavigate={handleNavigate} />
           )}
+          <div className="flex-1 overflow-y-auto px-6 py-5">
+            {openContent ? (
+              openContent.orderType === 'magazine' ? (
+                <MagazineContentTabs
+                  orderId={openContent.id}
+                  title={openContent.title}
+                  isPaid={openContent.isPaid}
+                  onBack={() => setOpenContent(null)}
+                  onOpenFullEditor={handleOpenFullEditor}
+                />
+              ) : (
+                <ContentFileViewer
+                  orderId={openContent.id}
+                  title={openContent.title}
+                  isPaid={openContent.isPaid}
+                  onBack={() => setOpenContent(null)}
+                  onOpenFullEditor={handleOpenFullEditor}
+                />
+              )
+            ) : loading ? (
+              <div className="flex justify-center py-12">
+                <Loader2 size={28} className="animate-spin text-stone-300" />
+              </div>
+            ) : (
+              <FolderTreeBrowser
+                childFolders={childFolders}
+                leafOrders={leafOrders}
+                path={path}
+                onNavigate={handleNavigate}
+                onCreateFolder={handleCreateFolder}
+                onCreateContent={handleCreateContent}
+                onDeleteFolder={handleDeleteFolder}
+                onOpenOrder={handleOpenOrder}
+              />
+            )}
+          </div>
         </div>
       </div>
     </div>

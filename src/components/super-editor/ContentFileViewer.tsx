@@ -16,9 +16,11 @@ interface Props {
   isPaid:   boolean;
   onBack:          () => void;
   onOpenFullEditor: () => void;
+  /** 바깥(MagazineContentTabs 등)에서 자기 헤더를 이미 그리고 있을 때 중복 표시 방지용 */
+  hideHeader?: boolean;
 }
 
-export function ContentFileViewer({ orderId, title, isPaid, onBack, onOpenFullEditor }: Props) {
+export function ContentFileViewer({ orderId, title, isPaid, onBack, onOpenFullEditor, hideHeader }: Props) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -37,21 +39,23 @@ export function ContentFileViewer({ orderId, title, isPaid, onBack, onOpenFullEd
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center gap-3">
-        <button
-          onClick={onBack}
-          className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-xl border border-stone-200 text-stone-600 hover:border-violet-300 hover:text-violet-700 transition-colors shrink-0"
-        >
-          <ArrowLeft size={14} /> 폴더로
-        </button>
-        <p className="font-bold text-stone-800 text-sm flex-1 truncate">{title || '제목 없음'}</p>
-        <button
-          onClick={onOpenFullEditor}
-          className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-xl bg-amber-600 hover:bg-amber-700 text-white transition-colors shrink-0"
-        >
-          <ExternalLink size={14} /> 전체 편집기에서 열기
-        </button>
-      </div>
+      {!hideHeader && (
+        <div className="flex items-center gap-3">
+          <button
+            onClick={onBack}
+            className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-xl border border-stone-200 text-stone-600 hover:border-violet-300 hover:text-violet-700 transition-colors shrink-0"
+          >
+            <ArrowLeft size={14} /> 폴더로
+          </button>
+          <p className="font-bold text-stone-800 text-sm flex-1 truncate">{title || '제목 없음'}</p>
+          <button
+            onClick={onOpenFullEditor}
+            className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-xl bg-amber-600 hover:bg-amber-700 text-white transition-colors shrink-0"
+          >
+            <ExternalLink size={14} /> 전체 편집기에서 열기
+          </button>
+        </div>
+      )}
 
       {loading ? (
         <div className="flex justify-center py-12">
