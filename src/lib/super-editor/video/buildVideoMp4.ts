@@ -191,7 +191,11 @@ export async function buildVideoMp4(
         } else if (r.kind === 'text') {
           ctx.drawImage(r.card, 0, 0);
         } else {
-          await seekTo(r.video, tSec);
+          // 프레임 "중앙" 시각으로 seek — 경계 시각(f/FPS)으로 정확히 seek하면 Chromium이
+          // 이전 프레임을 표시하는 경계 모호성이 있어 3프레임 주기 중복+건너뜀(뚝뚝 끊김)이
+          // 생긴다. headless 실측: 경계 seek는 96프레임 중 중복 32·건너뜀 다수, 중앙 seek는
+          // 중복 0·건너뜀 0 (재현 스크립트: tmp/seek-capture-repro*.mjs).
+          await seekTo(r.video, (f + 0.5) / FPS);
           drawMediaContain(ctx, r.video, r.video.videoWidth, r.video.videoHeight, W, H);
         }
         if (fade && tSec < FADE_SEC) applyFadeIn(ctx, tSec / FADE_SEC, W, H);
