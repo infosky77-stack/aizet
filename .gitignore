@@ -46,3 +46,8 @@ next-env.d.ts
 /data/render-output/
 /data/super-editor-files/
 /tmp/
+
+# SQLite 데이터베이스 — 런타임 데이터라 git에 커밋하지 않음(스키마는 src/lib/db.ts가 소스)
+/data/aizet.db
+/data/aizet.db-shm
+/data/aizet.db-wal
