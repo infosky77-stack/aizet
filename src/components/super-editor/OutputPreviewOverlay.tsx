@@ -7,11 +7,7 @@
 
 import type { ReactNode } from 'react';
 import { Download, TriangleAlert, X } from 'lucide-react';
-
-export interface OutputPreviewNotice {
-  label:  string;
-  reason: string;
-}
+import type { OutputNotice } from '@/lib/super-editor/output/types';
 
 interface Props {
   /** 헤더 제목 (예: "조판 PDF 미리보기") */
@@ -20,7 +16,7 @@ interface Props {
   subtitle?: string;
   downloadUrl:  string;
   downloadName: string;
-  notices: OutputPreviewNotice[];
+  notices: OutputNotice[];
   onClose: () => void;
   /** 팝업 폭 — 산출물 비율에 따라 조절 (기본 max-w-5xl) */
   maxWidthClass?: string;

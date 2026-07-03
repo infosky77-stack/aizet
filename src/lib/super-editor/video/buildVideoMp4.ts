@@ -16,6 +16,7 @@ import type { VideoProjectSnapshot, VideoScene } from './types';
 import { DEFAULT_SCENE_DURATION_SEC } from './types';
 import { resolveSceneBlob } from './resolveSceneMedia';
 import { drawMediaContain, drawTextCard, applyFadeIn } from './frames';
+import type { OutputBuildResult, OutputNotice } from '../output/types';
 
 const FPS = 24;
 const FADE_SEC = 0.5;
@@ -27,15 +28,8 @@ const SIZE_BY_ASPECT: Record<VideoProjectSnapshot['aspect'], [number, number]> =
   '9:16': [720, 1280],
 };
 
-export interface VideoRenderNotice {
-  sceneId: string;
-  label:   string;
-  reason:  string;
-}
-
-export interface VideoRenderResult {
-  bytes:       Uint8Array;
-  notices:     VideoRenderNotice[];
+/** 산출물 빌더 공용 계약(output/types.ts) + 영상 고유 필드 — refId에는 scene id가 들어간다 */
+export interface VideoRenderResult extends OutputBuildResult {
   durationSec: number;
 }
 
@@ -88,7 +82,7 @@ async function prepareScenes(
   project: VideoProjectSnapshot,
   entries: Record<string, FileEntry>,
   W: number, H: number,
-  notices: VideoRenderNotice[],
+  notices: OutputNotice[],
 ): Promise<Renderable[]> {
   const renderables: Renderable[] = [];
 
@@ -97,7 +91,7 @@ async function prepareScenes(
 
     if (scene.kind === 'text') {
       if (!scene.text.trim()) {
-        notices.push({ sceneId: scene.id, label: sceneLabel(scene, entries), reason: '빈 텍스트 장면이라 건너뛰었습니다' });
+        notices.push({ refId: scene.id, label: sceneLabel(scene, entries), reason: '빈 텍스트 장면이라 건너뛰었습니다' });
         continue;
       }
       const card = document.createElement('canvas');
@@ -109,7 +103,7 @@ async function prepareScenes(
 
     const blob = await resolveSceneBlob(scene, entries);
     if (!blob) {
-      notices.push({ sceneId: scene.id, label: sceneLabel(scene, entries), reason: '소스를 찾지 못해 건너뛰었습니다' });
+      notices.push({ refId: scene.id, label: sceneLabel(scene, entries), reason: '소스를 찾지 못해 건너뛰었습니다' });
       continue;
     }
 
@@ -118,7 +112,7 @@ async function prepareScenes(
         const bitmap = await createImageBitmap(blob, { imageOrientation: 'from-image' });
         renderables.push({ scene, kind: 'image', bitmap, durationSec: fallbackDur });
       } catch {
-        notices.push({ sceneId: scene.id, label: sceneLabel(scene, entries), reason: '이미지를 해석하지 못해 건너뛰었습니다' });
+        notices.push({ refId: scene.id, label: sceneLabel(scene, entries), reason: '이미지를 해석하지 못해 건너뛰었습니다' });
       }
       continue;
     }
@@ -133,7 +127,7 @@ async function prepareScenes(
       renderables.push({ scene, kind: 'clip', video, url, durationSec });
     } catch {
       URL.revokeObjectURL(url);
-      notices.push({ sceneId: scene.id, label: sceneLabel(scene, entries), reason: '클립을 디코드하지 못해 건너뛰었습니다' });
+      notices.push({ refId: scene.id, label: sceneLabel(scene, entries), reason: '클립을 디코드하지 못해 건너뛰었습니다' });
     }
   }
 
@@ -150,7 +144,7 @@ export async function buildVideoMp4(
   }
 
   const [W, H] = SIZE_BY_ASPECT[project.aspect] ?? SIZE_BY_ASPECT['16:9'];
-  const notices: VideoRenderNotice[] = [];
+  const notices: OutputNotice[] = [];
   const renderables = await prepareScenes(project, entries, W, H, notices);
 
   if (renderables.length === 0) {

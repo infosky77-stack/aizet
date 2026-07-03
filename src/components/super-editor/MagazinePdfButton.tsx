@@ -8,7 +8,8 @@
 import { useEffect, useState } from 'react';
 import { FileText, Loader2 } from 'lucide-react';
 import type { Placement } from '@/lib/super-editor/placements/types';
-import { buildMagazinePdf, type MagazinePdfNotice } from '@/lib/super-editor/pdf/buildMagazinePdf';
+import { buildMagazinePdf } from '@/lib/super-editor/pdf/buildMagazinePdf';
+import type { OutputNotice } from '@/lib/super-editor/output/types';
 import { useFileLedgerStore } from '@/lib/super-editor/ledger/store';
 import { OutputPreviewOverlay } from '@/components/super-editor/OutputPreviewOverlay';
 
@@ -20,7 +21,7 @@ interface Props {
 
 interface PreviewState {
   url:     string;
-  notices: MagazinePdfNotice[];
+  notices: OutputNotice[];
 }
 
 export function MagazinePdfButton({ orderId, title, placements }: Props) {

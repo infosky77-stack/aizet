@@ -10,8 +10,9 @@ import { useEffect, useState } from 'react';
 import { Clapperboard, Loader2 } from 'lucide-react';
 import type { VideoProjectSnapshot } from '@/lib/super-editor/video/types';
 import {
-  buildVideoMp4, isBrowserVideoRenderSupported, type VideoRenderNotice,
+  buildVideoMp4, isBrowserVideoRenderSupported,
 } from '@/lib/super-editor/video/buildVideoMp4';
+import type { OutputNotice } from '@/lib/super-editor/output/types';
 import { useFileLedgerStore } from '@/lib/super-editor/ledger/store';
 import { OutputPreviewOverlay } from '@/components/super-editor/OutputPreviewOverlay';
 
@@ -23,7 +24,7 @@ interface Props {
 
 interface PreviewState {
   url:     string;
-  notices: VideoRenderNotice[];
+  notices: OutputNotice[];
   durationSec: number;
 }
 

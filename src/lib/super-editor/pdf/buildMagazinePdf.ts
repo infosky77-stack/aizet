@@ -21,6 +21,7 @@ import {
 } from './shared';
 import type { FileEntry } from '../ledger/types';
 import type { PlacementKind, PlacementSlot } from '../placements/types';
+import type { OutputBuildResult, OutputNotice } from '../output/types';
 
 const MARGIN   = 12 * MM;
 const GAP      = 4  * MM;
@@ -49,17 +50,8 @@ export interface MagazinePdfInput {
   placements:  MagazinePlacementInput[];
 }
 
-export interface MagazinePdfNotice {
-  placementId: string;
-  /** 사람이 읽는 항목 표시(예: "광고 · 한빛한의원") */
-  label:  string;
-  reason: string;
-}
-
-export interface MagazinePdfResult {
-  bytes:   Uint8Array;
-  notices: MagazinePdfNotice[];
-}
+/** 산출물 빌더 공용 계약(output/types.ts)을 그대로 구현 — refId에는 placement id가 들어간다 */
+export type MagazinePdfResult = OutputBuildResult;
 
 interface CellRect { x: number; fromTop: number; w: number; h: number }
 
@@ -204,14 +196,14 @@ export async function buildMagazinePdf(
   const W = wMm * MM;
   const H = hMm * MM;
 
-  const notices: MagazinePdfNotice[] = [];
+  const notices: OutputNotice[] = [];
 
   // ── 1) 배치 계획(레이아웃 계산만, 그리기 전) ────────────────────────────
   const placeable: MagazinePlacementInput[] = [];
   for (const p of input.placements) {
     if (p.page_no == null || p.slot == null) {
       notices.push({
-        placementId: p.id, label: noticeLabel(p),
+        refId: p.id, label: noticeLabel(p),
         reason: '게재 페이지 또는 배치(전면/1/2/1/4)가 미지정이라 조판에서 제외했습니다',
       });
     } else {
@@ -257,7 +249,7 @@ export async function buildMagazinePdf(
       // 기존 연속 페이지의 빈 칸에 들어갔든 — 사용자가 지정한 지면과 다르므로 항상 경고한다.
       if (placedOn.seq > 0) {
         notices.push({
-          placementId: p.id, label: noticeLabel(p),
+          refId: p.id, label: noticeLabel(p),
           reason: `${pageNo}페이지 용량(쿼터 4칸) 초과 — "${pageNo} (계속)" 페이지로 배치했습니다`,
         });
       }
@@ -290,13 +282,13 @@ export async function buildMagazinePdf(
           continue;
         } catch {
           notices.push({
-            placementId: placement.id, label: noticeLabel(placement),
+            refId: placement.id, label: noticeLabel(placement),
             reason: '연결된 이미지를 넣지 못해 자리표시로 대체했습니다',
           });
         }
       } else if (placement.ledger_ref) {
         notices.push({
-          placementId: placement.id, label: noticeLabel(placement),
+          refId: placement.id, label: noticeLabel(placement),
           reason: '연결된 이미지를 찾지 못해 자리표시로 대체했습니다',
         });
       }
