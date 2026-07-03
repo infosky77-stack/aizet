@@ -1,4 +1,5 @@
-// 도록 PDF의 원본 이미지 바이트를 "가장 빠른 경로"로 확보한다.
+// 원장 미디어의 원본 바이트를 "가장 빠른 경로"로 확보한다 — 공용 media 모듈.
+// 도록 PDF·잡지 조판·영상 렌더가 모두 이 해석기를 쓴다(이미지뿐 아니라 임의 미디어 Blob).
 //
 // 우선순위: OPFS(local, 네트워크 없음) → serverLight URL(fetch) → previewUrl(blob, 업로드 확정 전 과도기).
 // resolveDisplayUrl(selectors.ts)과 반대 순서인 이유: 그쪽은 "화면에 보여줄 권위 있는 URL"이 목적이라

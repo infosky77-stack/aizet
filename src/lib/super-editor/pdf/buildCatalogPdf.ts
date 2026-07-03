@@ -9,8 +9,8 @@
 
 import { PDFDocument } from 'pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
-import { resolveArtworkImageBlob, type ArtworkImageRef } from './resolveImageBytes';
-import { resizeImageToJpeg } from './resizeImage';
+import { resolveArtworkImageBlob, type ArtworkImageRef } from '../media/resolveImageBytes';
+import { resizeImageToJpeg } from '../media/resizeImage';
 import {
   MM, PAGE_SIZES_MM, loadFontBytes, wrapText, baselineY, drawCenteredLine,
   GRAY_TITLE, GRAY_META, GRAY_SIZE, GRAY_DESC, GRAY_LINE, GRAY_SEP,

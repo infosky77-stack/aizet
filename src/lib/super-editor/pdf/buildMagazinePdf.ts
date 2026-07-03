@@ -13,8 +13,8 @@
 
 import { PDFDocument, PDFFont, PDFPage, rgb } from 'pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
-import { resolveArtworkImageBlob } from './resolveImageBytes';
-import { resizeImageToJpeg } from './resizeImage';
+import { resolveArtworkImageBlob } from '../media/resolveImageBytes';
+import { resizeImageToJpeg } from '../media/resizeImage';
 import {
   MM, PAGE_SIZES_MM, loadFontBytes, baselineY, drawCenteredLine,
   GRAY_TITLE, GRAY_META, GRAY_SIZE, GRAY_SEP,
