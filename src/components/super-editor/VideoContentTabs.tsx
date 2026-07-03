@@ -12,6 +12,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ArrowLeft, ExternalLink, Files, Loader2, X } from 'lucide-react';
 import { ContentFileViewer } from '@/components/super-editor/ContentFileViewer';
 import { SceneListPanel } from '@/components/super-editor/SceneListPanel';
+import { VideoRenderButton } from '@/components/super-editor/VideoRenderButton';
 import { useFileLedgerStore, useOrderedFileEntries } from '@/lib/super-editor/ledger/store';
 import { resolveDisplayUrl } from '@/lib/super-editor/ledger/selectors';
 import type { VideoProjectSnapshot, VideoScene } from '@/lib/super-editor/video/types';
@@ -115,6 +116,7 @@ export function VideoContentTabs({
           >
             <Files size={14} /> 파일 관리
           </button>
+          <VideoRenderButton orderId={orderId} title={title} project={project} />
           <button
             onClick={onOpenFullEditor}
             className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-xl bg-violet-600 hover:bg-violet-700 text-white transition-colors shrink-0"
