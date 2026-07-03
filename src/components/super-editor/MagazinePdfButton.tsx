@@ -6,10 +6,11 @@
 // 기존 팝업 스택 패턴 그대로. 조판에서 빠졌거나 대체된 항목(notices)은 상단 배너로 보여준다.
 
 import { useEffect, useState } from 'react';
-import { Download, FileText, Loader2, TriangleAlert, X } from 'lucide-react';
+import { FileText, Loader2 } from 'lucide-react';
 import type { Placement } from '@/lib/super-editor/placements/types';
 import { buildMagazinePdf, type MagazinePdfNotice } from '@/lib/super-editor/pdf/buildMagazinePdf';
 import { useFileLedgerStore } from '@/lib/super-editor/ledger/store';
+import { OutputPreviewOverlay } from '@/components/super-editor/OutputPreviewOverlay';
 
 interface Props {
   orderId: string;
@@ -84,44 +85,16 @@ export function MagazinePdfButton({ orderId, title, placements }: Props) {
       </button>
 
       {preview && (
-        <div className="fixed inset-0 z-[130] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl h-full max-h-[90vh] flex flex-col overflow-hidden">
-            <div className="flex items-center justify-between gap-3 px-6 py-4 border-b border-stone-100 shrink-0">
-              <div className="min-w-0">
-                <h2 className="text-lg font-bold text-stone-800">조판 PDF 미리보기</h2>
-                <p className="text-sm text-stone-400 mt-0.5 truncate">{title || '제목 없음'}</p>
-              </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <a
-                  href={preview.url}
-                  download={`${title || '잡지'}-조판.pdf`}
-                  className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-xl bg-amber-600 hover:bg-amber-700 text-white transition-colors"
-                >
-                  <Download size={14} /> 다운로드
-                </a>
-                <button
-                  onClick={handleClose}
-                  className="p-2 rounded-xl hover:bg-stone-100 text-stone-400 hover:text-stone-600 transition-colors"
-                >
-                  <X size={18} />
-                </button>
-              </div>
-            </div>
-
-            {preview.notices.length > 0 && (
-              <div className="px-6 py-3 bg-amber-50 border-b border-amber-100 shrink-0 flex flex-col gap-1 max-h-32 overflow-y-auto">
-                {preview.notices.map((n, i) => (
-                  <p key={`${n.placementId}-${i}`} className="flex items-start gap-1.5 text-xs text-amber-800">
-                    <TriangleAlert size={12} className="shrink-0 mt-0.5" />
-                    <span><span className="font-semibold">{n.label}</span> — {n.reason}</span>
-                  </p>
-                ))}
-              </div>
-            )}
-
-            <iframe src={preview.url} title="조판 PDF 미리보기" className="flex-1 w-full border-0 bg-stone-100" />
-          </div>
-        </div>
+        <OutputPreviewOverlay
+          title="조판 PDF 미리보기"
+          subtitle={title || '제목 없음'}
+          downloadUrl={preview.url}
+          downloadName={`${title || '잡지'}-조판.pdf`}
+          notices={preview.notices}
+          onClose={handleClose}
+        >
+          <iframe src={preview.url} title="조판 PDF 미리보기" className="flex-1 w-full border-0 bg-stone-100" />
+        </OutputPreviewOverlay>
       )}
     </>
   );

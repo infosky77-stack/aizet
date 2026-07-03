@@ -7,12 +7,13 @@
 // (스냅샷의 legacy 파생 필드를 render-video.py가 읽음), 클립 장면은 브라우저 전용.
 
 import { useEffect, useState } from 'react';
-import { Clapperboard, Download, Loader2, TriangleAlert, X } from 'lucide-react';
+import { Clapperboard, Loader2 } from 'lucide-react';
 import type { VideoProjectSnapshot } from '@/lib/super-editor/video/types';
 import {
   buildVideoMp4, isBrowserVideoRenderSupported, type VideoRenderNotice,
 } from '@/lib/super-editor/video/buildVideoMp4';
 import { useFileLedgerStore } from '@/lib/super-editor/ledger/store';
+import { OutputPreviewOverlay } from '@/components/super-editor/OutputPreviewOverlay';
 
 interface Props {
   orderId: string;
@@ -102,48 +103,19 @@ export function VideoRenderButton({ orderId, title, project }: Props) {
       )}
 
       {preview && (
-        <div className="fixed inset-0 z-[130] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl h-full max-h-[90vh] flex flex-col overflow-hidden">
-            <div className="flex items-center justify-between gap-3 px-6 py-4 border-b border-stone-100 shrink-0">
-              <div className="min-w-0">
-                <h2 className="text-lg font-bold text-stone-800">영상 미리보기</h2>
-                <p className="text-sm text-stone-400 mt-0.5 truncate">
-                  {title || '제목 없음'} · {Math.round(preview.durationSec * 10) / 10}초
-                </p>
-              </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <a
-                  href={preview.url}
-                  download={`${title || '영상'}.mp4`}
-                  className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-xl bg-amber-600 hover:bg-amber-700 text-white transition-colors"
-                >
-                  <Download size={14} /> 다운로드
-                </a>
-                <button
-                  onClick={() => setPreview(null)}
-                  className="p-2 rounded-xl hover:bg-stone-100 text-stone-400 hover:text-stone-600 transition-colors"
-                >
-                  <X size={18} />
-                </button>
-              </div>
-            </div>
-
-            {preview.notices.length > 0 && (
-              <div className="px-6 py-3 bg-amber-50 border-b border-amber-100 shrink-0 flex flex-col gap-1 max-h-32 overflow-y-auto">
-                {preview.notices.map((n, i) => (
-                  <p key={`${n.sceneId}-${i}`} className="flex items-start gap-1.5 text-xs text-amber-800">
-                    <TriangleAlert size={12} className="shrink-0 mt-0.5" />
-                    <span><span className="font-semibold">{n.label}</span> — {n.reason}</span>
-                  </p>
-                ))}
-              </div>
-            )}
-
-            <div className="flex-1 flex items-center justify-center bg-stone-900 p-4 min-h-0">
-              <video src={preview.url} controls autoPlay playsInline className="max-w-full max-h-full rounded-xl" />
-            </div>
+        <OutputPreviewOverlay
+          title="영상 미리보기"
+          subtitle={`${title || '제목 없음'} · ${Math.round(preview.durationSec * 10) / 10}초`}
+          downloadUrl={preview.url}
+          downloadName={`${title || '영상'}.mp4`}
+          notices={preview.notices}
+          onClose={() => setPreview(null)}
+          maxWidthClass="max-w-4xl"
+        >
+          <div className="flex-1 flex items-center justify-center bg-stone-900 p-4 min-h-0">
+            <video src={preview.url} controls autoPlay playsInline className="max-w-full max-h-full rounded-xl" />
           </div>
-        </div>
+        </OutputPreviewOverlay>
       )}
     </>
   );
