@@ -8,10 +8,11 @@ import { useEffect, useRef, useState } from 'react';
 import {
   Upload, Image as ImageIcon, Film, Music, Trash2, Loader2, RefreshCw, X, Pencil,
   LayoutGrid, List as ListIcon, ChevronUp, ChevronDown, HardDrive, CloudUpload,
-  FolderCheck, FolderOpen,
+  FolderCheck, FolderOpen, Play,
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { CachedImg } from '@/components/ui/CachedImg';
+import { VideoPlayerOverlay } from '@/components/super-editor/VideoPlayerOverlay';
 import type { FileEntry } from '@/lib/super-editor/ledger/types';
 import { useOrderedFileEntries, useLedgerNotices, useFileLedgerStore } from '@/lib/super-editor/ledger/store';
 import { getEntryStatus, getEntryError, resolveDisplayUrl, getPresentLocationKinds } from '@/lib/super-editor/ledger/selectors';
@@ -53,6 +54,25 @@ function FileIcon({ kind, className }: { kind: FileEntry['kind']; className?: st
   return <ImageIcon size={20} className={className} />;
 }
 
+// 영상 썸네일 — preload="metadata"로 첫 프레임만 그리고, 클릭하면 재생 오버레이를 연다.
+// (썸네일 video는 재생하지 않음 — 재생은 전적으로 VideoPlayerOverlay 책임)
+function VideoThumb({ src, onPlay, compact }: { src: string; onPlay: () => void; compact?: boolean }) {
+  return (
+    <button type="button" onClick={onPlay} title="재생" className="relative w-full h-full block">
+      {src ? (
+        <video src={src} preload="metadata" muted playsInline className="w-full h-full object-cover pointer-events-none" />
+      ) : (
+        <span className="w-full h-full flex items-center justify-center"><Film size={compact ? 14 : 20} className="text-stone-300" /></span>
+      )}
+      <span className="absolute inset-0 flex items-center justify-center">
+        <span className={clsx('rounded-full bg-black/50 flex items-center justify-center', compact ? 'w-5 h-5' : 'w-8 h-8')}>
+          <Play size={compact ? 9 : 13} className="text-white ml-0.5" fill="currentColor" />
+        </span>
+      </span>
+    </button>
+  );
+}
+
 function LocationBadges({ entry }: { entry: FileEntry }) {
   const kinds = getPresentLocationKinds(entry);
   if (kinds.length === 0) return null;
@@ -89,6 +109,7 @@ export function FileManagerPanel({
   const [dragging,   setDragging]   = useState(false);
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameDraft, setRenameDraft] = useState('');
+  const [playingEntry, setPlayingEntry] = useState<FileEntry | null>(null);
   const [folderStatus, setFolderStatus] = useState<FolderConnectionStatus>('unsupported');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -258,6 +279,8 @@ export function FileManagerPanel({
                 <div className="aspect-video bg-stone-100 flex items-center justify-center relative overflow-hidden">
                   {entry.kind === 'image' ? (
                     <CachedImg id={entry.id} src={resolveDisplayUrl(entry)} alt={entry.origName} className="w-full h-full object-cover" />
+                  ) : entry.kind === 'video' ? (
+                    <VideoThumb src={resolveDisplayUrl(entry)} onPlay={() => setPlayingEntry(entry)} />
                   ) : (
                     <FileIcon kind={entry.kind} className="text-stone-300" />
                   )}
@@ -343,6 +366,8 @@ export function FileManagerPanel({
                 <div className="w-9 h-9 rounded-lg bg-stone-100 flex items-center justify-center relative overflow-hidden shrink-0">
                   {entry.kind === 'image' ? (
                     <CachedImg id={entry.id} src={resolveDisplayUrl(entry)} alt={entry.origName} className="w-full h-full object-cover" />
+                  ) : entry.kind === 'video' ? (
+                    <VideoThumb compact src={resolveDisplayUrl(entry)} onPlay={() => setPlayingEntry(entry)} />
                   ) : (
                     <FileIcon kind={entry.kind} className="text-stone-300" />
                   )}
@@ -413,6 +438,14 @@ export function FileManagerPanel({
             );
           })}
         </div>
+      )}
+
+      {playingEntry && (
+        <VideoPlayerOverlay
+          src={resolveDisplayUrl(playingEntry)}
+          title={playingEntry.origName}
+          onClose={() => setPlayingEntry(null)}
+        />
       )}
     </div>
   );
