@@ -6,9 +6,10 @@
 // 쓰기 범위(오염 0 원칙): 세션 1행(종료 시 표적 삭제) + education 폴더/콘텐츠 행 +
 // data/learn-public/<회차>/ — 전부 게시의 의도된 산출물. 그 외 테이블·파일 미접촉.
 // 프로드 모드는 실행 전 DB 백업본을 tmp/에 만든다.
-import { copyFileSync, existsSync, mkdirSync, readdirSync, statSync } from 'fs';
+import { existsSync, mkdirSync, readdirSync, statSync } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import Database from 'better-sqlite3';
 import { issueSession, COOKIE_NAME } from './session.server.mjs';
 import { runPublishTask } from './agent-core.mjs';
 
@@ -51,12 +52,16 @@ if (mode === 'prod' && !flag('yes')) {
 }
 
 // ── 프로드 안전망: 실행 전 DB 백업 ──────────────────────────────────────────
+// DB가 WAL 모드라 단순 파일 복사는 -wal에 쌓인 최신 변경이 빠진 옛 스냅샷이 된다.
+// VACUUM INTO는 WAL 내용까지 포함한 일관 스냅샷을 만들며 운영 중 실행해도 안전하다.
 const dbPath = path.join(cfg.dataRoot, 'aizet.db');
 if (mode === 'prod') {
   const backup = path.join(ROOT, 'tmp', `aizet-db-backup-${new Date().toISOString().replace(/[:.]/g, '-')}.db`);
   mkdirSync(path.dirname(backup), { recursive: true });
-  copyFileSync(dbPath, backup);
-  console.log(`[safety] DB 백업: ${backup}`);
+  const src = new Database(dbPath, { readonly: true });
+  try { src.exec(`VACUUM INTO '${backup.replace(/'/g, "''")}'`); }
+  finally { src.close(); }
+  console.log(`[safety] DB 백업(VACUUM INTO, WAL 포함): ${backup}`);
 }
 
 // ── warmup: 앱이 DB 스키마를 초기화하게 만든다(세션 삽입 전 필수) ────────────
