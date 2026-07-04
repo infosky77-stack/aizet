@@ -20,13 +20,15 @@ interface Props {
   onClose: () => void;
   /** 팝업 폭 — 산출물 비율에 따라 조절 (기본 max-w-5xl) */
   maxWidthClass?: string;
+  /** 헤더 다운로드 버튼 왼쪽의 추가 액션 슬롯(예: "상품에 게시") — 골격은 내용을 모른다 */
+  headerExtra?: ReactNode;
   /** 산출물 표시 영역 — flex-1 min-h-0 컨테이너 안에 그대로 렌더됨 */
   children: ReactNode;
 }
 
 export function OutputPreviewOverlay({
   title, subtitle, downloadUrl, downloadName, notices, onClose,
-  maxWidthClass = 'max-w-5xl', children,
+  maxWidthClass = 'max-w-5xl', headerExtra, children,
 }: Props) {
   return (
     <div className="fixed inset-0 z-[130] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
@@ -37,6 +39,7 @@ export function OutputPreviewOverlay({
             {subtitle && <p className="text-sm text-stone-400 mt-0.5 truncate">{subtitle}</p>}
           </div>
           <div className="flex items-center gap-2 shrink-0">
+            {headerExtra}
             <a
               href={downloadUrl}
               download={downloadName}

@@ -6,7 +6,7 @@
 // 콘텐츠 슬롯은 스크롤 컨테이너, 팝업 폭은 산출물 비율에 맞춰 좁게(max-w-3xl) 쓴다.
 
 import { useEffect, useState } from 'react';
-import { ImageDown, Loader2 } from 'lucide-react';
+import { ImageDown, Loader2, Store } from 'lucide-react';
 import type { ProductDetailSnapshot } from '@/lib/super-editor/product/types';
 import { buildProductDetailImage } from '@/lib/super-editor/product/buildProductDetailImage';
 import type { OutputNotice } from '@/lib/super-editor/output/types';
@@ -17,18 +17,24 @@ interface Props {
   orderId:  string;
   title:    string;
   snapshot: ProductDetailSnapshot | null;
+  /** 이 콘텐츠에 연결된 쇼핑몰 상품 id — 있으면 미리보기 헤더에 "상품에 게시" 액션 노출 */
+  publishProductId?: string | null;
 }
 
 interface PreviewState {
   url:      string;
+  blob:     Blob;
   notices:  OutputNotice[];
   widthPx:  number;
   heightPx: number;
 }
 
-export function ProductDetailButton({ orderId, title, snapshot }: Props) {
+type PublishState = 'idle' | 'publishing' | 'done' | 'error';
+
+export function ProductDetailButton({ orderId, title, snapshot, publishProductId }: Props) {
   const [busy, setBusy]       = useState(false);
   const [preview, setPreview] = useState<PreviewState | null>(null);
+  const [publish, setPublish] = useState<PublishState>('idle');
 
   // 닫을 때(및 언마운트 시) blob URL 정리
   useEffect(() => {
@@ -49,8 +55,9 @@ export function ProductDetailButton({ orderId, title, snapshot }: Props) {
 
       const result = await buildProductDetailImage(snapshot, entries);
       const blob = new Blob([result.bytes as BlobPart], { type: 'image/jpeg' });
+      setPublish('idle');
       setPreview({
-        url: URL.createObjectURL(blob), notices: result.notices,
+        url: URL.createObjectURL(blob), blob, notices: result.notices,
         widthPx: result.widthPx, heightPx: result.heightPx,
       });
     } catch (e) {
@@ -58,6 +65,28 @@ export function ProductDetailButton({ orderId, title, snapshot }: Props) {
       alert('상세페이지 생성에 실패했습니다. 잠시 후 다시 시도해주세요.');
     } finally {
       setBusy(false);
+    }
+  }
+
+  // "상품에 게시" — 게시 라우트가 공개 사본 저장·썸네일 복사·상품 연결까지 처리한다
+  async function handlePublish() {
+    if (!preview || !publishProductId || publish === 'publishing') return;
+    setPublish('publishing');
+    try {
+      const form = new FormData();
+      form.append('detail', preview.blob, 'detail.jpg');
+      const res = await fetch(`/api/admin/shop/products/${publishProductId}/publish`, {
+        method: 'POST', body: form,
+      });
+      if (!res.ok) throw new Error(`publish ${res.status}`);
+      const data = await res.json();
+      if (Array.isArray(data.warnings) && data.warnings.length > 0) {
+        alert(`게시 완료. 참고:\n- ${data.warnings.join('\n- ')}`);
+      }
+      setPublish('done');
+    } catch (e) {
+      console.error('[ProductDetailButton] 게시 실패:', e);
+      setPublish('error');
     }
   }
 
@@ -81,6 +110,16 @@ export function ProductDetailButton({ orderId, title, snapshot }: Props) {
           notices={preview.notices}
           onClose={() => setPreview(null)}
           maxWidthClass="max-w-3xl"
+          headerExtra={publishProductId ? (
+            <button
+              onClick={handlePublish}
+              disabled={publish === 'publishing' || publish === 'done'}
+              className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white transition-colors"
+            >
+              {publish === 'publishing' ? <Loader2 size={14} className="animate-spin" /> : <Store size={14} />}
+              {publish === 'done' ? '게시됨' : publish === 'error' ? '게시 실패 — 다시 시도' : '상품에 게시'}
+            </button>
+          ) : undefined}
         >
           <div className="flex-1 overflow-y-auto bg-stone-100 flex justify-center">
             {/* 세로로 긴 blob 이미지 — next/image 최적화 대상 아님 */}

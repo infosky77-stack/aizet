@@ -5,14 +5,19 @@
 
 import { NextRequest } from 'next/server';
 import { getSessionFromRequest } from '@/lib/auth';
-import { createProduct, listProducts } from '@/lib/db/products';
+import { createProduct, listProducts, getProductByDetailOrder } from '@/lib/db/products';
 import { createMediaOrder } from '@/lib/db/media-orders';
 
 export const dynamic = 'force-dynamic';
 
+// GET ?detailOrderId=… : 슈퍼에디터 콘텐츠에 연결된 상품 단건(게시 버튼 노출용), 없으면 목록
 export async function GET(req: NextRequest) {
   const session = getSessionFromRequest(req);
   if (!session) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+  const detailOrderId = req.nextUrl.searchParams.get('detailOrderId');
+  if (detailOrderId) {
+    return Response.json({ product: getProductByDetailOrder(detailOrderId, session.sub) });
+  }
   return Response.json({ products: listProducts(session.sub) });
 }
 

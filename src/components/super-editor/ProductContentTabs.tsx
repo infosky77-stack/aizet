@@ -38,7 +38,17 @@ export function ProductContentTabs({
 }: Props) {
   const [snapshot, setSnapshot] = useState<ProductDetailSnapshot | null>(null);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
+  // 이 콘텐츠에 연결된 쇼핑몰 상품 — 있으면 미리보기에 "상품에 게시" 액션이 붙는다
+  const [linkedProductId, setLinkedProductId] = useState<string | null>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`/api/admin/shop/products?detailOrderId=${orderId}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => { if (!cancelled) setLinkedProductId(data?.product?.id ?? null); });
+    return () => { cancelled = true; };
+  }, [orderId]);
 
   // 원장 하이드레이션 — 섹션 이미지 선택기/썸네일이 파일 화면을 안 거쳐도 원장을 읽을 수 있게(멱등)
   useEffect(() => {
@@ -129,7 +139,7 @@ export function ProductContentTabs({
           >
             <Files size={14} /> 파일 관리
           </button>
-          <ProductDetailButton orderId={orderId} title={title} snapshot={snapshot} />
+          <ProductDetailButton orderId={orderId} title={title} snapshot={snapshot} publishProductId={linkedProductId} />
         </div>
 
         {snapshot === null ? (

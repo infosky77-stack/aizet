@@ -48,6 +48,13 @@ export function listProducts(userId: string): ProductRow[] {
   ).all(userId);
 }
 
+/** 슈퍼에디터 콘텐츠(detail_order_id)에 연결된 상품 — 게시 버튼 노출용 역방향 조회 */
+export function getProductByDetailOrder(detailOrderId: string, userId: string): ProductRow | null {
+  return db.prepare<[string, string], ProductRow>(
+    `${WITH_REVIEW_AGG} WHERE p.detail_order_id=? AND p.user_id=? GROUP BY p.id`,
+  ).get(detailOrderId, userId) ?? null;
+}
+
 /** 구매자 공개용 — 판매중(active)만 */
 export function listPublicProducts(userId: string): ProductRow[] {
   return db.prepare<[string], ProductRow>(
