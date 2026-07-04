@@ -1,10 +1,13 @@
-// 한국어교육 스냅샷 테스트 — 가드 · 1편 프리셋 완전성 · 해석 폴백 · StudyLang 동기화
+// 한국어교육 테스트 — 스냅샷(가드/프리셋/폴백) + 카드 배치(cardLayout 순수 로직)
 import {
   isEducationSnapshot, newEducationUnit, type StudyLang,
 } from '../src/lib/super-editor/education/types';
 import {
   EPISODE_1_TITLE, episode1Preset, resolveEducationSnapshot,
 } from '../src/lib/super-editor/education/preset';
+import {
+  layoutEducationCard, shrinkToFit, CARD_SIZE_PX,
+} from '../src/lib/super-editor/education/cardLayout';
 import { SUPPORTED_LOCALES } from '../src/lib/i18n/types';
 
 const checks: [string, boolean][] = [];
@@ -40,6 +43,39 @@ const u1 = newEducationUnit();
 const u2 = newEducationUnit({ char: 'ㅑ' });
 checks.push(['새 유닛 id 유일 + 전 언어 빈 번역 슬롯', u1.id !== u2.id && STUDY_LANGS.every((l) => u1.example[l] === '')]);
 checks.push(['override 반영', u2.char === 'ㅑ']);
+
+// ── 카드 배치(cardLayout) — 순수 계산, 가짜 measure 주입 ────────────────────
+const fakeMeasure = (text: string, sizePx: number) => text.length * sizePx * 0.6;
+const base = {
+  episodeTitle: EPISODE_1_TITLE, char: 'ㅏ', romanization: 'a', exampleKo: '아기',
+};
+
+const plain = layoutEducationCard({ ...base, hasIllustration: false }, fakeMeasure);
+const texts = (r: typeof plain) => r.blocks.filter((b) => b.kind === 'text') as Extract<(typeof r.blocks)[number], { kind: 'text' }>[];
+checks.push(['카드는 정사각 1080', plain.widthPx === CARD_SIZE_PX && plain.heightPx === CARD_SIZE_PX]);
+checks.push(['글자 카드: 삽화 슬롯 없음', !plain.blocks.some((b) => b.kind === 'image')]);
+checks.push(['글자/로마자/예시단어/제목 텍스트 존재', ['ㅏ', 'a', '아기', EPISODE_1_TITLE].every((t) => texts(plain).some((b) => b.text === t))]);
+checks.push(['학습 글자가 가장 큰 폰트', texts(plain).every((b) => b.text === 'ㅏ' || b.fontSizePx < texts(plain).find((x) => x.text === 'ㅏ')!.fontSizePx)]);
+
+const illust = layoutEducationCard({ ...base, hasIllustration: true }, fakeMeasure);
+checks.push(['삽화 카드: 삽화 슬롯 1개', illust.blocks.filter((b) => b.kind === 'image').length === 1]);
+checks.push([
+  '삽화 카드는 글자를 줄여 자리 양보',
+  texts(illust).find((b) => b.text === 'ㅏ')!.fontSizePx < texts(plain).find((b) => b.text === 'ㅏ')!.fontSizePx,
+]);
+checks.push([
+  '모든 블록이 캔버스 경계 안',
+  [plain, illust].every((r) => r.blocks.every((b) => b.kind === 'text'
+    ? b.x >= 0 && b.y >= 0 && b.y < CARD_SIZE_PX
+    : b.x >= 0 && b.y >= 0 && b.x + b.w <= CARD_SIZE_PX && b.y + b.h <= CARD_SIZE_PX)),
+]);
+
+const longWord = layoutEducationCard({ ...base, exampleKo: '아주아주아주아주아주 긴 예시 단어입니다', hasIllustration: false }, fakeMeasure);
+const shortSize = texts(plain).find((b) => b.text === '아기')!.fontSizePx;
+const longSize  = texts(longWord).find((b) => b.text.startsWith('아주'))!.fontSizePx;
+checks.push(['긴 예시 단어는 폰트 자동 축소', longSize < shortSize]);
+checks.push(['축소 하한(minPx) 보장', shrinkToFit('아'.repeat(200), 84, 40, 920, true, fakeMeasure) === 40]);
+checks.push(['제목 없으면 제목 블록 생략', !texts(layoutEducationCard({ ...base, episodeTitle: '', hasIllustration: false }, fakeMeasure)).some((b) => b.fontSizePx <= 34 && b.text !== 'a')]);
 
 let failed = 0;
 for (const [name, ok] of checks) { if (!ok) failed++; console.log(`${ok ? 'PASS' : 'FAIL'} | ${name}`); }
