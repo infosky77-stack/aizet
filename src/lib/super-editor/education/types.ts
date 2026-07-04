@@ -14,7 +14,7 @@ import type { Locale } from '../../i18n/types';
  * 학습자 모국어 — 사이트 공통 Locale(lib/i18n/types.ts)에서 ko(학습 대상 언어)를 뺀
  * 부분집합. SUPPORTED_LOCALES에 언어를 추가하면 Record<StudyLang, …>들이 컴파일 에러로
  * 교육 콘텐츠 번역 추가를 강제한다(의도된 가드 — 지원 언어와 학습 콘텐츠의 동기화).
- * (구 types/korean.ts에서 이동 — 그 파일은 6단계 삭제 전까지 여기를 재수출한다)
+ * (구 /korean 데모의 types/korean.ts에서 이동 — 데모는 삭제 완료, 여기가 유일한 정의처)
  */
 export type StudyLang = Exclude<Locale, 'ko'>;
 

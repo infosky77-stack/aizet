@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard, ClipboardList, UtensilsCrossed, CalendarClock, Bot,
-  ArrowLeft, CreditCard, Printer, BookOpen, Leaf, Scale, BarChart3,
+  ArrowLeft, CreditCard, Printer, GraduationCap, Leaf, Scale, BarChart3,
   Menu, X, Cloud, LogOut, ChevronDown, Shield, Zap, Crown, Globe, Settings, Wand2, Building2, FileText, FolderOpen,
   Users, ChevronLeft, Film, ListVideo, Landmark, ShoppingBag,
 } from 'lucide-react';
@@ -51,7 +51,8 @@ const NAV: NavItem[] = [
   { href: '/admin/legal',         label: '법무사무소',  icon: Landmark,   exact: true, industries: ['legal'] },
 
   // ── 데모 전용 ─────────────────────────────────────────────
-  { href: '/admin/korean',   label: '한국어 학습', icon: BookOpen, industries: ['demo'] },
+  // 구 /admin/korean 데모는 삭제 — 한국어교육은 슈퍼에디터 education 도메인으로 대체
+  { href: '/admin/super-editor/folders?domain=education', label: '한국어교육', icon: GraduationCap, industries: ['demo'] },
   { href: '/admin/hancandy', label: 'HanCandy',   icon: Leaf,     industries: ['demo'] },
 
   // ── 자동화 엔진 (공통) ────────────────────────────────────

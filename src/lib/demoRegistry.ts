@@ -117,15 +117,6 @@ export const DEMO_REGISTRY: DemoEntry[] = [
     adminKind:  'dedicated',
   },
   {
-    slug:      'korean',
-    name:      '한국어교육',
-    icon:      'BookOpen',
-    color:     'bg-sky-100 text-sky-700',
-    publicPath: '/korean',
-    adminPath:  '/admin/korean',
-    adminKind:  'dedicated',
-  },
-  {
     slug:      'legal',
     name:      '법무사',
     icon:      'Landmark',

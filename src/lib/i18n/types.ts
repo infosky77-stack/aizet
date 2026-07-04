@@ -4,8 +4,8 @@
 // - ko가 항상 원문(단일 소스)이고 나머지 언어는 파생물이다.
 // - 표시 폴백 체인: 요청 언어 → en → ko. "번역이 없어서 빈 화면"은 계약 위반이므로
 //   resolveText는 어떤 입력에도 항상 문자열을 돌려준다.
-// - 학습 도메인의 StudyLang은 여기서 ko를 뺀 부분집합으로 파생된다(types/korean.ts).
-//   지원 언어를 늘릴 땐 SUPPORTED_LOCALES 한 곳만 늘린다.
+// - 학습 도메인의 StudyLang은 여기서 ko를 뺀 부분집합으로 파생된다
+//   (lib/super-editor/education/types.ts). 지원 언어를 늘릴 땐 SUPPORTED_LOCALES 한 곳만 늘린다.
 
 export const SUPPORTED_LOCALES = ['ko', 'en', 'zh', 'ja', 'vi'] as const;
 export type Locale = (typeof SUPPORTED_LOCALES)[number];

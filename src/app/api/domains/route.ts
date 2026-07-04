@@ -15,8 +15,8 @@ async function getServerIp(): Promise<string> {
 
 export const dynamic = 'force-dynamic';
 
-// 허용하는 사이트 슬러그 (현재 운영 중인 사이트 경로)
-const VALID_SLUGS = new Set(['demo', 'hancandy', 'korean', 'print', 'tax']);
+// 허용하는 사이트 슬러그 (현재 운영 중인 사이트 경로 — /korean 데모는 삭제됨)
+const VALID_SLUGS = new Set(['demo', 'hancandy', 'print', 'tax']);
 
 // 도메인 형식 검사 (간단한 정규식)
 const DOMAIN_RE = /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$/i;

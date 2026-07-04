@@ -1,8 +1,0 @@
-{
-  "version": 1,
-  "functions": {
-    "/api/hancandy/chat": {},
-    "/api/korean/chat": {},
-    "/api/tax/chat": {}
-  }
-}
