@@ -5,8 +5,9 @@
 // 슈퍼에디터 product 콘텐츠까지 만들어 연결하므로 여기서는 POST 한 번이면 된다.
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Package, Plus, Loader2, Star, FileImage } from 'lucide-react';
+import { Package, Plus, Loader2, Star, FileImage, ClipboardList } from 'lucide-react';
 import { clsx } from 'clsx';
 import {
   PRODUCT_STATUS_LABELS, formatPrice, discountRate,
@@ -54,14 +55,22 @@ export default function ShopProductsPage() {
             상품을 등록하고 슈퍼에디터로 상세페이지를 만들어 판매하세요
           </p>
         </div>
-        <button
-          onClick={handleCreate}
-          disabled={creating}
-          className="flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-xl bg-violet-600 hover:bg-violet-700 disabled:opacity-50 text-white transition-colors"
-        >
-          {creating ? <Loader2 size={15} className="animate-spin" /> : <Plus size={15} />}
-          새 상품
-        </button>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/admin/shop/orders"
+            className="flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-xl border border-stone-200 text-stone-600 hover:border-violet-300 hover:text-violet-700 transition-colors"
+          >
+            <ClipboardList size={15} /> 주문 관리 · 정산
+          </Link>
+          <button
+            onClick={handleCreate}
+            disabled={creating}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-xl bg-violet-600 hover:bg-violet-700 disabled:opacity-50 text-white transition-colors"
+          >
+            {creating ? <Loader2 size={15} className="animate-spin" /> : <Plus size={15} />}
+            새 상품
+          </button>
+        </div>
       </div>
 
       {products === null ? (
