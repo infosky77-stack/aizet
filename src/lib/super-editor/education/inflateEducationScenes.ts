@@ -12,7 +12,9 @@
 import {
   layoutEducationSceneCard, SCENE_W_PX, SCENE_H_PX, type SceneCardSpec,
 } from './cardLayout';
-import { cardFontFamily, ensureFontsLoaded, fontString, drawBlock } from './buildCardImage';
+import {
+  composeFontFamily, ensureComposeFontsLoaded, canvasMeasure, drawComposeBlock,
+} from '../compose/drawBlocks';
 import type { EducationSnapshot } from './types';
 import type { VideoProjectSnapshot, VideoScene } from '../video/types';
 import type { OutputNotice } from '../output/types';
@@ -53,20 +55,16 @@ export async function inflateEducationScenes(
   const urls: string[] = [];
   const scenes: VideoScene[] = [];
 
-  const family = cardFontFamily();
+  const family = composeFontFamily();
   // 한글 선명도 보장 — 카드 빌더와 같은 원칙(document.fonts.ready)
-  await ensureFontsLoaded(family, snapshot.units.map((u) => u.char + u.exampleKo).join('') + project.title);
+  await ensureComposeFontsLoaded(family, snapshot.units.map((u) => u.char + u.exampleKo).join('') + project.title);
 
   const canvas = document.createElement('canvas');
   canvas.width = SCENE_W_PX;
   canvas.height = SCENE_H_PX;
   const ctx = canvas.getContext('2d');
 
-  const measure = (text: string, sizePx: number, bold: boolean): number => {
-    if (!ctx) return 0;
-    ctx.font = fontString(family, sizePx, bold);
-    return ctx.measureText(text).width;
-  };
+  const measure = ctx ? canvasMeasure(ctx, family) : () => 0;
 
   for (const scene of project.scenes) {
     const spec = ctx ? sceneSpec(scene, snapshot) : null;
@@ -77,7 +75,7 @@ export async function inflateEducationScenes(
     try {
       const layout = layoutEducationSceneCard(spec, measure);
       ctx!.clearRect(0, 0, SCENE_W_PX, SCENE_H_PX);
-      for (const block of layout.blocks) drawBlock(ctx!, block, family, null);
+      for (const block of layout.blocks) drawComposeBlock(ctx!, block, family);
       const blob = await new Promise<Blob | null>((res) => canvas.toBlob(res, 'image/png'));
       if (!blob) throw new Error('PNG 인코딩 실패');
       const url = URL.createObjectURL(blob);

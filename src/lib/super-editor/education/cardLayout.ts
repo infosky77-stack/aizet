@@ -10,19 +10,20 @@
 //   - 색 역할 고정: 글자=유닛 딥컬러 / 로마자=amber(발음) / 예시 단어=잉크
 //   - 유닛마다 파스텔 배경/딥컬러를 순환(UNIT_PALETTES) — 시리즈가 알록달록하게 보인다
 
-import type { MeasureTextFn } from '../product/layout';
+import { shrinkToFit, type ComposeBlock, type MeasureTextFn } from '../compose/blocks';
+
+// 배치 언어는 공용 합성 블록 모델(compose/blocks.ts) — education은 "무엇을 어디에"만 정한다.
+// shrinkToFit도 compose 소유가 됐고, 기존 호출부(테스트 포함)를 위해 재수출한다.
+export { shrinkToFit, type MeasureTextFn };
+export type CardBlock = ComposeBlock;
 
 export const CARD_SIZE_PX = 1080; // 정사각(SNS 공용 규격)
 // 영상 장면 카드 — buildVideoMp4의 16:9 출력(1280×720)과 동일 크기라 풀프레임으로 얹힌다
 export const SCENE_W_PX = 1280;
 export const SCENE_H_PX = 720;
 
-export type CardBlock =
-  | { kind: 'rect';  x: number; y: number; w: number; h: number; color: string; radiusPx?: number }
-  /** 삽화 슬롯 — contain-fit 배치는 그리기 쪽 책임 */
-  | { kind: 'image'; x: number; y: number; w: number; h: number }
-  /** x는 중앙 기준(textAlign center) */
-  | { kind: 'text';  text: string; x: number; y: number; fontSizePx: number; bold: boolean; color: string };
+/** 이미지 슬롯 이름 — 그리기 호출부(buildCardImage 등)가 같은 이름으로 비트맵을 주입한다 */
+export const ILLUSTRATION_SLOT = 'illustration';
 
 export interface CardLayoutInput {
   /** 카드 상단에 작게 들어가는 회차 제목(스냅샷 title) */
@@ -65,16 +66,6 @@ export function unitPalette(i: number): UnitPalette {
   return UNIT_PALETTES[((i % n) + n) % n];
 }
 
-/** maxW에 들어갈 때까지 폰트를 줄인다(최소 minPx) — 긴 예시 단어·넓은 글자 대비 */
-export function shrinkToFit(
-  text: string, startPx: number, minPx: number, maxW: number,
-  bold: boolean, measure: MeasureTextFn,
-): number {
-  let size = startPx;
-  while (size > minPx && measure(text, size, bold) > maxW) size -= 4;
-  return Math.max(size, minPx);
-}
-
 export function layoutEducationCard(input: CardLayoutInput, measure: MeasureTextFn): CardLayoutResult {
   const S = CARD_SIZE_PX;
   const maxTextW = S - 160; // 좌우 여백 80씩
@@ -93,7 +84,7 @@ export function layoutEducationCard(input: CardLayoutInput, measure: MeasureText
 
   if (input.hasIllustration) {
     // 삽화 카드: 위쪽 절반이 그림, 아래쪽이 글자/발음/단어
-    blocks.push({ kind: 'image', x: 140, y: 140, w: S - 280, h: 400 });
+    blocks.push({ kind: 'image', slot: ILLUSTRATION_SLOT, x: 140, y: 140, w: S - 280, h: 400 });
     const charSize = shrinkToFit(input.char, 280, 200, maxTextW, true, measure);
     blocks.push({ kind: 'text', text: input.char, x: cx, y: 560, fontSizePx: charSize, bold: true, color: pal.deep });
     blocks.push({ kind: 'text', text: input.romanization, x: cx, y: 852, fontSizePx: 72, bold: true, color: ACCENT });
