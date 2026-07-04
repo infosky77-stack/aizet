@@ -2,8 +2,11 @@
 //
 // aiRefine.ts(제품상세)와 같은 패턴: UI는 available만 보고 버튼을 비활성화하므로
 // 회원 API 키(제미나이) 연동이 붙을 때 아래 상수 구현만 교체하면 된다.
+// 가용성의 단일 소스는 lib/ai/memberAi.ts.
 // AI 원칙(절대 규칙): 모든 어시스트는 "제안(draft)"만 반환한다 — 이 모듈의 어떤
 // 결과도 DB에 직접 쓰이지 않고, 반드시 회원이 입력칸에서 확인·수정 후 저장한다.
+
+import { memberAi } from '@/lib/ai/memberAi';
 
 export interface ProductDraftRequest {
   /** 원장에 올린 상품 사진의 표시 URL 목록 — 이미지 기반 제안의 입력 */
@@ -40,14 +43,14 @@ export interface ShopAiAssist {
   refineCopy(req: CopyRefineRequest): Promise<CopyRefineSuggestion>;
 }
 
-/** 현재 구현 — 회원 API 키 연동 전이므로 항상 비활성. 연동 시 이 상수만 교체한다. */
+/** 현재 구현 — 회원 API 키 연동 전이므로 비활성(가용성은 memberAi 단일 소스). */
 export const shopAiAssist: ShopAiAssist = {
-  available: false,
-  unavailableReason: 'AI 어시스트는 회원 API 키 연동 후 제공됩니다',
+  available: memberAi.available,
+  unavailableReason: memberAi.unavailableReason,
   async suggestProductDraft(): Promise<ProductDraftSuggestion> {
-    throw new Error('AI 어시스트는 회원 API 키 연동 후 제공됩니다');
+    throw new Error(memberAi.unavailableReason);
   },
   async refineCopy(): Promise<CopyRefineSuggestion> {
-    throw new Error('AI 어시스트는 회원 API 키 연동 후 제공됩니다');
+    throw new Error(memberAi.unavailableReason);
   },
 };

@@ -6,8 +6,9 @@
 
 import { useState } from 'react';
 import {
-  Heading1, Image as ImageIcon, AlignLeft, ListChecks, Trash2, ChevronUp, ChevronDown, Plus,
+  Heading1, Image as ImageIcon, AlignLeft, ListChecks, Trash2, ChevronUp, ChevronDown, Plus, Sparkles,
 } from 'lucide-react';
+import { aiImageGenerator } from '@/lib/ai/memberAi';
 import { clsx } from 'clsx';
 import type { FileEntry } from '@/lib/super-editor/ledger/types';
 import { useOrderedFileEntries } from '@/lib/super-editor/ledger/store';
@@ -107,10 +108,20 @@ export function ProductSectionPanel({ orderId, sections, onChange, locked = fals
       {/* 이미지 선택기 — 원장의 이미지 목록에서 클릭해 섹션에 연결 */}
       {pickerTarget && !locked && (
         <div className="p-3 rounded-2xl border border-amber-200 bg-amber-50/50 flex flex-col gap-2">
-          <p className="text-xs font-semibold text-stone-500">
-            {pickerTarget === 'new' ? '원장의 이미지에서 선택해 섹션 추가' : '섹션에 넣을 이미지 선택'}
-            <span className="font-normal text-stone-400"> — 파일이 없으면 먼저 "파일 관리"에서 올려주세요</span>
-          </p>
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-xs font-semibold text-stone-500">
+              {pickerTarget === 'new' ? '원장의 이미지에서 선택해 섹션 추가' : '섹션에 넣을 이미지 선택'}
+              <span className="font-normal text-stone-400"> — 파일이 없으면 먼저 "파일 관리"에서 올려주세요</span>
+            </p>
+            {/* AI 이미지 생성 자리(지점 ④) — 생성물은 원장에 후보로 추가될 뿐, 연결은 회원이 */}
+            <button
+              disabled={!aiImageGenerator.available}
+              title={aiImageGenerator.available ? undefined : aiImageGenerator.unavailableReason}
+              className="flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-semibold rounded-lg border border-stone-200 text-stone-500 disabled:opacity-50 shrink-0 transition-colors"
+            >
+              <Sparkles size={12} /> AI로 이미지 생성
+            </button>
+          </div>
           {imageEntries.length === 0 ? (
             <p className="text-xs text-stone-400 py-3 text-center">올려둔 이미지가 없습니다</p>
           ) : (

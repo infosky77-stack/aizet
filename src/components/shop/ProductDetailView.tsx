@@ -9,6 +9,7 @@ import { discountRate, formatPrice } from '@/lib/shop/types';
 import { RatingStars } from './RatingStars';
 import { ShopHeader } from './ShopHeader';
 import { BuyBar } from './BuyBar';
+import { ReviewForm } from './ReviewForm';
 
 interface Props {
   slug:       string;
@@ -77,6 +78,7 @@ export async function ProductDetailView({ slug, productId, basePath, showHeader 
           <h2 className="text-sm font-bold text-stone-800">
             상품평 {reviews.length > 0 && <span className="text-stone-400 font-medium">({reviews.length.toLocaleString()})</span>}
           </h2>
+          <ReviewForm slug={slug} productId={product.id} />
           {reviews.length === 0 ? (
             <p className="text-sm text-stone-400 py-6 text-center">아직 상품평이 없습니다.</p>
           ) : (

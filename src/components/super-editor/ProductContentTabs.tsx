@@ -124,7 +124,14 @@ export function ProductContentTabs({
             ))}
           </select>
 
-          {/* AI 다듬기 — 회원 API 키 연동 전까지 비활성(자리/인터페이스만) */}
+          {/* AI 어시스트 자리(지점 ②·③) — 회원 API 키 연동 전까지 비활성(인터페이스만) */}
+          <button
+            disabled={!productAiRefiner.available}
+            title={productAiRefiner.available ? undefined : productAiRefiner.unavailableReason}
+            className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-xl border border-stone-200 text-stone-600 disabled:opacity-50 transition-colors shrink-0"
+          >
+            <Sparkles size={14} /> AI 섹션 초안
+          </button>
           <button
             disabled={!productAiRefiner.available}
             title={productAiRefiner.available ? undefined : productAiRefiner.unavailableReason}
