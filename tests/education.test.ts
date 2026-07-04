@@ -10,6 +10,9 @@ import {
 } from '../src/lib/super-editor/education/cardLayout';
 import { buildEbookPages, type EbookPage } from '../src/lib/super-editor/education/ebookPages';
 import { deriveEducationVideo } from '../src/lib/super-editor/education/toVideoScenes';
+import {
+  toPublishedEpisode, publishedToEbookInput, isPublishedEducationEpisode,
+} from '../src/lib/super-editor/education/published';
 import { isVideoProjectSnapshot } from '../src/lib/super-editor/video/types';
 import { SUPPORTED_LOCALES } from '../src/lib/i18n/types';
 
@@ -140,6 +143,29 @@ checks.push(['빈 글자 유닛 제외 + 보고', !dv2.project.scenes.some((s) =
 checks.push(['음성 연결 시 무음 안내 보고', dv2.notices.some((n) => n.label.includes('음성') && n.reason.includes('무음'))]);
 checks.push(['빈 번역 자막은 ko 폴백', dv2.project.subtitles!.ja!.some((c) => c.text === 'ㅗ (o) — 오이')]);
 checks.push(['삽화 장면만큼 자막 구간 연장(3~11.5초)', dv2.project.subtitles!.ko![1].startSec === 3 && dv2.project.subtitles!.ko![1].endSec === 11.5]);
+
+// ── 게시 계약(published) — 공개/비공개 경계 + 이북 어댑터 ───────────────────
+const pubSrc = episode1Preset();
+pubSrc.units[0] = { ...pubSrc.units[0], illustrationRef: 'ledger-secret-1', voiceRef: 'ledger-secret-2' };
+pubSrc.units[3] = { ...pubSrc.units[3], char: ' ' }; // 빈 글자 — 게시 제외
+const pub = toPublishedEpisode(pubSrc, {
+  videoUrl: '/api/learn-public/1/video.mp4?v=1',
+  cardUrls: ['/c1.png', '/c2.png', '/c3.png', '/c4.png', '/c5.png'],
+  illustrationUrls: { [pubSrc.units[0].id]: '/api/learn-public/1/illust-1.png?v=1' },
+}, '2026-07-04T00:00:00.000Z');
+checks.push(['게시본 가드 통과', isPublishedEducationEpisode(pub)]);
+checks.push(['빈 글자 유닛은 게시 제외(5유닛)', pub.units.length === 5 && pub.cards.length === 5]);
+checks.push(['★게시본에 원장 참조(ledgerRef) 부재', !JSON.stringify(pub).includes('ledger-secret')]);
+checks.push(['삽화는 공개 사본 URL로', pub.units[0].illustrationUrl === '/api/learn-public/1/illust-1.png?v=1'
+  && pub.units[1].illustrationUrl === null]);
+checks.push(['카드-유닛 순서 일치', pub.cards.map((c) => c.char).join('') === pub.units.map((u) => u.char).join('')]);
+
+const ebookIn = publishedToEbookInput(pub);
+checks.push(['게시본→이북 입력: 스냅샷 가드 통과', isEducationSnapshot(ebookIn.snapshot)]);
+checks.push(['이북 입력의 삽화 키는 파생키(원장 아님)', Object.keys(ebookIn.illustrationUrls).every((k) => k.startsWith('pub-illust-'))
+  && ebookIn.snapshot.units[0].illustrationRef === 'pub-illust-0']);
+const pubPages = buildEbookPages(ebookIn.snapshot, 'ja');
+checks.push(['게시본으로도 이북 페이지 생성(표지+5유닛+복습)', pubPages.pages.length === 7 && pubPages.notices.length === 0]);
 
 let failed = 0;
 for (const [name, ok] of checks) { if (!ok) failed++; console.log(`${ok ? 'PASS' : 'FAIL'} | ${name}`); }

@@ -14,6 +14,7 @@ import { ContentFileViewer } from '@/components/super-editor/ContentFileViewer';
 import { EducationCardButton } from '@/components/super-editor/EducationCardButton';
 import { EducationEbookButton } from '@/components/super-editor/EducationEbookButton';
 import { VideoRenderButton } from '@/components/super-editor/VideoRenderButton';
+import { EducationPublishButton } from '@/components/super-editor/EducationPublishButton';
 import {
   type EducationSnapshot, type EducationUnit, type StudyLang, newEducationUnit,
 } from '@/lib/super-editor/education/types';
@@ -130,6 +131,7 @@ export function EducationContentTabs({
           <EducationEbookButton orderId={orderId} snapshot={snapshot} />
           <EducationCardButton orderId={orderId} snapshot={snapshot} />
           <VideoRenderButton orderId={orderId} title={title} project={derived?.project ?? null} />
+          <EducationPublishButton orderId={orderId} snapshot={snapshot} />
         </div>
 
         {snapshot === null ? (
