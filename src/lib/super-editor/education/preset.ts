@@ -24,6 +24,7 @@ export function episode1Preset(title = EPISODE_1_TITLE): EducationSnapshot {
     version: 1,
     title,
     episodeNo: 1,
+    backgroundRef: null,
     units: [
       UNIT('unit-a',  'ㅏ', 'a',  '아기',  { en: 'baby',     zh: '婴儿', ja: 'あかちゃん', vi: 'em bé' }),
       UNIT('unit-eo', 'ㅓ', 'eo', '어머니', { en: 'mother',   zh: '妈妈', ja: 'おかあさん', vi: 'mẹ' }),

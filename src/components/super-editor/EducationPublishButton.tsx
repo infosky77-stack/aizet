@@ -43,8 +43,8 @@ export function EducationPublishButton({ orderId, snapshot }: Props) {
       if (isBrowserVideoRenderSupported()) {
         setPhase('video');
         const derived = deriveEducationVideo(snapshot);
-        // 장면 카드 사전 렌더(큰 글자·유닛 컬러) — 실패 장면은 텍스트 장면 폴백
-        const inflated = await inflateEducationScenes(derived.project, snapshot);
+        // 장면 카드 사전 렌더(큰 글자·유닛 컬러·배경·삽화 프레임) — 실패 장면은 원본 폴백
+        const inflated = await inflateEducationScenes(derived.project, snapshot, entries);
         try {
           videoBytes = (await buildVideoMp4(inflated.project, entries, (r) => setProgress(r))).bytes;
         } finally {

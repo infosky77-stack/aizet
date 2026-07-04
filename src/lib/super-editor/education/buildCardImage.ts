@@ -12,7 +12,7 @@ import { resolveLedgerRefBlob } from '../media/resolveImageBytes';
 import {
   composeFontFamily, ensureComposeFontsLoaded, canvasMeasure, drawComposeBlock,
 } from '../compose/drawBlocks';
-import { layoutEducationCard, CARD_SIZE_PX, ILLUSTRATION_SLOT } from './cardLayout';
+import { layoutEducationCard, CARD_SIZE_PX, ILLUSTRATION_SLOT, BACKGROUND_SLOT } from './cardLayout';
 import type { EducationSnapshot } from './types';
 import type { FileEntry } from '../ledger/types';
 import type { OutputNotice } from '../output/types';
@@ -62,6 +62,18 @@ export async function buildEducationCardImages(
 
   const measure = canvasMeasure(ctx, family);
 
+  // 회차 공통 배경 — 한 번 해석해 전 카드에 재사용. 실패해도 팔레트 배경으로 완성(보고만)
+  let bgBmp: ImageBitmap | null = null;
+  if (snapshot.backgroundRef) {
+    const blob = await resolveLedgerRefBlob(snapshot.backgroundRef, entries);
+    if (blob) {
+      try { bgBmp = await createImageBitmap(blob); } catch { /* 아래 공통 보고 */ }
+    }
+    if (!bgBmp) {
+      notices.push({ refId: 'background', label: '배경 이미지', reason: '배경을 해석하지 못해 기본 배경으로 만들었습니다' });
+    }
+  }
+
   for (const [i, unit] of snapshot.units.entries()) {
     const label = `${i + 1}번 유닛${unit.char ? ` (${unit.char})` : ''}`;
     if (!unit.char.trim()) {
@@ -89,10 +101,13 @@ export async function buildEducationCardImages(
       exampleKo: unit.exampleKo,
       hasIllustration: bmp !== null,
       unitIndex: i,
+      hasBackground: bgBmp !== null,
     }, measure);
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    for (const block of layout.blocks) drawComposeBlock(ctx, block, family, { [ILLUSTRATION_SLOT]: bmp });
+    for (const block of layout.blocks) {
+      drawComposeBlock(ctx, block, family, { [ILLUSTRATION_SLOT]: bmp, [BACKGROUND_SLOT]: bgBmp });
+    }
     bmp?.close();
 
     cards.push({
@@ -103,5 +118,6 @@ export async function buildEducationCardImages(
     });
   }
 
+  bgBmp?.close();
   return { cards, notices, widthPx: CARD_SIZE_PX, heightPx: CARD_SIZE_PX };
 }

@@ -21,6 +21,7 @@ import {
 import { resolveEducationSnapshot } from '@/lib/super-editor/education/preset';
 import { deriveEducationVideo } from '@/lib/super-editor/education/toVideoScenes';
 import { inflateEducationScenes } from '@/lib/super-editor/education/inflateEducationScenes';
+import { useFileLedgerStore } from '@/lib/super-editor/ledger/store';
 import { buildSubtitleFile } from '@/lib/super-editor/video/buildSubtitleFile';
 import type { VideoProjectSnapshot } from '@/lib/super-editor/video/types';
 import { LOCALE_NATIVE_LABELS, SUPPORTED_LOCALES, type Locale } from '@/lib/i18n/types';
@@ -95,22 +96,33 @@ export function EducationContentTabs({
   // 저장하지 않는다: education 스냅샷이 유일한 원본이고 영상은 항상 여기서 파생된다.
   const derived = useMemo(() => (snapshot ? deriveEducationVideo(snapshot) : null), [snapshot]);
 
-  // 장면 카드 사전 렌더(큰 글자·유닛 컬러) — 준비 전/실패 시에는 파생 원본(텍스트 장면)을
-  // 그대로 쓰므로 영상 버튼은 항상 동작한다. blob URL은 다음 파생/언마운트 때 해제.
+  // 장면 카드 사전 렌더(큰 글자·유닛 컬러·배경·삽화 프레임) — 준비 전/실패 시에는 파생
+  // 원본을 그대로 쓰므로 영상 버튼은 항상 동작한다. blob URL은 다음 파생/언마운트 때 해제.
+  // 배경·삽화 해석에 원장이 필요해 콘텐츠당 한 번 하이드레이션한다(게시 버튼과 같은 절차).
   const [inflatedProject, setInflatedProject] = useState<VideoProjectSnapshot | null>(null);
+  const hydratedFor = useRef<string | null>(null);
   useEffect(() => {
     if (!derived || !snapshot) { setInflatedProject(null); return; }
     let cancelled = false;
     let disposeInflated: (() => void) | null = null;
-    inflateEducationScenes(derived.project, snapshot)
-      .then((inflated) => {
-        if (cancelled) { inflated.dispose(); return; }
-        disposeInflated = inflated.dispose;
-        setInflatedProject(inflated.project);
-      })
-      .catch(() => { if (!cancelled) setInflatedProject(null); });
+    (async () => {
+      const ledger = useFileLedgerStore.getState();
+      if (hydratedFor.current !== orderId) {
+        await Promise.all([
+          ledger.hydrateFromLocalIndex(orderId),
+          ledger.refreshFromServer(orderId),
+        ]).catch(() => { /* 원장 없이도 카드(배경 미적용)는 그린다 */ });
+        hydratedFor.current = orderId;
+      }
+      const inflated = await inflateEducationScenes(
+        derived.project, snapshot, useFileLedgerStore.getState().entries,
+      );
+      if (cancelled) { inflated.dispose(); return; }
+      disposeInflated = inflated.dispose;
+      setInflatedProject(inflated.project);
+    })().catch(() => { if (!cancelled) setInflatedProject(null); });
     return () => { cancelled = true; disposeInflated?.(); };
-  }, [derived, snapshot]);
+  }, [derived, snapshot, orderId]);
 
   function downloadSubtitle(locale: Locale) {
     const subtitleCues = derived?.project.subtitles?.[locale];

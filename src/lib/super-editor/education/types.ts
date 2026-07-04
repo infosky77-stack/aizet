@@ -40,6 +40,11 @@ export interface EducationSnapshot {
   /** 회차 번호 — 1편(기본 모음)이 1 */
   episodeNo: number;
   units: EducationUnit[];
+  /**
+   * 회차 공통 배경 이미지 원장 참조 — 카드·영상 장면에 cover로 깔린다(글자 없는 이미지만).
+   * 없거나 해석 실패면 유닛 팔레트 배경 폴백. 옵션 필드라 version 1 유지(기존 데이터 호환).
+   */
+  backgroundRef?: string | null;
 }
 
 export function isEducationSnapshot(raw: unknown): raw is EducationSnapshot {

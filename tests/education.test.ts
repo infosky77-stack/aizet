@@ -114,6 +114,42 @@ checks.push(['예시 장면: 유닛 딥컬러 + 64px 이상', (() => {
   return t.color === UNIT_PALETTES[2].deep && t.fontSizePx >= 64;
 })()]);
 
+// ── 배경 이미지(backgroundRef) — v1 유지 옵션 필드 + cover 합성 + 반투명 판 ──
+checks.push(['backgroundRef 있는 스냅샷도 v1 가드 통과', isEducationSnapshot({ ...preset, backgroundRef: 'bg-1' })
+  && isEducationSnapshot(preset)]);
+
+const bgCard = layoutEducationCard({ ...base, hasIllustration: false, hasBackground: true }, fakeMeasure);
+const bgBlocks = bgCard.blocks;
+checks.push(['배경 카드: background 슬롯 cover가 캔버스 전체', (() => {
+  const b = bgBlocks.find((x) => x.kind === 'image');
+  return !!b && b.kind === 'image' && b.slot === 'background' && b.fit === 'cover'
+    && b.x === 0 && b.y === 0 && b.w === CARD_SIZE_PX && b.h === CARD_SIZE_PX;
+})()]);
+checks.push(['배경 카드: 판이 반투명(rgba) — 가독성 받침', bgBlocks.some((b) => b.kind === 'rect' && b.color.startsWith('rgba(255,255,255'))]);
+checks.push(['배경 카드: 파스텔 바닥 rect 없음(배경이 대체)', !bgBlocks.some((b) => b.kind === 'rect' && b.color === UNIT_PALETTES[0].bg)]);
+checks.push(['배경 없으면 기존 그대로(불투명 흰 판·배경 슬롯 없음)',
+  plain.blocks.some((b) => b.kind === 'rect' && b.color === '#ffffff')
+  && !plain.blocks.some((b) => b.kind === 'image')]);
+
+// 삽화 카드 — 고정 슬롯 세로 배치라 삽화와 글자가 산술적으로 안 겹친다
+const illustBg = layoutEducationCard({ ...base, hasIllustration: true, hasBackground: true, unitIndex: 1 }, fakeMeasure);
+checks.push(['삽화 카드: 삽화 슬롯이 글자 시작(y550) 위에서 끝남', (() => {
+  const img = illustBg.blocks.find((b) => b.kind === 'image' && b.slot === 'illustration');
+  const char = texts(illustBg).find((b) => b.text === 'ㅏ')!;
+  return !!img && img.kind === 'image' && img.y + img.h <= char.y;
+})()]);
+checks.push(['삽화 카드: 배경+삽화 슬롯 공존', illustBg.blocks.filter((b) => b.kind === 'image').length === 2]);
+
+// 영상 장면 — 배경 옵션 + 삽화 전용 장면(그림책 프레임)
+const sceneCharBg = layoutEducationSceneCard({ kind: 'char', char: 'ㅏ', romanization: 'a', unitIndex: 0 }, fakeMeasure, { hasBackground: true });
+checks.push(['배경 장면: background cover + 반투명 판', sceneCharBg.blocks.some((b) => b.kind === 'image' && b.slot === 'background' && b.fit === 'cover')
+  && sceneCharBg.blocks.some((b) => b.kind === 'rect' && b.color.startsWith('rgba('))]);
+checks.push(['배경 없으면 장면도 기존 그대로', !sceneChar.blocks.some((b) => b.kind === 'image')]);
+const sceneIllust = layoutEducationSceneCard({ kind: 'illust', unitIndex: 2 }, fakeMeasure);
+checks.push(['삽화 장면: 흰 프레임 판 + illustration 슬롯, 글자 없음', sceneIllust.blocks.some((b) => b.kind === 'image' && b.slot === 'illustration')
+  && sceneIllust.blocks.some((b) => b.kind === 'rect' && (b.radiusPx ?? 0) > 0)
+  && !sceneIllust.blocks.some((b) => b.kind === 'text')]);
+
 const sceneTitle = layoutEducationSceneCard({ kind: 'title', text: '3분 한국어 1편' }, fakeMeasure);
 checks.push(['타이틀 장면: 딥 배경 + 흰 글자', sceneTitle.blocks.some((b) => b.kind === 'rect' && b.color === '#92400e')
   && texts(sceneTitle as ReturnType<typeof layoutEducationCard>)[0].color === '#ffffff']);
