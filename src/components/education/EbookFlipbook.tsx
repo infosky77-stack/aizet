@@ -36,20 +36,24 @@ export function EbookFlipbook({ pages, locale, illustrationUrls, pageW = BASE_W,
   const rendered = pages.map((page, i) => {
     if (page.kind === 'cover') {
       return (
+        // 페이지 루트는 크기/배경만 — 배치는 내부 h-full 래퍼가 담당
+        // (react-pageflip이 페이지 루트의 flex 배치를 무력화함 — CatalogFlipbook과 같은 구조)
         <div key="cover" style={{ width: pageW, height: pageH }}
-          className="relative bg-[#fff8ee] flex flex-col items-center select-none overflow-hidden border border-stone-100">
+          className="relative bg-[#fff8ee] select-none overflow-hidden border border-stone-100">
           <div className="absolute top-0 left-0 right-0 bg-amber-700" style={{ height: fs(5) }} />
-          <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center"
-            style={{ paddingLeft: fs(28), paddingRight: fs(28) }}>
-            <p className="font-black leading-snug text-stone-900" style={{ fontSize: fs(19) }}>{page.title}</p>
-            <p className="text-stone-400" style={{ fontSize: fs(11) }}>제{page.episodeNo}편</p>
-            <p className="font-bold text-amber-700 tracking-widest" style={{ fontSize: fs(26) }}>
-              {page.chars.join(' ')}
+          <div className="h-full flex flex-col items-center">
+            <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center"
+              style={{ paddingLeft: fs(28), paddingRight: fs(28) }}>
+              <p className="font-black leading-snug text-stone-900" style={{ fontSize: fs(19) }}>{page.title}</p>
+              <p className="text-stone-400" style={{ fontSize: fs(11) }}>제{page.episodeNo}편</p>
+              <p className="font-bold text-amber-700 tracking-widest" style={{ fontSize: fs(26) }}>
+                {page.chars.join(' ')}
+              </p>
+            </div>
+            <p className="text-stone-300 tracking-[0.2em]" style={{ fontSize: fs(8), paddingBottom: fs(18) }}>
+              AIZET · 3분 한국어
             </p>
           </div>
-          <p className="text-stone-300 tracking-[0.2em]" style={{ fontSize: fs(8), paddingBottom: fs(18) }}>
-            AIZET · 3분 한국어
-          </p>
         </div>
       );
     }
@@ -58,54 +62,58 @@ export function EbookFlipbook({ pages, locale, illustrationUrls, pageW = BASE_W,
       const imgUrl = page.illustrationRef ? illustrationUrls[page.illustrationRef] : undefined;
       return (
         <div key={page.unitId} style={{ width: pageW, height: pageH }}
-          className="bg-white flex flex-col items-center select-none overflow-hidden">
-          <p className="text-stone-300 truncate max-w-full" style={{ fontSize: fs(8), paddingTop: fs(12) }}>
-            {/* 상단 러닝헤드는 표지 제목 — cover가 항상 pages[0]이다 */}
-            {(pages[0] as Extract<EbookPage, { kind: 'cover' }>).title}
-          </p>
-          {imgUrl && (
-            <div className="flex items-center justify-center overflow-hidden bg-stone-50 rounded"
-              style={{ width: pageW - 2 * Math.round(24 * scale), height: fs(150), marginTop: fs(8) }}>
-              {/* eslint-disable-next-line @next/next/no-img-element -- 로컬 blob/원장 URL */}
-              <img src={imgUrl} alt={`${page.char} 삽화`} className="w-full h-full object-contain" draggable={false} />
-            </div>
-          )}
-          <div className="flex-1 flex flex-col items-center justify-center gap-1">
-            <p className="font-black text-stone-900 leading-none" style={{ fontSize: fs(imgUrl ? 88 : 140) }}>
-              {page.char}
+          className="bg-white select-none overflow-hidden">
+          <div className="h-full flex flex-col items-center">
+            <p className="text-stone-300 truncate max-w-full" style={{ fontSize: fs(8), paddingTop: fs(12) }}>
+              {/* 상단 러닝헤드는 표지 제목 — cover가 항상 pages[0]이다 */}
+              {(pages[0] as Extract<EbookPage, { kind: 'cover' }>).title}
             </p>
-            <p className="text-amber-700 font-semibold" style={{ fontSize: fs(16) }}>{page.romanization}</p>
-          </div>
-          {page.exampleKo && (
-            <div className="flex flex-col items-center" style={{ paddingBottom: fs(10) }}>
-              <p className="font-bold text-stone-800" style={{ fontSize: fs(20) }}>{page.exampleKo}</p>
-              {page.exampleTranslated && (
-                <p className="text-stone-500" style={{ fontSize: fs(12) }}>{page.exampleTranslated}</p>
-              )}
+            {imgUrl && (
+              <div className="flex items-center justify-center overflow-hidden bg-stone-50 rounded shrink-0"
+                style={{ width: pageW - 2 * Math.round(24 * scale), height: fs(150), marginTop: fs(8) }}>
+                {/* eslint-disable-next-line @next/next/no-img-element -- 로컬 blob/원장 URL */}
+                <img src={imgUrl} alt={`${page.char} 삽화`} className="w-full h-full object-contain" draggable={false} />
+              </div>
+            )}
+            <div className="flex-1 min-h-0 flex flex-col items-center justify-center gap-1">
+              <p className="font-black text-stone-900 leading-none" style={{ fontSize: fs(imgUrl ? 88 : 140) }}>
+                {page.char}
+              </p>
+              <p className="text-amber-700 font-semibold" style={{ fontSize: fs(16) }}>{page.romanization}</p>
             </div>
-          )}
-          <p className="text-stone-300" style={{ fontSize: fs(8), paddingBottom: fs(10) }}>{page.index}</p>
+            {page.exampleKo && (
+              <div className="flex flex-col items-center" style={{ paddingBottom: fs(10) }}>
+                <p className="font-bold text-stone-800" style={{ fontSize: fs(20) }}>{page.exampleKo}</p>
+                {page.exampleTranslated && (
+                  <p className="text-stone-500" style={{ fontSize: fs(12) }}>{page.exampleTranslated}</p>
+                )}
+              </div>
+            )}
+            <p className="text-stone-300" style={{ fontSize: fs(8), paddingBottom: fs(10) }}>{page.index}</p>
+          </div>
         </div>
       );
     }
 
     return (
       <div key={`review-${i}`} style={{ width: pageW, height: pageH }}
-        className="relative bg-[#fff8ee] flex flex-col items-center select-none overflow-hidden border border-stone-100">
+        className="relative bg-[#fff8ee] select-none overflow-hidden border border-stone-100">
         <div className="absolute top-0 left-0 right-0 bg-amber-700" style={{ height: fs(5) }} />
-        <p className="font-black text-stone-900" style={{ fontSize: fs(16), paddingTop: fs(22) }}>복습</p>
-        <div className="flex-1 w-full grid grid-cols-2 content-center gap-y-4"
-          style={{ paddingLeft: fs(24), paddingRight: fs(24) }}>
-          {page.items.map((item) => (
-            <div key={item.char} className="flex flex-col items-center gap-0.5">
-              <p className="font-black text-stone-900 leading-none" style={{ fontSize: fs(30) }}>{item.char}</p>
-              <p className="text-amber-700" style={{ fontSize: fs(10) }}>{item.romanization}</p>
-            </div>
-          ))}
+        <div className="h-full flex flex-col items-center">
+          <p className="font-black text-stone-900" style={{ fontSize: fs(16), paddingTop: fs(22) }}>복습</p>
+          <div className="flex-1 w-full grid grid-cols-2 content-center gap-y-4"
+            style={{ paddingLeft: fs(24), paddingRight: fs(24) }}>
+            {page.items.map((item) => (
+              <div key={item.char} className="flex flex-col items-center gap-0.5">
+                <p className="font-black text-stone-900 leading-none" style={{ fontSize: fs(30) }}>{item.char}</p>
+                <p className="text-amber-700" style={{ fontSize: fs(10) }}>{item.romanization}</p>
+              </div>
+            ))}
+          </div>
+          <p className="text-stone-300 tracking-[0.2em]" style={{ fontSize: fs(8), paddingBottom: fs(18) }}>
+            AIZET · 3분 한국어
+          </p>
         </div>
-        <p className="text-stone-300 tracking-[0.2em]" style={{ fontSize: fs(8), paddingBottom: fs(18) }}>
-          AIZET · 3분 한국어
-        </p>
       </div>
     );
   });
