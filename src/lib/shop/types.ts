@@ -73,6 +73,8 @@ export interface ProductRow {
   thumbnail_path:    string | null;
   detail_order_id:   string | null;
   detail_image_path: string | null;
+  /** 칸칸 HTML 상세의 게시 JSON 공개 사본 — 있으면 HTML 렌더, 없으면 JPEG 폴백 */
+  detail_json_path:  string | null;
   sort_order:        number;
   created_at:        number;
   updated_at:        number;

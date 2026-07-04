@@ -429,6 +429,9 @@ db.exec(`
   const toAdd: [string, string][] = [
     ['description',   "TEXT NOT NULL DEFAULT ''"],
     ['thumbnail_ref', 'TEXT'],
+    // 칸칸 HTML 상세의 게시 JSON 공개 사본 경로 — detail_image_path(JPEG)와 나란한
+    // 두 번째 산출물. 있으면 구매자 뷰가 HTML 렌더, 없으면 JPEG 폴백(기존 상품 보존).
+    ['detail_json_path', 'TEXT'],
   ];
   for (const [col, def] of toAdd) {
     if (!cols.includes(col)) db.exec(`ALTER TABLE products ADD COLUMN ${col} ${def}`);

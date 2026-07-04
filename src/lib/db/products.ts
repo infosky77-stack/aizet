@@ -64,7 +64,7 @@ export function listPublicProducts(userId: string): ProductRow[] {
 
 const UPDATABLE = new Set([
   'name', 'description', 'price', 'original_price', 'category', 'status',
-  'thumbnail_ref', 'thumbnail_path', 'detail_order_id', 'detail_image_path', 'sort_order',
+  'thumbnail_ref', 'thumbnail_path', 'detail_order_id', 'detail_image_path', 'detail_json_path', 'sort_order',
 ]);
 
 export function updateProduct(

@@ -1,15 +1,38 @@
 // 구매자 상품 상세 공유 뷰 (서버 컴포넌트) — /site/[slug]/shop과 /hancandy가 같은 본체를 쓴다.
-// 상단 요약 → 게시된 긴 JPEG → 리뷰 목록 → 하단 고정 구매 바(BuyBar).
+// 상단 요약 → 상세(칸칸 HTML 게시본 우선, 없으면 기존 긴 JPEG 폴백) → 리뷰 → 구매 바.
 // showHeader=false는 자체 헤더를 가진 상점 레이아웃(한캔디)용.
+import { readFile } from 'fs/promises';
+import path from 'path';
 import { notFound } from 'next/navigation';
 import { Package } from 'lucide-react';
 import { getUserBySlug } from '@/lib/users';
 import { getProduct, listReviews } from '@/lib/db/products';
 import { discountRate, formatPrice } from '@/lib/shop/types';
+import {
+  isPublishedProductDetail, type PublishedProductDetail,
+} from '@/lib/super-editor/product/published';
+import { ProductDetailSections } from '@/components/product-detail/ProductDetailSections';
 import { RatingStars } from './RatingStars';
 import { ShopHeader } from './ShopHeader';
 import { BuyBar } from './BuyBar';
 import { ReviewForm } from './ReviewForm';
+
+// 게시된 칸칸 HTML JSON을 공개 디렉토리에서 읽는다 — 파일명은 게시 라우트의 고정 규칙.
+// detail_json_path는 존재 표시(+캐시 버스팅)로만 쓰고, 서버 렌더는 fs에서 직접 읽는다.
+// 어떤 실패(없음/손상)든 null → 호출부가 JPEG로 폴백하므로 기존 상품은 그대로 동작.
+async function readPublishedDetail(
+  userId: string, productId: string,
+): Promise<PublishedProductDetail | null> {
+  try {
+    const filePath = path.join(
+      process.cwd(), 'data', 'shop-public', userId, `detail-${productId}.json`,
+    );
+    const parsed: unknown = JSON.parse(await readFile(filePath, 'utf-8'));
+    return isPublishedProductDetail(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
 
 interface Props {
   slug:       string;
@@ -28,6 +51,9 @@ export async function ProductDetailView({ slug, productId, basePath, showHeader 
 
   const reviews = listReviews(productId);
   const rate = discountRate(product.price, product.original_price);
+  const publishedDetail = product.detail_json_path
+    ? await readPublishedDetail(user.id, productId)
+    : null;
 
   return (
     <div className="min-h-screen bg-white pb-24">
@@ -61,8 +87,12 @@ export async function ProductDetailView({ slug, productId, basePath, showHeader 
           </div>
         </div>
 
-        {/* 상세페이지 — 슈퍼에디터가 게시한 긴 세로 JPEG */}
-        {product.detail_image_path ? (
+        {/* 상세페이지 — 칸칸 HTML 게시본 우선(확대해도 선명·다국어 준비), 없으면 긴 JPEG 폴백 */}
+        {publishedDetail ? (
+          <div className="border-t border-stone-100">
+            <ProductDetailSections detail={publishedDetail} />
+          </div>
+        ) : product.detail_image_path ? (
           <div className="border-t border-stone-100">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={product.detail_image_path} alt={`${product.name} 상세 정보`} className="w-full h-auto" />
