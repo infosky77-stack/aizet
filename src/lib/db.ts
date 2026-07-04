@@ -362,4 +362,76 @@ db.exec(`
   if (cols.includes('placement_pos')) db.exec(`ALTER TABLE magazine_placements DROP COLUMN placement_pos`);
 }
 
+// ── 쇼핑몰 테이블 (회원별 상품 판매 — user = shop 구조, 모든 행이 user_id 스코프) ──
+// products.detail_order_id는 슈퍼에디터 media_orders(order_type='product') 포인터 —
+// 상세페이지 스냅샷·파일 원장의 컨테이너를 겸한다. thumbnail_path/detail_image_path는
+// "발행 시 공개 디렉토리(data/shop-public)로 복사된 사본" 경로다: 파일 원장(인증 서빙)과
+// 구매자 공개 자산의 경계를 여기서 가른다 — 원장 파일을 직접 공개 서빙하지 말 것.
+db.exec(`
+  CREATE TABLE IF NOT EXISTS products (
+    id                TEXT    PRIMARY KEY,
+    user_id           TEXT    NOT NULL,
+    name              TEXT    NOT NULL DEFAULT '',
+    price             INTEGER NOT NULL DEFAULT 0,
+    original_price    INTEGER,
+    category          TEXT    NOT NULL DEFAULT '',
+    status            TEXT    NOT NULL DEFAULT 'draft',
+    thumbnail_path    TEXT,
+    detail_order_id   TEXT,
+    detail_image_path TEXT,
+    sort_order        INTEGER NOT NULL DEFAULT 0,
+    created_at        INTEGER NOT NULL,
+    updated_at        INTEGER NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_products_user   ON products(user_id);
+  CREATE INDEX IF NOT EXISTS idx_products_status ON products(user_id, status);
+`);
+
+// 구매자 주문 — 기존 lib/db/orders.ts(식당 데모, in-memory)와 별개의 영속 테이블.
+// v1은 주문 접수까지(PG 없음): status는 판매자가 수동 전환하며, 허용 전이는
+// lib/shop/types.ts의 단일 소스(SHOP_ORDER_TRANSITIONS)를 따른다.
+// shop_order_items의 name/price는 주문 시점 스냅샷 — 상품이 나중에 수정/삭제돼도
+// 주문 내역은 보존된다(product_id는 참고용 포인터일 뿐 JOIN 의존 금지).
+db.exec(`
+  CREATE TABLE IF NOT EXISTS shop_orders (
+    id            TEXT    PRIMARY KEY,
+    user_id       TEXT    NOT NULL,
+    buyer_name    TEXT    NOT NULL,
+    buyer_phone   TEXT    NOT NULL,
+    buyer_address TEXT    NOT NULL,
+    request       TEXT    NOT NULL DEFAULT '',
+    total         INTEGER NOT NULL,
+    status        TEXT    NOT NULL DEFAULT 'placed',
+    created_at    INTEGER NOT NULL,
+    updated_at    INTEGER NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_shop_orders_user   ON shop_orders(user_id);
+  CREATE INDEX IF NOT EXISTS idx_shop_orders_status ON shop_orders(user_id, status);
+
+  CREATE TABLE IF NOT EXISTS shop_order_items (
+    id         TEXT    PRIMARY KEY,
+    order_id   TEXT    NOT NULL,
+    product_id TEXT,
+    name       TEXT    NOT NULL,
+    price      INTEGER NOT NULL,
+    qty        INTEGER NOT NULL,
+    created_at INTEGER NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_shop_order_items_order ON shop_order_items(order_id);
+`);
+
+// 상품 리뷰 — 목록 카드의 별점/리뷰수 집계용(작성 UI는 후속). user_id는 판매자(상점) 스코프.
+db.exec(`
+  CREATE TABLE IF NOT EXISTS product_reviews (
+    id          TEXT    PRIMARY KEY,
+    product_id  TEXT    NOT NULL,
+    user_id     TEXT    NOT NULL,
+    rating      INTEGER NOT NULL,
+    body        TEXT    NOT NULL DEFAULT '',
+    author_name TEXT    NOT NULL DEFAULT '',
+    created_at  INTEGER NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_product_reviews_product ON product_reviews(product_id);
+`);
+
 export default db;
