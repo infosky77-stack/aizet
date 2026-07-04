@@ -53,12 +53,26 @@ export async function runPublishTask({
     log('[agent] education 폴더 화면 진입');
 
     // ── 2) 콘텐츠 찾기(재실행 멱등) 또는 폴더+콘텐츠 생성 ────────────────────
-    if (await page.getByText(contentTitle).count()) {
-      await page.getByText(contentTitle).first().click();
+    // 진입(열기)은 반드시 "그리드 카드"를 더블클릭한다(단일클릭=선택, 더블클릭=열기).
+    // getByText 첫 매치는 사이드바 트리 행(<span>)인데, 사이드바는 단일클릭 내비라
+    // dblclick(=router.push 2연타)이 내비게이션을 무효화한다 — 카드는 <p> 제목으로 구분.
+    const card = (title) => page
+      .locator('div[role="button"]', { has: page.locator(`p:text-is("${title}")`) })
+      .first();
+    // 폴더 목록은 비동기 로딩 — 로딩/전환 중 count()=0 오판이 중복 폴더/콘텐츠를 만든다.
+    // 특히 폴더 진입 직후엔 구(최상위) 화면 DOM이 잠시 남으므로 즉석 count()는 신뢰 불가.
+    // 존재 판단은 "카드가 나타나기를 유한 대기"로 한다 — 있으면 곧 렌더되고, 없으면 타임아웃.
+    const appears = (locator, timeout) =>
+      locator.waitFor({ timeout }).then(() => true, () => false);
+    // 초기 진입은 툴바(로딩 완료 시에만 렌더)가 목록 렌더 완료의 신뢰 신호다.
+    await page.getByRole('button', { name: '여기에 콘텐츠 만들기' }).waitFor();
+
+    if (await card(contentTitle).count()) {
+      await card(contentTitle).dblclick();
       log(`[agent] 기존 콘텐츠 "${contentTitle}" 열기`);
     } else {
-      if (await page.getByText(folderTitle).count()) {
-        await page.getByText(folderTitle).first().click();
+      if (await card(folderTitle).count()) {
+        await card(folderTitle).dblclick();
         await page.waitForURL(/folderId=/);
         log(`[agent] 기존 폴더 "${folderTitle}" 진입`);
       } else {
@@ -66,12 +80,12 @@ export async function runPublishTask({
         const folderInput = page.getByPlaceholder('폴더 이름');
         await folderInput.fill(folderTitle);
         await page.locator('div.flex.gap-2', { has: folderInput }).getByRole('button', { name: '만들기' }).click();
-        await page.getByText(folderTitle).first().click();
+        await card(folderTitle).dblclick();
         await page.waitForURL(/folderId=/);
         log(`[agent] 폴더 "${folderTitle}" 생성·진입`);
       }
-      if (await page.getByText(contentTitle).count()) {
-        await page.getByText(contentTitle).first().click();
+      if (await appears(card(contentTitle), 10_000)) {
+        await card(contentTitle).dblclick();
         log(`[agent] 기존 콘텐츠 "${contentTitle}" 열기`);
       } else {
         await page.getByRole('button', { name: '여기에 콘텐츠 만들기' }).click();
