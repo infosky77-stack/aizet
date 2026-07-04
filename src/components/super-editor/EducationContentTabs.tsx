@@ -9,7 +9,7 @@
 // 삽화/음성은 파일 관리에서 올린 뒤 유닛에 연결하는 방식(2단계에서 연결 UI 추가).
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, Captions, Files, GripHorizontal, Loader2, Plus, Trash2, TriangleAlert, X } from 'lucide-react';
+import { ArrowLeft, Captions, Files, GripHorizontal, Image as ImageIcon, Loader2, Plus, Trash2, TriangleAlert, X } from 'lucide-react';
 import { ContentFileViewer } from '@/components/super-editor/ContentFileViewer';
 import { EducationCardButton } from '@/components/super-editor/EducationCardButton';
 import { EducationEbookButton } from '@/components/super-editor/EducationEbookButton';
@@ -21,7 +21,9 @@ import {
 import { resolveEducationSnapshot } from '@/lib/super-editor/education/preset';
 import { deriveEducationVideo } from '@/lib/super-editor/education/toVideoScenes';
 import { inflateEducationScenes } from '@/lib/super-editor/education/inflateEducationScenes';
-import { useFileLedgerStore } from '@/lib/super-editor/ledger/store';
+import { useFileLedgerStore, useOrderedFileEntries } from '@/lib/super-editor/ledger/store';
+import { resolveDisplayUrl } from '@/lib/super-editor/ledger/selectors';
+import type { FileEntry } from '@/lib/super-editor/ledger/types';
 import { buildSubtitleFile } from '@/lib/super-editor/video/buildSubtitleFile';
 import type { VideoProjectSnapshot } from '@/lib/super-editor/video/types';
 import { LOCALE_NATIVE_LABELS, SUPPORTED_LOCALES, type Locale } from '@/lib/i18n/types';
@@ -92,6 +94,39 @@ export function EducationContentTabs({
   // 언마운트 시 대기 중인 저장 타이머 정리(마지막 변경은 다음 열람 때 저장됨)
   useEffect(() => () => { if (saveTimer.current) clearTimeout(saveTimer.current); }, []);
 
+  // 이미지 선택기 대상 — 'background'(회차 배경) 또는 유닛 id(뜻 그림). product의
+  // '이미지 선택' 패턴 재사용: 원장은 읽기 전용 구독, 업로드는 "파일 관리" 몫.
+  const [pickerTarget, setPickerTarget] = useState<string | null>(null);
+  const entries = useOrderedFileEntries(orderId);
+  const imageEntries = entries.filter((e) => e.kind === 'image');
+
+  function pickImage(entry: FileEntry) {
+    if (!snapshot) return;
+    if (pickerTarget === 'background') {
+      patchSnapshot({ backgroundRef: entry.id });
+    } else if (pickerTarget) {
+      const i = snapshot.units.findIndex((u) => u.id === pickerTarget);
+      if (i >= 0) updateUnit(i, { illustrationRef: entry.id });
+    }
+    setPickerTarget(null);
+  }
+
+  function clearPickerTarget() {
+    if (!snapshot) return;
+    if (pickerTarget === 'background') {
+      patchSnapshot({ backgroundRef: null });
+    } else if (pickerTarget) {
+      const i = snapshot.units.findIndex((u) => u.id === pickerTarget);
+      if (i >= 0) updateUnit(i, { illustrationRef: null });
+    }
+    setPickerTarget(null);
+  }
+
+  const pickerUnit = pickerTarget && pickerTarget !== 'background'
+    ? snapshot?.units.find((u) => u.id === pickerTarget) ?? null
+    : null;
+  const pickerLinkedRef = pickerTarget === 'background' ? snapshot?.backgroundRef : pickerUnit?.illustrationRef;
+
   // 영상 파생 스냅샷 — 순수 변환(toVideoScenes)이라 편집할 때마다 즉시 재파생.
   // 저장하지 않는다: education 스냅샷이 유일한 원본이고 영상은 항상 여기서 파생된다.
   const derived = useMemo(() => (snapshot ? deriveEducationVideo(snapshot) : null), [snapshot]);
@@ -158,6 +193,18 @@ export function EducationContentTabs({
           >
             <Files size={14} /> 파일 관리
           </button>
+          {/* 회차 배경 — 카드·영상 전 장면에 cover로 깔린다(글자 없는 이미지만) */}
+          <button
+            onClick={() => setPickerTarget((t) => (t === 'background' ? null : 'background'))}
+            disabled={isPaid || !snapshot}
+            className={`flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-xl border transition-colors shrink-0 disabled:opacity-50 ${
+              snapshot?.backgroundRef
+                ? 'border-emerald-300 text-emerald-700 bg-emerald-50 hover:border-emerald-400'
+                : 'border-stone-200 text-stone-600 hover:border-violet-300 hover:text-violet-700'
+            }`}
+          >
+            <ImageIcon size={14} /> 배경 {snapshot?.backgroundRef ? '연결됨' : '없음'}
+          </button>
           {/* 산출물 버튼 3종 — 이북·카드·영상. 영상은 파생 스냅샷을 기존 파이프라인에 전달만 */}
           <EducationEbookButton orderId={orderId} snapshot={snapshot} />
           <EducationCardButton orderId={orderId} snapshot={snapshot} />
@@ -171,6 +218,59 @@ export function EducationContentTabs({
           </div>
         ) : (
           <div className="flex flex-col gap-3">
+            {/* 이미지 선택기 — 원장의 이미지에서 배경/뜻 그림을 골라 연결(product 패턴) */}
+            {pickerTarget && !isPaid && (
+              <div className="p-3 rounded-2xl border border-violet-200 bg-violet-50/50 flex flex-col gap-2">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-xs font-semibold text-stone-500">
+                    {pickerTarget === 'background'
+                      ? '카드·영상에 깔 배경 이미지 선택'
+                      : `"${pickerUnit?.char.trim() || '유닛'}" 뜻 그림 선택`}
+                    <span className="font-normal text-stone-400"> — 글자 없는 이미지만, 파일이 없으면 먼저 &ldquo;파일 관리&rdquo;에서 올려주세요</span>
+                  </p>
+                  <span className="flex items-center gap-1 shrink-0">
+                    {pickerLinkedRef && (
+                      <button
+                        onClick={clearPickerTarget}
+                        className="px-2.5 py-1.5 text-[11px] font-semibold rounded-lg border border-stone-200 text-stone-500 hover:border-red-300 hover:text-red-500 transition-colors"
+                      >
+                        연결 해제
+                      </button>
+                    )}
+                    <button
+                      onClick={() => setPickerTarget(null)}
+                      className="p-1.5 rounded-lg hover:bg-stone-100 text-stone-400"
+                      aria-label="선택기 닫기"
+                    >
+                      <X size={14} />
+                    </button>
+                  </span>
+                </div>
+                {imageEntries.length === 0 ? (
+                  <p className="text-xs text-stone-400 py-3 text-center">올려둔 이미지가 없습니다</p>
+                ) : (
+                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                    {imageEntries.map((e) => (
+                      <button
+                        key={e.id}
+                        onClick={() => pickImage(e)}
+                        className={`group bg-white border rounded-xl overflow-hidden text-left transition-colors ${
+                          pickerLinkedRef === e.id ? 'border-emerald-400' : 'border-stone-200 hover:border-violet-300'
+                        }`}
+                      >
+                        <div className="aspect-video bg-stone-100 flex items-center justify-center overflow-hidden">
+                          {/* 원장 blob URL이라 next/image 최적화 대상이 아님 — 일반 img 사용 */}
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={resolveDisplayUrl(e)} alt={e.origName} className="w-full h-full object-cover" />
+                        </div>
+                        <p className="px-2 py-1 text-[10px] font-medium text-stone-600 truncate group-hover:text-violet-700">{e.origName}</p>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
             {snapshot.units.map((unit, i) => (
               <div key={unit.id} className="bg-white border border-stone-200 rounded-2xl p-4 flex flex-col gap-3">
                 <div className="flex items-center gap-3">
@@ -193,10 +293,18 @@ export function EducationContentTabs({
                     className={`${inputCls} flex-1 min-w-0 font-semibold`}
                     aria-label="예시 단어(원문)"
                   />
-                  {/* 삽화/음성 연결 상태 — 연결 UI는 2단계(카드)에서 파일 선택기와 함께 */}
-                  <span className={`text-[10px] font-semibold px-2 py-1 rounded-full shrink-0 ${unit.illustrationRef ? 'bg-emerald-50 text-emerald-600' : 'bg-stone-100 text-stone-400'}`}>
-                    삽화 {unit.illustrationRef ? '연결됨' : '없음'}
-                  </span>
+                  {/* 뜻 그림 연결 — 클릭하면 원장 선택기가 열린다(배경과 같은 패널 재사용) */}
+                  <button
+                    onClick={() => setPickerTarget((t) => (t === unit.id ? null : unit.id))}
+                    disabled={isPaid}
+                    className={`text-[10px] font-semibold px-2 py-1 rounded-full shrink-0 transition-colors disabled:opacity-50 ${
+                      unit.illustrationRef
+                        ? 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'
+                        : 'bg-stone-100 text-stone-400 hover:bg-violet-50 hover:text-violet-600'
+                    } ${pickerTarget === unit.id ? 'ring-2 ring-violet-300' : ''}`}
+                  >
+                    삽화 {unit.illustrationRef ? '연결됨' : '연결'}
+                  </button>
                   <span className={`text-[10px] font-semibold px-2 py-1 rounded-full shrink-0 ${unit.voiceRef ? 'bg-emerald-50 text-emerald-600' : 'bg-stone-100 text-stone-400'}`}>
                     음성 {unit.voiceRef ? '연결됨' : '없음'}
                   </span>
