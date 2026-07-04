@@ -19,6 +19,7 @@ run "순수 헬퍼 (folder-domains/types/wrapText)" npx tsx tests/pure-helpers.t
 run "쇼핑몰 순수 로직 (상태전이/할인율/평점)"   npx tsx tests/shop-logic.test.ts
 run "i18n 뼈대 (언어감지/폴백/UI사전)"          npx tsx tests/i18n.test.ts
 run "칸칸 HTML 상세 (토큰매핑/게시변환)"        npx tsx tests/product-detail-html.test.ts
+run "섹션 번역 (draft/검수/강등/폴백)"          npx tsx tests/product-i18n.test.ts
 run "클립 seek 캡처 정확도 (headless Chromium)" node tests/seek-capture-accuracy.test.mjs
 
 echo ""

@@ -130,8 +130,9 @@ export default function HancandyHome() {
                       <div className="text-[10px] text-gray-400">{p.weight}</div>
                     </div>
                     <div className="flex gap-2">
+                      {/* products 테이블 id는 seed 규칙상 `hancandy-{candy.id}` (scripts/seed-hancandy.ts) */}
                       <Link
-                        href={`/hancandy/products/${p.id}`}
+                        href={`/hancandy/products/hancandy-${p.id}`}
                         className={`text-xs font-semibold px-3 py-2 rounded-xl border-2 ${tc.border} ${tc.text} transition-colors`}
                       >
                         상세보기

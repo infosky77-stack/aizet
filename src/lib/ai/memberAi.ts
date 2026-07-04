@@ -37,3 +37,26 @@ export const aiImageGenerator: AiImageGenerator = {
     throw new Error(memberAi.unavailableReason);
   },
 };
+
+// ── 지점 ⑤ 번역 초안 — 인터페이스만(초안은 화면에 제안될 뿐, 저장은 회원이 하고
+//    검수(reviewed) 확정은 반드시 회원의 검수 버튼으로만 — product/i18n.ts 절대 규칙) ──
+export interface AiTranslateRequest {
+  /** 번역할 원문(ko) 텍스트 목록 — 같은 순서·같은 길이로 돌려받는다(빈 문자열 포함) */
+  texts: string[];
+  /** 대상 언어 — lib/i18n/types.ts Locale 중 ko 제외 */
+  targetLocale: string;
+  /** 문맥 힌트(선택) — 상품명/업종 등, 어투·용어 결정용 */
+  context?: string;
+}
+
+export interface AiTranslator extends MemberAiStatus {
+  /** 번역 "초안" 목록 반환 — 호출부는 반드시 draft 상태로만 저장할 것 */
+  translateDraft(req: AiTranslateRequest): Promise<string[]>;
+}
+
+export const aiTranslator: AiTranslator = {
+  ...memberAi,
+  async translateDraft(): Promise<string[]> {
+    throw new Error(memberAi.unavailableReason);
+  },
+};

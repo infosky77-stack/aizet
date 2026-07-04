@@ -8,8 +8,9 @@
 // 변환도 layout.ts와 같은 보고 계약을 따른다: 내용이 비어 내보낼 수 없는 섹션은
 // 조용히 누락시키지 않고 skipped로 보고한다(호출부가 warnings/notices로 승격).
 
-import type { ProductDetailSnapshot, ProductFeatureItem } from './types';
+import type { ProductDetailSnapshot, ProductFeatureItem, SectionI18n } from './types';
 import { productSectionLabel } from './layout';
+import { pruneSectionI18n } from './i18n';
 
 export interface PublishedDetailSection {
   id:   string;
@@ -19,6 +20,8 @@ export interface PublishedDetailSection {
   text:    string;
   subText: string;
   items:   ProductFeatureItem[];
+  /** 언어별 번역본 — 렌더러가 접속 언어로 해석(product/i18n.ts resolveSectionText) */
+  i18n?: SectionI18n;
 }
 
 export interface PublishedProductDetail {
@@ -55,9 +58,11 @@ export function toPublishedDetail(
 
   snapshot.sections.forEach((section, idx) => {
     const label = productSectionLabel(section, idx);
-    const base = {
-      id: section.id, kind: section.kind, src: null as string | null,
-      text: section.text, subText: section.subText, items: [] as ProductFeatureItem[],
+    const base: PublishedDetailSection = {
+      id: section.id, kind: section.kind, src: null,
+      text: section.text, subText: section.subText, items: [],
+      // 내용 없는 번역은 게시본에 실지 않는다(공개 JSON 다이어트 + 렌더러 폴백 단순화)
+      i18n: pruneSectionI18n(section.i18n),
     };
 
     if (section.kind === 'image') {

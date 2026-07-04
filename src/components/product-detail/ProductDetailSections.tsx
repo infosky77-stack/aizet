@@ -9,11 +9,19 @@
 import type { CSSProperties } from 'react';
 import { getProductTemplate } from '@/lib/super-editor/product/templates';
 import { detailThemeVars } from '@/lib/super-editor/product/htmlTheme';
+import { resolveSectionText, type ResolvedSectionText } from '@/lib/super-editor/product/i18n';
+import type { Locale } from '@/lib/i18n/types';
 import type {
   PublishedProductDetail, PublishedDetailSection,
 } from '@/lib/super-editor/product/published';
 
-export function ProductDetailSections({ detail }: { detail: PublishedProductDetail }) {
+interface Props {
+  detail: PublishedProductDetail;
+  /** 접속 언어 — 텍스트 칸을 번역본으로 표시(없는 번역은 필드 단위로 원문 폴백) */
+  locale?: Locale;
+}
+
+export function ProductDetailSections({ detail, locale = 'ko' }: Props) {
   const template = getProductTemplate(detail.templateId);
   const vars = detailThemeVars(template) as CSSProperties;
 
@@ -23,36 +31,38 @@ export function ProductDetailSections({ detail }: { detail: PublishedProductDeta
         className="mx-auto w-full max-w-[var(--pd-max-w)] flex flex-col"
         style={{ padding: 'var(--pd-pad-y) var(--pd-pad-x)', gap: 'var(--pd-gap)' }}
       >
-        {detail.sections.map((sec) => <Section key={sec.id} sec={sec} />)}
+        {detail.sections.map((sec) => <Section key={sec.id} sec={sec} locale={locale} />)}
       </div>
     </div>
   );
 }
 
-function Section({ sec }: { sec: PublishedDetailSection }) {
-  if (sec.kind === 'headline') return <HeadlineSection sec={sec} />;
-  if (sec.kind === 'image')    return <ImageSection sec={sec} />;
-  if (sec.kind === 'features') return <FeaturesSection sec={sec} />;
-  return <TextSection sec={sec} />;
+// 언어 해석은 여기서 한 번만 — 각 섹션 컴포넌트는 해석된 텍스트(t)만 받는다
+function Section({ sec, locale }: { sec: PublishedDetailSection; locale: Locale }) {
+  const t = resolveSectionText(sec, locale);
+  if (sec.kind === 'headline') return <HeadlineSection t={t} />;
+  if (sec.kind === 'image')    return <ImageSection sec={sec} t={t} />;
+  if (sec.kind === 'features') return <FeaturesSection t={t} />;
+  return <TextSection t={t} />;
 }
 
 // ── headline: 캐치프레이즈(악센트) → 대제목 → 악센트 바 ──────────────────────
-function HeadlineSection({ sec }: { sec: PublishedDetailSection }) {
+function HeadlineSection({ t }: { t: ResolvedSectionText }) {
   return (
     <header className="flex flex-col items-center gap-3 text-center">
-      {sec.subText && (
+      {t.subText && (
         <p
           className="font-semibold tracking-wide break-keep"
           style={{ color: 'var(--pd-accent)', fontSize: 'var(--pd-fs-subheadline)' }}
         >
-          {sec.subText}
+          {t.subText}
         </p>
       )}
       <h2
         className="font-black leading-tight break-keep"
         style={{ color: 'var(--pd-text)', fontSize: 'var(--pd-fs-headline)' }}
       >
-        {sec.text}
+        {t.text}
       </h2>
       <div aria-hidden className="h-1 w-10 rounded-full" style={{ background: 'var(--pd-accent)' }} />
     </header>
@@ -60,19 +70,19 @@ function HeadlineSection({ sec }: { sec: PublishedDetailSection }) {
 }
 
 // ── image: 전폭 이미지 + 캡션. 게시 시점 크기 고정이 아니라 자동 높이 ────────
-function ImageSection({ sec }: { sec: PublishedDetailSection }) {
+function ImageSection({ sec, t }: { sec: PublishedDetailSection; t: ResolvedSectionText }) {
   if (!sec.src) return null; // 게시 변환(toPublishedDetail)이 걸러내므로 방어선일 뿐
   return (
     <figure className="flex flex-col gap-3">
       {/* 공개 사본/blob URL — next/image 최적화 대상 아님(외부 업로드본과 동일 원본 유지) */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={sec.src} alt={sec.text || ''} className="w-full h-auto rounded-2xl" />
-      {sec.text && (
+      <img src={sec.src} alt={t.text || ''} className="w-full h-auto rounded-2xl" />
+      {t.text && (
         <figcaption
           className="text-center break-keep"
           style={{ color: 'var(--pd-text-2)', fontSize: 'var(--pd-fs-caption)' }}
         >
-          {sec.text}
+          {t.text}
         </figcaption>
       )}
     </figure>
@@ -80,10 +90,10 @@ function ImageSection({ sec }: { sec: PublishedDetailSection }) {
 }
 
 // ── text: 빈 줄로 문단 구분(types.ts 계약), 줄바꿈 보존 ──────────────────────
-function TextSection({ sec }: { sec: PublishedDetailSection }) {
+function TextSection({ t }: { t: ResolvedSectionText }) {
   return (
     <div className="flex flex-col gap-4">
-      {sec.text.split(/\n\s*\n/).map((para, i) => (
+      {t.text.split(/\n\s*\n/).map((para, i) => (
         <p
           key={i}
           className="whitespace-pre-line break-keep"
@@ -101,10 +111,10 @@ function TextSection({ sec }: { sec: PublishedDetailSection }) {
 }
 
 // ── features: 카드 그리드(모바일 1열 → 2열), 번호 배지로 위계 표시 ───────────
-function FeaturesSection({ sec }: { sec: PublishedDetailSection }) {
+function FeaturesSection({ t }: { t: ResolvedSectionText }) {
   return (
     <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 list-none p-0 m-0">
-      {sec.items.map((item, i) => (
+      {t.items.map((item, i) => (
         <li
           key={i}
           className="rounded-2xl p-5 sm:p-6 flex flex-col gap-2"

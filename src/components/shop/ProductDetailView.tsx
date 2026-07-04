@@ -11,6 +11,7 @@ import { discountRate, formatPrice } from '@/lib/shop/types';
 import {
   isPublishedProductDetail, type PublishedProductDetail,
 } from '@/lib/super-editor/product/published';
+import { getRequestLocale } from '@/lib/i18n/server';
 import { ProductDetailSections } from '@/components/product-detail/ProductDetailSections';
 import { RatingStars } from './RatingStars';
 import { ShopHeader } from './ShopHeader';
@@ -54,6 +55,8 @@ export async function ProductDetailView({ slug, productId, basePath, showHeader 
   const publishedDetail = product.detail_json_path
     ? await readPublishedDetail(user.id, productId)
     : null;
+  // 접속 언어(쿠키 > Accept-Language > ko) — 칸칸 HTML의 텍스트 칸이 번역본으로 표시된다
+  const locale = publishedDetail ? await getRequestLocale() : 'ko';
 
   return (
     <div className="min-h-screen bg-white pb-24">
@@ -90,7 +93,7 @@ export async function ProductDetailView({ slug, productId, basePath, showHeader 
         {/* 상세페이지 — 칸칸 HTML 게시본 우선(확대해도 선명·다국어 준비), 없으면 긴 JPEG 폴백 */}
         {publishedDetail ? (
           <div className="border-t border-stone-100">
-            <ProductDetailSections detail={publishedDetail} />
+            <ProductDetailSections detail={publishedDetail} locale={locale} />
           </div>
         ) : product.detail_image_path ? (
           <div className="border-t border-stone-100">
