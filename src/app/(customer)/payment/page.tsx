@@ -130,10 +130,12 @@ function PaymentContent() {
       if (config.tossMethod === 'CARD') {
         await payment.requestPayment({ method: 'CARD', ...base });
       } else {
+        // 간편결제 자체창 다이렉트 호출 — v2 SDK는 EASY_PAY 메서드가 없고
+        // CARD + flowMode DIRECT + 간편결제 코드 조합으로 연다
         await payment.requestPayment({
-          method: 'EASY_PAY',
+          method: 'CARD',
           ...base,
-          easyPay: { easyPayProvider: config.easyPayProvider as 'KAKAOPAY' | 'NAVERPAY' | 'TOSSPAY' },
+          card: { flowMode: 'DIRECT', easyPay: config.easyPayProvider },
         });
       }
     } catch (err: unknown) {

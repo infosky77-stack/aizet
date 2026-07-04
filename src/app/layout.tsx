@@ -7,8 +7,10 @@ const geist = Geist({ subsets: ['latin'], variable: '--font-geist-sans' });
 
 // 한국어 텍스트를 일관되게 렌더링하기 위한 명시적 웹폰트
 // Geist는 한국어 unicode-range를 포함하지 않아 OS 기본 폰트로 fallback됨
+// subsets에 'korean'은 없다(구글 폰트가 명명 서브셋 대신 unicode-range 슬라이스로
+// 한글을 항상 서빙) — 'latin'만 선언해도 한글 렌더링은 동일하다
 const notoSansKR = Noto_Sans_KR({
-  subsets: ['latin', 'korean'],
+  subsets: ['latin'],
   weight: ['400', '500', '600', '700', '900'],
   variable: '--font-noto-sans-kr',
   display: 'swap',

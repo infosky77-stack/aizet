@@ -12,6 +12,7 @@ const METHOD_LABEL: Record<PaymentMethod, string> = {
   card: '카드',
   kakao: '카카오페이',
   naver: '네이버페이',
+  toss: '토스페이',
   cash: '현금',
 };
 
@@ -19,6 +20,7 @@ const METHOD_ICON: Record<PaymentMethod, React.ElementType> = {
   card: CreditCard,
   kakao: Smartphone,
   naver: Smartphone,
+  toss: Smartphone,
   cash: Banknote,
 };
 

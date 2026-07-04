@@ -13,8 +13,10 @@ export async function htmlToPdf(html: string): Promise<Buffer> {
 
   try {
     const page = await browser.newPage();
-    // networkidle0: 구글 폰트 CDN이 완전히 로드된 뒤 PDF 생성
-    await page.setContent(html, { waitUntil: 'networkidle0' });
+    // 구글 폰트 CDN이 완전히 로드된 뒤 PDF 생성 — setContent의 waitUntil 타입에서
+    // networkidle이 빠져(puppeteer 24) 별도 waitForNetworkIdle로 동일 효과를 낸다
+    await page.setContent(html);
+    await page.waitForNetworkIdle();
     const pdf = await page.pdf({
       format: 'A4',
       printBackground: true,

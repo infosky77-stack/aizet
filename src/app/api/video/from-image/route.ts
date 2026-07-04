@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
 
     const filename = encodeURIComponent(`video_${imageName.replace(/\.[^.]+$/, '')}_${duration}s.mp4`);
 
-    return new Response(buffer, {
+    return new Response(new Uint8Array(buffer), {
       headers: {
         'Content-Type':        'video/mp4',
         'Content-Disposition': `attachment; filename*=UTF-8''${filename}`,
