@@ -8,6 +8,7 @@ import {
 import {
   layoutEducationCard, shrinkToFit, CARD_SIZE_PX,
 } from '../src/lib/super-editor/education/cardLayout';
+import { buildEbookPages, type EbookPage } from '../src/lib/super-editor/education/ebookPages';
 import { SUPPORTED_LOCALES } from '../src/lib/i18n/types';
 
 const checks: [string, boolean][] = [];
@@ -76,6 +77,35 @@ const longSize  = texts(longWord).find((b) => b.text.startsWith('아주'))!.font
 checks.push(['긴 예시 단어는 폰트 자동 축소', longSize < shortSize]);
 checks.push(['축소 하한(minPx) 보장', shrinkToFit('아'.repeat(200), 84, 40, 920, true, fakeMeasure) === 40]);
 checks.push(['제목 없으면 제목 블록 생략', !texts(layoutEducationCard({ ...base, episodeTitle: '', hasIllustration: false }, fakeMeasure)).some((b) => b.fontSizePx <= 34 && b.text !== 'a')]);
+
+// ── 이북 페이지 모델(ebookPages) — 플립북·PDF 공용 단일 소스 ────────────────
+const ebook = buildEbookPages(preset, 'ko');
+const unitPages = ebook.pages.filter((p): p is Extract<EbookPage, { kind: 'unit' }> => p.kind === 'unit');
+checks.push(['표지+유닛6+복습 = 8페이지', ebook.pages.length === 8]);
+checks.push(['첫 페이지 표지·마지막 복습', ebook.pages[0].kind === 'cover' && ebook.pages[7].kind === 'review']);
+checks.push(['표지에 배울 글자 나열', ebook.pages[0].kind === 'cover' && ebook.pages[0].chars.join('') === 'ㅏㅓㅗㅜㅡㅣ']);
+checks.push(['유닛 페이지 번호 1~6', unitPages.map((p) => p.index).join(',') === '1,2,3,4,5,6']);
+checks.push(['ko 열람은 번역 병기 없음(원문이 본문)', unitPages.every((p) => p.exampleTranslated === null)]);
+checks.push(['복습 페이지에 전 글자+로마자', ebook.pages[7].kind === 'review' && ebook.pages[7].items.length === 6]);
+checks.push(['정상 스냅샷은 경고 0', ebook.notices.length === 0]);
+
+const ebookJa = buildEbookPages(preset, 'ja');
+const jaUnits = ebookJa.pages.filter((p): p is Extract<EbookPage, { kind: 'unit' }> => p.kind === 'unit');
+checks.push(['ja 열람은 일본어 번역 병기', jaUnits[0].exampleTranslated === 'あかちゃん']);
+
+const holed = episode1Preset();
+holed.units[2] = { ...holed.units[2], char: '  ' }; // 글자 비움
+holed.units[4] = { ...holed.units[4], example: { ...holed.units[4].example, ja: '' } }; // ja 번역 비움
+const holedJa = buildEbookPages(holed, 'ja');
+checks.push(['빈 글자 유닛 제외 + 경고 보고', holedJa.pages.length === 7 && holedJa.notices.length === 1 && holedJa.notices[0].label.includes('3번')]);
+checks.push([
+  '빈 번역은 병기 없이 원문만(폴백 원칙, 경고 아님)',
+  (() => {
+    const u = holedJa.pages.filter((p): p is Extract<EbookPage, { kind: 'unit' }> => p.kind === 'unit');
+    return u.find((p) => p.char === 'ㅡ')!.exampleTranslated === null && u.find((p) => p.char === 'ㅏ')!.exampleTranslated === 'あかちゃん';
+  })(),
+]);
+checks.push(['제외 후에도 페이지 번호 연속(1~5)', holedJa.pages.filter((p) => p.kind === 'unit').map((p) => (p as Extract<EbookPage, { kind: 'unit' }>).index).join(',') === '1,2,3,4,5']);
 
 let failed = 0;
 for (const [name, ok] of checks) { if (!ok) failed++; console.log(`${ok ? 'PASS' : 'FAIL'} | ${name}`); }

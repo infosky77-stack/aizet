@@ -12,6 +12,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ArrowLeft, Files, GripHorizontal, Loader2, Plus, Trash2, X } from 'lucide-react';
 import { ContentFileViewer } from '@/components/super-editor/ContentFileViewer';
 import { EducationCardButton } from '@/components/super-editor/EducationCardButton';
+import { EducationEbookButton } from '@/components/super-editor/EducationEbookButton';
 import {
   type EducationSnapshot, type EducationUnit, type StudyLang, newEducationUnit,
 } from '@/lib/super-editor/education/types';
@@ -106,7 +107,8 @@ export function EducationContentTabs({
           >
             <Files size={14} /> 파일 관리
           </button>
-          {/* 산출물 버튼 — 카드(2단계) 완료, 이북(3단계)·영상(4단계)이 이어서 붙는다 */}
+          {/* 산출물 버튼 — 카드(2단계)·이북(3단계) 완료, 영상(4단계)이 이어서 붙는다 */}
+          <EducationEbookButton orderId={orderId} snapshot={snapshot} />
           <EducationCardButton orderId={orderId} snapshot={snapshot} />
         </div>
 
