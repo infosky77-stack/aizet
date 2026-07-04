@@ -20,17 +20,17 @@ const WITH_REVIEW_AGG = `
 
 export function createProduct(
   userId: string,
-  fields: Partial<Pick<ProductRow, 'name' | 'price' | 'original_price' | 'category' | 'detail_order_id'>> = {},
+  fields: Partial<Pick<ProductRow, 'name' | 'description' | 'price' | 'original_price' | 'category' | 'detail_order_id'>> = {},
 ): ProductRow {
   const id  = randomUUID();
   const now = Date.now();
   db.prepare(`
-    INSERT INTO products (id, user_id, name, price, original_price, category, status,
+    INSERT INTO products (id, user_id, name, description, price, original_price, category, status,
                           detail_order_id, sort_order, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, 'draft', ?, 0, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, 'draft', ?, 0, ?, ?)
   `).run(
-    id, userId, fields.name ?? '', fields.price ?? 0, fields.original_price ?? null,
-    fields.category ?? '', fields.detail_order_id ?? null, now, now,
+    id, userId, fields.name ?? '', fields.description ?? '', fields.price ?? 0,
+    fields.original_price ?? null, fields.category ?? '', fields.detail_order_id ?? null, now, now,
   );
   return getProduct(id)!;
 }
@@ -56,8 +56,8 @@ export function listPublicProducts(userId: string): ProductRow[] {
 }
 
 const UPDATABLE = new Set([
-  'name', 'price', 'original_price', 'category', 'status',
-  'thumbnail_path', 'detail_order_id', 'detail_image_path', 'sort_order',
+  'name', 'description', 'price', 'original_price', 'category', 'status',
+  'thumbnail_ref', 'thumbnail_path', 'detail_order_id', 'detail_image_path', 'sort_order',
 ]);
 
 export function updateProduct(

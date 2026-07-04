@@ -63,10 +63,13 @@ export interface ProductRow {
   id:                string;
   user_id:           string;
   name:              string;
+  description:       string;
   price:             number;
   original_price:    number | null;
   category:          string;
   status:            ProductStatus;
+  /** 회원이 썸네일로 지정한 파일 원장 id(발행 시 공개 사본의 원본) */
+  thumbnail_ref:     string | null;
   thumbnail_path:    string | null;
   detail_order_id:   string | null;
   detail_image_path: string | null;

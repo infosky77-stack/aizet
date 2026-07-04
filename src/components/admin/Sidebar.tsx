@@ -7,7 +7,7 @@ import {
   LayoutDashboard, ClipboardList, UtensilsCrossed, CalendarClock, Bot,
   ArrowLeft, CreditCard, Printer, BookOpen, Leaf, Scale, BarChart3,
   Menu, X, Cloud, LogOut, ChevronDown, Shield, Zap, Crown, Globe, Settings, Wand2, Building2, FileText, FolderOpen,
-  Users, ChevronLeft, Film, ListVideo, Landmark,
+  Users, ChevronLeft, Film, ListVideo, Landmark, ShoppingBag,
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useSession } from '@/hooks/useSession';
@@ -56,6 +56,7 @@ const NAV: NavItem[] = [
 
   // ── 자동화 엔진 (공통) ────────────────────────────────────
   { href: '/admin/super-editor', label: '슈퍼에디터', icon: Film },
+  { href: '/admin/shop',         label: '쇼핑몰',     icon: ShoppingBag },
 ];
 
 const PLAN_META: Record<UserPlan, { label: string; icon: React.ReactNode; color: string }> = {

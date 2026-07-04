@@ -420,6 +420,21 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_shop_order_items_order ON shop_order_items(order_id);
 `);
 
+// ── products 신규 컬럼 (기존 row 보존, 멱등) ──────────────────────────────────
+// description: 짧은 소개(AI 카피 다듬기 대상). thumbnail_ref: 회원이 지정한 썸네일의
+// 파일 원장(super_editor_files) id — 공개 사본 경로(thumbnail_path)와 별개로,
+// "어떤 원본을 썸네일로 쓸지"의 선택을 기억한다(발행 시 이 원본을 공개 디렉토리로 복사).
+{
+  const cols = (db.pragma('table_info(products)') as Array<{ name: string }>).map(c => c.name);
+  const toAdd: [string, string][] = [
+    ['description',   "TEXT NOT NULL DEFAULT ''"],
+    ['thumbnail_ref', 'TEXT'],
+  ];
+  for (const [col, def] of toAdd) {
+    if (!cols.includes(col)) db.exec(`ALTER TABLE products ADD COLUMN ${col} ${def}`);
+  }
+}
+
 // 상품 리뷰 — 목록 카드의 별점/리뷰수 집계용(작성 UI는 후속). user_id는 판매자(상점) 스코프.
 db.exec(`
   CREATE TABLE IF NOT EXISTS product_reviews (
