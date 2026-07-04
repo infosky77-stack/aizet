@@ -45,6 +45,11 @@ export const SECTION_KIND_LABELS: Record<ProductSection['kind'], string> = {
   features: '특징',
 };
 
+/** 사람이 읽는 섹션 표시 — layout의 skipped와 빌더의 notices가 같은 라벨을 쓴다 */
+export function productSectionLabel(section: ProductSection, index: number): string {
+  return `${SECTION_KIND_LABELS[section.kind]} (${index + 1}번째 섹션)`;
+}
+
 /** measure 기반 줄바꿈 — 공백 단위 우선, 한 단어가 폭을 넘으면 글자 단위로 강제 분리 */
 export function wrapByMeasure(
   text: string, fontSizePx: number, bold: boolean, maxW: number, measure: MeasureTextFn,
@@ -71,10 +76,6 @@ export function wrapByMeasure(
     if (current) lines.push(current);
   }
   return lines;
-}
-
-function sectionLabel(section: ProductSection, index: number): string {
-  return `${SECTION_KIND_LABELS[section.kind]} (${index + 1}번째 섹션)`;
 }
 
 export function layoutProductDetail(
@@ -112,7 +113,7 @@ export function layoutProductDetail(
 
   snapshot.sections.forEach((section, idx) => {
     const startBlockCount = blocks.length;
-    const label = sectionLabel(section, idx);
+    const label = productSectionLabel(section, idx);
 
     if (section.kind === 'headline') {
       if (!section.text.trim()) {

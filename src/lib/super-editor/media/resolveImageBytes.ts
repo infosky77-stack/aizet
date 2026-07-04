@@ -31,6 +31,25 @@ function findLedgerEntry(
   return undefined;
 }
 
+/**
+ * ledger_ref(원장 엔트리 포인터) 하나의 이미지 Blob을 확보 — 잡지 조판·제품상세가 공용.
+ * resolveArtworkImageBlob은 sourceEntryId(세션 id)와 sourceFileId(서버 파일 id) 양쪽으로
+ * 찾아주므로 ledger_ref를 두 자리에 같이 넣으면 어느 쪽 id가 저장돼 있었든 해석된다.
+ * 실패하면 null(호출부가 자리표시로 대체하고 notices로 보고).
+ */
+export async function resolveLedgerRefBlob(
+  ledgerRef: string | null, entries: Record<string, FileEntry>,
+): Promise<Blob | null> {
+  if (!ledgerRef) return null;
+  try {
+    return await resolveArtworkImageBlob(
+      { imageUrl: '', sourceEntryId: ledgerRef, sourceFileId: ledgerRef }, entries,
+    );
+  } catch {
+    return null;
+  }
+}
+
 /** artwork 하나의 이미지 원본 바이트(Blob)를 확보. 실패하면 throw. */
 export async function resolveArtworkImageBlob(
   artwork: ArtworkImageRef,

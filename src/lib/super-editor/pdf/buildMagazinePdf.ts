@@ -13,7 +13,7 @@
 
 import { PDFDocument, PDFFont, PDFPage, rgb } from 'pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
-import { resolveArtworkImageBlob } from '../media/resolveImageBytes';
+import { resolveLedgerRefBlob } from '../media/resolveImageBytes';
 import { resizeImageToJpeg } from '../media/resizeImage';
 import {
   MM, PAGE_SIZES_MM, loadFontBytes, baselineY, drawCenteredLine,
@@ -172,22 +172,6 @@ async function drawImageCell(
   );
 }
 
-// ledger_ref → 원장 엔트리의 이미지 Blob. resolveArtworkImageBlob은 sourceEntryId(세션 id)와
-// sourceFileId(서버 파일 id) 양쪽으로 찾아주므로 ledger_ref를 두 자리에 같이 넣으면
-// 어느 쪽 id가 저장돼 있었든 해석된다. 실패하면 null(호출부가 자리표시로 대체).
-async function resolveLedgerImage(
-  ledgerRef: string | null, entries: Record<string, FileEntry>,
-): Promise<Blob | null> {
-  if (!ledgerRef) return null;
-  try {
-    return await resolveArtworkImageBlob(
-      { imageUrl: '', sourceEntryId: ledgerRef, sourceFileId: ledgerRef }, entries,
-    );
-  } catch {
-    return null;
-  }
-}
-
 export async function buildMagazinePdf(
   input: MagazinePdfInput,
   entries: Record<string, FileEntry>,
@@ -275,7 +259,7 @@ export async function buildMagazinePdf(
     const page = pdfDoc.addPage([W, H]);
 
     for (const { placement, rect } of physical.items) {
-      const blob = await resolveLedgerImage(placement.ledger_ref, entries);
+      const blob = await resolveLedgerRefBlob(placement.ledger_ref, entries);
       if (blob) {
         try {
           await drawImageCell(pdfDoc, page, font, rect, H, placement, blob);
