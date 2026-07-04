@@ -1,5 +1,12 @@
+import type { Locale } from '@/lib/i18n/types';
+
 export type KoreanLevel = 'beginner' | 'elementary' | 'intermediate' | 'advanced';
-export type StudyLang = 'en' | 'zh' | 'ja' | 'vi';
+/**
+ * 학습자 모국어 — 사이트 공통 Locale(lib/i18n/types.ts)에서 ko를 뺀 부분집합.
+ * SUPPORTED_LOCALES에 언어를 추가하면 아래 Record<StudyLang, …>들이 컴파일 에러로
+ * 커리큘럼 번역 추가를 강제한다(의도된 가드 — 지원 언어와 학습 콘텐츠의 동기화).
+ */
+export type StudyLang = Exclude<Locale, 'ko'>;
 export type Stage = 'consonant' | 'vowel' | 'word' | 'sentence' | 'conversation';
 
 export interface LevelQuestion {
