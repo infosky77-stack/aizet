@@ -20,7 +20,9 @@ import {
 } from '@/lib/super-editor/education/types';
 import { resolveEducationSnapshot } from '@/lib/super-editor/education/preset';
 import { deriveEducationVideo } from '@/lib/super-editor/education/toVideoScenes';
+import { inflateEducationScenes } from '@/lib/super-editor/education/inflateEducationScenes';
 import { buildSubtitleFile } from '@/lib/super-editor/video/buildSubtitleFile';
+import type { VideoProjectSnapshot } from '@/lib/super-editor/video/types';
 import { LOCALE_NATIVE_LABELS, SUPPORTED_LOCALES, type Locale } from '@/lib/i18n/types';
 
 interface Props {
@@ -93,6 +95,23 @@ export function EducationContentTabs({
   // 저장하지 않는다: education 스냅샷이 유일한 원본이고 영상은 항상 여기서 파생된다.
   const derived = useMemo(() => (snapshot ? deriveEducationVideo(snapshot) : null), [snapshot]);
 
+  // 장면 카드 사전 렌더(큰 글자·유닛 컬러) — 준비 전/실패 시에는 파생 원본(텍스트 장면)을
+  // 그대로 쓰므로 영상 버튼은 항상 동작한다. blob URL은 다음 파생/언마운트 때 해제.
+  const [inflatedProject, setInflatedProject] = useState<VideoProjectSnapshot | null>(null);
+  useEffect(() => {
+    if (!derived || !snapshot) { setInflatedProject(null); return; }
+    let cancelled = false;
+    let disposeInflated: (() => void) | null = null;
+    inflateEducationScenes(derived.project, snapshot)
+      .then((inflated) => {
+        if (cancelled) { inflated.dispose(); return; }
+        disposeInflated = inflated.dispose;
+        setInflatedProject(inflated.project);
+      })
+      .catch(() => { if (!cancelled) setInflatedProject(null); });
+    return () => { cancelled = true; disposeInflated?.(); };
+  }, [derived, snapshot]);
+
   function downloadSubtitle(locale: Locale) {
     const subtitleCues = derived?.project.subtitles?.[locale];
     if (!subtitleCues?.length) return;
@@ -130,7 +149,7 @@ export function EducationContentTabs({
           {/* 산출물 버튼 3종 — 이북·카드·영상. 영상은 파생 스냅샷을 기존 파이프라인에 전달만 */}
           <EducationEbookButton orderId={orderId} snapshot={snapshot} />
           <EducationCardButton orderId={orderId} snapshot={snapshot} />
-          <VideoRenderButton orderId={orderId} title={title} project={derived?.project ?? null} />
+          <VideoRenderButton orderId={orderId} title={title} project={inflatedProject ?? derived?.project ?? null} />
           <EducationPublishButton orderId={orderId} snapshot={snapshot} />
         </div>
 

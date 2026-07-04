@@ -33,16 +33,17 @@ export interface EducationCardsResult {
 // next/font는 해시된 폰트 패밀리명을 CSS 변수(--font-noto-sans-kr)에 심는다 —
 // Canvas font 문자열은 CSS 변수를 못 읽으므로 계산값을 꺼내 실제 패밀리명을 얻는다.
 // 변수가 없으면(이론상) OS 한글 폰트 폴백 — 어느 쪽이든 한글은 선명하게 나온다.
-function cardFontFamily(): string {
+// (export: inflateEducationScenes가 영상 장면 카드를 같은 폰트·그리기로 만든다)
+export function cardFontFamily(): string {
   const v = getComputedStyle(document.documentElement).getPropertyValue('--font-noto-sans-kr').trim();
   return `${v || '"Noto Sans KR"'}, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif`;
 }
 
-const fontString = (family: string, sizePx: number, bold: boolean) =>
+export const fontString = (family: string, sizePx: number, bold: boolean) =>
   `${bold ? '700' : '400'} ${sizePx}px ${family}`;
 
 /** 카드에 쓰는 대표 크기들의 글리프 로드를 기다린다 — 첫 카드부터 웹폰트로 그려지게 */
-async function ensureFontsLoaded(family: string, sampleText: string): Promise<void> {
+export async function ensureFontsLoaded(family: string, sampleText: string): Promise<void> {
   try {
     await Promise.all([400, 700].map((w) => document.fonts.load(`${w} 64px ${family}`, sampleText || '한')));
     await document.fonts.ready;
@@ -55,10 +56,16 @@ function drawContain(ctx: CanvasRenderingContext2D, bmp: ImageBitmap, x: number,
   ctx.drawImage(bmp, x + (w - dw) / 2, y + (h - dh) / 2, dw, dh);
 }
 
-function drawBlock(ctx: CanvasRenderingContext2D, block: CardBlock, family: string, bmp: ImageBitmap | null): void {
+export function drawBlock(ctx: CanvasRenderingContext2D, block: CardBlock, family: string, bmp: ImageBitmap | null): void {
   if (block.kind === 'rect') {
     ctx.fillStyle = block.color;
-    ctx.fillRect(block.x, block.y, block.w, block.h);
+    if (block.radiusPx) {
+      ctx.beginPath();
+      ctx.roundRect(block.x, block.y, block.w, block.h, block.radiusPx);
+      ctx.fill();
+    } else {
+      ctx.fillRect(block.x, block.y, block.w, block.h);
+    }
   } else if (block.kind === 'image') {
     if (bmp) drawContain(ctx, bmp, block.x, block.y, block.w, block.h);
   } else {
@@ -125,6 +132,7 @@ export async function buildEducationCardImages(
       romanization: unit.romanization.trim(),
       exampleKo: unit.exampleKo,
       hasIllustration: bmp !== null,
+      unitIndex: i,
     }, measure);
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);

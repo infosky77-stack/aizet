@@ -10,6 +10,7 @@ import { useFileLedgerStore } from '@/lib/super-editor/ledger/store';
 import { buildVideoMp4, isBrowserVideoRenderSupported } from '@/lib/super-editor/video/buildVideoMp4';
 import { buildEducationCardImages } from '@/lib/super-editor/education/buildCardImage';
 import { deriveEducationVideo } from '@/lib/super-editor/education/toVideoScenes';
+import { inflateEducationScenes } from '@/lib/super-editor/education/inflateEducationScenes';
 import type { EducationSnapshot } from '@/lib/super-editor/education/types';
 
 interface Props {
@@ -42,7 +43,13 @@ export function EducationPublishButton({ orderId, snapshot }: Props) {
       if (isBrowserVideoRenderSupported()) {
         setPhase('video');
         const derived = deriveEducationVideo(snapshot);
-        videoBytes = (await buildVideoMp4(derived.project, entries, (r) => setProgress(r))).bytes;
+        // 장면 카드 사전 렌더(큰 글자·유닛 컬러) — 실패 장면은 텍스트 장면 폴백
+        const inflated = await inflateEducationScenes(derived.project, snapshot);
+        try {
+          videoBytes = (await buildVideoMp4(inflated.project, entries, (r) => setProgress(r))).bytes;
+        } finally {
+          inflated.dispose();
+        }
       } else if (!confirm('이 브라우저는 로컬 영상 생성을 지원하지 않습니다(Chrome/Edge 권장).\n영상 없이(이북·카드만) 게시할까요?')) {
         setPhase('idle');
         return;

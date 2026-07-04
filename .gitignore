@@ -51,3 +51,5 @@ next-env.d.ts
 /data/aizet.db
 /data/aizet.db-shm
 /data/aizet.db-wal
+/.preview-next/
+/data/learn-public/

@@ -6,7 +6,8 @@ import {
   EPISODE_1_TITLE, episode1Preset, resolveEducationSnapshot,
 } from '../src/lib/super-editor/education/preset';
 import {
-  layoutEducationCard, shrinkToFit, CARD_SIZE_PX,
+  layoutEducationCard, layoutEducationSceneCard, shrinkToFit, unitPalette,
+  CARD_SIZE_PX, SCENE_W_PX, SCENE_H_PX, UNIT_PALETTES,
 } from '../src/lib/super-editor/education/cardLayout';
 import { buildEbookPages, type EbookPage } from '../src/lib/super-editor/education/ebookPages';
 import { deriveEducationVideo } from '../src/lib/super-editor/education/toVideoScenes';
@@ -82,6 +83,43 @@ const longSize  = texts(longWord).find((b) => b.text.startsWith('아주'))!.font
 checks.push(['긴 예시 단어는 폰트 자동 축소', longSize < shortSize]);
 checks.push(['축소 하한(minPx) 보장', shrinkToFit('아'.repeat(200), 84, 40, 920, true, fakeMeasure) === 40]);
 checks.push(['제목 없으면 제목 블록 생략', !texts(layoutEducationCard({ ...base, episodeTitle: '', hasIllustration: false }, fakeMeasure)).some((b) => b.fontSizePx <= 34 && b.text !== 'a')]);
+
+// ── 유닛 팔레트 + 색 역할(글자=딥컬러 / 로마자=amber / 예시=잉크) ────────────
+checks.push(['팔레트는 유닛 수만큼 순환', unitPalette(0) === UNIT_PALETTES[0] && unitPalette(6) === UNIT_PALETTES[0] && unitPalette(7) === UNIT_PALETTES[1]]);
+const colored = layoutEducationCard({ ...base, hasIllustration: false, unitIndex: 3 }, fakeMeasure);
+checks.push(['글자는 유닛 딥컬러', texts(colored).find((b) => b.text === 'ㅏ')!.color === UNIT_PALETTES[3].deep]);
+checks.push(['로마자는 amber, 예시는 잉크(색 역할 구분)',
+  texts(colored).find((b) => b.text === 'a')!.color === '#b45309'
+  && texts(colored).find((b) => b.text === '아기')!.color === '#1c1917']);
+checks.push(['글자 카드에 흰 라운드 판', colored.blocks.some((b) => b.kind === 'rect' && b.color === '#ffffff' && (b.radiusPx ?? 0) > 0)]);
+checks.push(['unitIndex 생략 시 첫 팔레트(기존 호출 호환)', texts(plain).find((b) => b.text === 'ㅏ')!.color === UNIT_PALETTES[0].deep]);
+
+// ── 영상 장면 카드(16:9) 배치 ────────────────────────────────────────────────
+const sceneChar = layoutEducationSceneCard({ kind: 'char', char: 'ㅏ', romanization: 'a', unitIndex: 0 }, fakeMeasure);
+const sceneTexts = texts(sceneChar as ReturnType<typeof layoutEducationCard>);
+checks.push(['장면 카드는 영상 출력과 같은 1280×720', sceneChar.widthPx === SCENE_W_PX && sceneChar.heightPx === SCENE_H_PX]);
+checks.push(['글자 장면: 글자 320px 이상(기존 51px 대비 대폭 확대)', sceneTexts.find((b) => b.text === 'ㅏ')!.fontSizePx >= 320]);
+checks.push(['글자 장면: 글자 딥컬러 + 로마자 amber', sceneTexts.find((b) => b.text === 'ㅏ')!.color === UNIT_PALETTES[0].deep
+  && sceneTexts.find((b) => b.text === 'a')!.color === '#b45309']);
+
+const sceneReview = layoutEducationSceneCard({ kind: 'review', chars: ['ㅏ', 'ㅓ', 'ㅗ', 'ㅜ', 'ㅡ', 'ㅣ'] }, fakeMeasure);
+const reviewTexts = texts(sceneReview as ReturnType<typeof layoutEducationCard>);
+checks.push(['복습 장면: 글자 6개 각자 유닛 컬러', reviewTexts.length === 6
+  && reviewTexts.every((b, i) => b.color === UNIT_PALETTES[i].deep)]);
+checks.push(['복습 장면: 글자들이 화면 폭 안에 배치', reviewTexts.every((b) => b.x >= 80 && b.x <= SCENE_W_PX - 80)]);
+
+const sceneExample = layoutEducationSceneCard({ kind: 'example', text: '아기', unitIndex: 2 }, fakeMeasure);
+checks.push(['예시 장면: 유닛 딥컬러 + 64px 이상', (() => {
+  const t = texts(sceneExample as ReturnType<typeof layoutEducationCard>)[0];
+  return t.color === UNIT_PALETTES[2].deep && t.fontSizePx >= 64;
+})()]);
+
+const sceneTitle = layoutEducationSceneCard({ kind: 'title', text: '3분 한국어 1편' }, fakeMeasure);
+checks.push(['타이틀 장면: 딥 배경 + 흰 글자', sceneTitle.blocks.some((b) => b.kind === 'rect' && b.color === '#92400e')
+  && texts(sceneTitle as ReturnType<typeof layoutEducationCard>)[0].color === '#ffffff']);
+checks.push(['장면 블록 전부 16:9 경계 안', [sceneChar, sceneReview, sceneExample, sceneTitle].every((r) => r.blocks.every((b) => b.kind === 'text'
+  ? b.x >= 0 && b.y >= 0 && b.y < SCENE_H_PX
+  : b.x >= 0 && b.y >= 0 && b.x + b.w <= SCENE_W_PX && b.y + b.h <= SCENE_H_PX))]);
 
 // ── 이북 페이지 모델(ebookPages) — 플립북·PDF 공용 단일 소스 ────────────────
 const ebook = buildEbookPages(preset, 'ko');
