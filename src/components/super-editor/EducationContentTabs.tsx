@@ -8,16 +8,19 @@
 // 산출물 버튼 자리: 카드 이미지(2단계)·이북(3단계)·영상(4단계)이 헤더에 순서대로 붙는다.
 // 삽화/음성은 파일 관리에서 올린 뒤 유닛에 연결하는 방식(2단계에서 연결 UI 추가).
 
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { ArrowLeft, Files, GripHorizontal, Loader2, Plus, Trash2, X } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ArrowLeft, Captions, Files, GripHorizontal, Loader2, Plus, Trash2, TriangleAlert, X } from 'lucide-react';
 import { ContentFileViewer } from '@/components/super-editor/ContentFileViewer';
 import { EducationCardButton } from '@/components/super-editor/EducationCardButton';
 import { EducationEbookButton } from '@/components/super-editor/EducationEbookButton';
+import { VideoRenderButton } from '@/components/super-editor/VideoRenderButton';
 import {
   type EducationSnapshot, type EducationUnit, type StudyLang, newEducationUnit,
 } from '@/lib/super-editor/education/types';
 import { resolveEducationSnapshot } from '@/lib/super-editor/education/preset';
-import { LOCALE_NATIVE_LABELS, SUPPORTED_LOCALES } from '@/lib/i18n/types';
+import { deriveEducationVideo } from '@/lib/super-editor/education/toVideoScenes';
+import { buildSubtitleFile } from '@/lib/super-editor/video/buildSubtitleFile';
+import { LOCALE_NATIVE_LABELS, SUPPORTED_LOCALES, type Locale } from '@/lib/i18n/types';
 
 interface Props {
   orderId: string;
@@ -85,6 +88,22 @@ export function EducationContentTabs({
   // 언마운트 시 대기 중인 저장 타이머 정리(마지막 변경은 다음 열람 때 저장됨)
   useEffect(() => () => { if (saveTimer.current) clearTimeout(saveTimer.current); }, []);
 
+  // 영상 파생 스냅샷 — 순수 변환(toVideoScenes)이라 편집할 때마다 즉시 재파생.
+  // 저장하지 않는다: education 스냅샷이 유일한 원본이고 영상은 항상 여기서 파생된다.
+  const derived = useMemo(() => (snapshot ? deriveEducationVideo(snapshot) : null), [snapshot]);
+
+  function downloadSubtitle(locale: Locale) {
+    const subtitleCues = derived?.project.subtitles?.[locale];
+    if (!subtitleCues?.length) return;
+    const result = buildSubtitleFile(subtitleCues, 'srt');
+    const url = URL.createObjectURL(new Blob([result.bytes as BlobPart], { type: 'text/plain;charset=utf-8' }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${snapshot?.title || '영상'}-자막-${locale}.srt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   return (
     <>
       <div className="flex flex-col gap-4">
@@ -107,9 +126,10 @@ export function EducationContentTabs({
           >
             <Files size={14} /> 파일 관리
           </button>
-          {/* 산출물 버튼 — 카드(2단계)·이북(3단계) 완료, 영상(4단계)이 이어서 붙는다 */}
+          {/* 산출물 버튼 3종 — 이북·카드·영상. 영상은 파생 스냅샷을 기존 파이프라인에 전달만 */}
           <EducationEbookButton orderId={orderId} snapshot={snapshot} />
           <EducationCardButton orderId={orderId} snapshot={snapshot} />
+          <VideoRenderButton orderId={orderId} title={title} project={derived?.project ?? null} />
         </div>
 
         {snapshot === null ? (
@@ -189,6 +209,34 @@ export function EducationContentTabs({
               <GripHorizontal size={12} className="shrink-0" />
               이 유닛들에서 영상·이북·카드 이미지 세 산출물이 만들어집니다 — 삽화·음성은 파일 관리에 올린 뒤 연결합니다
             </p>
+
+            {/* 영상 자막 — 번인하지 않고 언어별 SRT로 내보낸다(유튜브 자막 업로드용) */}
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <Captions size={13} className="text-stone-400 shrink-0" />
+              <span className="text-[11px] font-semibold text-stone-500">영상 자막(SRT)</span>
+              {SUPPORTED_LOCALES.map((l) => (
+                <button
+                  key={l}
+                  onClick={() => downloadSubtitle(l)}
+                  disabled={!derived?.project.subtitles?.[l]?.length}
+                  className="px-2 py-1 text-[11px] font-semibold rounded-lg border border-stone-200 text-stone-500 hover:border-violet-300 hover:text-violet-700 disabled:opacity-40 transition-colors"
+                >
+                  {LOCALE_NATIVE_LABELS[l]}
+                </button>
+              ))}
+            </div>
+
+            {/* 파생 보고 — 제외/무음 등은 조용히 넘기지 않는다(output 계약과 같은 원칙) */}
+            {derived && derived.notices.length > 0 && (
+              <div className="flex flex-col gap-1">
+                {derived.notices.map((n, i) => (
+                  <p key={i} className="flex items-start gap-1.5 text-[11px] text-amber-700">
+                    <TriangleAlert size={11} className="shrink-0 mt-0.5" />
+                    <span><span className="font-semibold">{n.label}</span> — {n.reason}</span>
+                  </p>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>

@@ -9,6 +9,8 @@ import {
   layoutEducationCard, shrinkToFit, CARD_SIZE_PX,
 } from '../src/lib/super-editor/education/cardLayout';
 import { buildEbookPages, type EbookPage } from '../src/lib/super-editor/education/ebookPages';
+import { deriveEducationVideo } from '../src/lib/super-editor/education/toVideoScenes';
+import { isVideoProjectSnapshot } from '../src/lib/super-editor/video/types';
 import { SUPPORTED_LOCALES } from '../src/lib/i18n/types';
 
 const checks: [string, boolean][] = [];
@@ -106,6 +108,38 @@ checks.push([
   })(),
 ]);
 checks.push(['제외 후에도 페이지 번호 연속(1~5)', holedJa.pages.filter((p) => p.kind === 'unit').map((p) => (p as Extract<EbookPage, { kind: 'unit' }>).index).join(',') === '1,2,3,4,5']);
+
+// ── 영상 파생(toVideoScenes) — 순수 변환기, 기존 파이프라인 계약 준수 ────────
+const dv = deriveEducationVideo(preset);
+const sc = dv.project.scenes;
+checks.push(['파생물은 version 2 영상 가드 통과', isVideoProjectSnapshot(dv.project)]);
+checks.push(['장면 구성: 인트로+유닛(글자·예시)×6+복습+아웃트로 = 15', sc.length === 15]);
+checks.push(['인트로/복습/아웃트로 순서와 fade', sc[0].id === 'edu-intro' && sc[0].transition === 'fade'
+  && sc[13].id === 'edu-review' && sc[14].id === 'edu-outro']);
+checks.push(['글자 카드에 로마자 병기', sc[1].kind === 'text' && sc[1].text === 'ㅏ  ·  a']);
+checks.push(['삽화 미연결이면 image 장면 없음', !sc.some((s) => s.kind === 'image')]);
+checks.push(['장면 id 결정적+유일', new Set(sc.map((s) => s.id)).size === sc.length
+  && deriveEducationVideo(preset).project.scenes.map((s) => s.id).join() === sc.map((s) => s.id).join()]);
+checks.push(['정상 스냅샷은 파생 경고 0(무음 안내는 voiceRef 있을 때만)', dv.notices.length === 0]);
+
+const subs = dv.project.subtitles!;
+checks.push(['자막: 전 언어 큐 생성', SUPPORTED_LOCALES.every((l) => (subs[l]?.length ?? 0) === 8)]); // 인트로+유닛6+복습
+checks.push(['자막 ko: 원문 예시', subs.ko![1].text === 'ㅏ (a) — 아기']);
+checks.push(['자막 ja: 번역 예시', subs.ja![1].text === 'ㅏ (a) — あかちゃん']);
+checks.push(['자막 타이밍이 장면 시계와 일치(첫 유닛 3~8.5초)', subs.ko![1].startSec === 3 && subs.ko![1].endSec === 8.5]);
+
+const withExtras = episode1Preset();
+withExtras.units[0] = { ...withExtras.units[0], illustrationRef: 'file-1', voiceRef: 'voice-1' };
+withExtras.units[1] = { ...withExtras.units[1], char: ' ' };
+withExtras.units[2] = { ...withExtras.units[2], example: { ...withExtras.units[2].example, ja: '' } };
+const dv2 = deriveEducationVideo(withExtras);
+const img = dv2.project.scenes.find((s) => s.kind === 'image');
+checks.push(['삽화 연결 시 image 장면(원장 참조)', !!img && img.ledgerRef === 'file-1' && img.id === `edu-${withExtras.units[0].id}-illust`]);
+checks.push(['빈 글자 유닛 제외 + 보고', !dv2.project.scenes.some((s) => s.id.includes(withExtras.units[1].id))
+  && dv2.notices.some((n) => n.reason.includes('제외'))]);
+checks.push(['음성 연결 시 무음 안내 보고', dv2.notices.some((n) => n.label.includes('음성') && n.reason.includes('무음'))]);
+checks.push(['빈 번역 자막은 ko 폴백', dv2.project.subtitles!.ja!.some((c) => c.text === 'ㅗ (o) — 오이')]);
+checks.push(['삽화 장면만큼 자막 구간 연장(3~11.5초)', dv2.project.subtitles!.ko![1].startSec === 3 && dv2.project.subtitles!.ko![1].endSec === 11.5]);
 
 let failed = 0;
 for (const [name, ok] of checks) { if (!ok) failed++; console.log(`${ok ? 'PASS' : 'FAIL'} | ${name}`); }
