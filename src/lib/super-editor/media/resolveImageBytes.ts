@@ -5,7 +5,7 @@
 // resolveDisplayUrl(selectors.ts)과 반대 순서인 이유: 그쪽은 "화면에 보여줄 권위 있는 URL"이 목적이라
 // serverLight를 우선하지만, 여기는 "같은 내용의 바이트를 가장 빠르게"가 목적이라 로컬을 우선한다.
 
-import { findLocation } from '../ledger/selectors';
+import { findLocation, resolveDisplayUrl } from '../ledger/selectors';
 import { localAdapter } from '../ledger/locations/localAdapter';
 import type { FileEntry } from '../ledger/types';
 
@@ -66,6 +66,20 @@ export async function resolveArtworkImageBlob(
         if (res.ok) return await res.blob();
       } catch {
         // OPFS blob 해석 실패 — 아래 네트워크 경로로 폴백
+      }
+    }
+  }
+
+  // 서버(serverLight) 폴백 — 다른 기기/새 브라우저처럼 OPFS에 원본이 없는 경우.
+  // 이 폴백이 없으면 "업로드한 기기에서만 산출물 생성 가능"이라는 잘못된 제약이 생긴다.
+  if (entry) {
+    const serverUrl = resolveDisplayUrl(entry);
+    if (serverUrl) {
+      try {
+        const res = await fetch(serverUrl);
+        if (res.ok) return await res.blob();
+      } catch {
+        // 서버 해석 실패 — 아래 직접 URL 경로로 폴백
       }
     }
   }
