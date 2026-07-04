@@ -34,8 +34,8 @@ export async function POST(req: NextRequest) {
     return Response.json({ error: 'Media order not found' }, { status: 404 });
   }
 
-  // 잡지(magazine)·제품상세(product)는 아직 결제/렌더큐 연동 전 단계 — 테스트 우회 결제도 막아둔다.
-  if (mediaOrder.order_type === 'magazine' || mediaOrder.order_type === 'product') {
+  // 잡지(magazine)·제품상세(product)·교육(education)은 아직 결제/렌더큐 연동 전 단계 — 테스트 우회 결제도 막아둔다.
+  if (mediaOrder.order_type === 'magazine' || mediaOrder.order_type === 'product' || mediaOrder.order_type === 'education') {
     return Response.json({ error: `${mediaOrder.order_type} 주문은 아직 결제/렌더 연동 대상이 아닙니다` }, { status: 400 });
   }
 

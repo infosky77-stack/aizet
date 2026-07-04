@@ -57,7 +57,7 @@ export async function POST(req: NextRequest) {
   // 잡지(magazine)·제품상세(product)는 아직 결제/렌더큐 연동 전 단계 — UI에도 결제 버튼을
   // 노출하지 않으므로 이 경로는 정상 흐름에서 호출되지 않지만, enqueueJob이 해당 jobType을
   // 모르므로 catalog와 동일하게 조기 반환해 타입/런타임 모두 안전하게 막아둔다.
-  if (mediaOrder.order_type === 'catalog' || mediaOrder.order_type === 'magazine' || mediaOrder.order_type === 'product') {
+  if (mediaOrder.order_type === 'catalog' || mediaOrder.order_type === 'magazine' || mediaOrder.order_type === 'product' || mediaOrder.order_type === 'education') {
     return Response.json({ ok: true, orderType: mediaOrder.order_type });
   }
 

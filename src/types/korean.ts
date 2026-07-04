@@ -1,12 +1,11 @@
-import type { Locale } from '@/lib/i18n/types';
+// StudyLang의 정의는 lib/super-editor/education/types.ts로 이동했다(교육 도메인 개편).
+// 이 파일(구 /korean 데모 타입)은 6단계에서 삭제 예정 — 그때까지 기존 참조가 깨지지
+// 않도록 재수출만 유지한다.
+import type { StudyLang } from '@/lib/super-editor/education/types';
+
+export type { StudyLang } from '@/lib/super-editor/education/types';
 
 export type KoreanLevel = 'beginner' | 'elementary' | 'intermediate' | 'advanced';
-/**
- * 학습자 모국어 — 사이트 공통 Locale(lib/i18n/types.ts)에서 ko를 뺀 부분집합.
- * SUPPORTED_LOCALES에 언어를 추가하면 아래 Record<StudyLang, …>들이 컴파일 에러로
- * 커리큘럼 번역 추가를 강제한다(의도된 가드 — 지원 언어와 학습 콘텐츠의 동기화).
- */
-export type StudyLang = Exclude<Locale, 'ko'>;
 export type Stage = 'consonant' | 'vowel' | 'word' | 'sentence' | 'conversation';
 
 export interface LevelQuestion {

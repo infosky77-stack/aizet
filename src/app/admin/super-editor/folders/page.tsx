@@ -17,6 +17,7 @@ import { ContentFileViewer } from '@/components/super-editor/ContentFileViewer';
 import { MagazineContentTabs } from '@/components/super-editor/MagazineContentTabs';
 import { VideoContentTabs } from '@/components/super-editor/VideoContentTabs';
 import { ProductContentTabs } from '@/components/super-editor/ProductContentTabs';
+import { EducationContentTabs } from '@/components/super-editor/EducationContentTabs';
 import { getFolderPopupConfig, type FolderPopupConfig } from '@/lib/super-editor/folder-domains';
 
 interface OpenContent {
@@ -228,6 +229,16 @@ function FoldersPageContent() {
                 />
               ) : openContent.orderType === 'product' ? (
                 <ProductContentTabs
+                  orderId={openContent.id}
+                  title={openContent.title}
+                  isPaid={openContent.isPaid}
+                  filesOpen={view === 'files'}
+                  onFilesOpenChange={(open) =>
+                    router.push(buildUrl(config, folderId, openContent.id, open ? 'files' : null))}
+                  onBack={handleBackToFolder}
+                />
+              ) : openContent.orderType === 'education' ? (
+                <EducationContentTabs
                   orderId={openContent.id}
                   title={openContent.title}
                   isPaid={openContent.isPaid}

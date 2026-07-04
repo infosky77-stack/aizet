@@ -16,7 +16,7 @@ import { MediaOrder } from '@/lib/db/media-orders';
  * (잡지 팝업엔 잡지 폴더만, 영상 팝업엔 영상 폴더만 보이게).
  */
 
-export type FolderDomain = 'generic' | 'magazine' | 'card' | 'catalog' | 'video' | 'product';
+export type FolderDomain = 'generic' | 'magazine' | 'card' | 'catalog' | 'video' | 'product' | 'education';
 
 export interface OrderFolder {
   id:                string;

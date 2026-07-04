@@ -10,7 +10,8 @@ checks.push(['domain=video → 영상 config(orderType video)', getFolderPopupCo
 checks.push(['domain 누락 → magazine 폴백', getFolderPopupConfig(null).domain === 'magazine']);
 checks.push(['모르는 domain → magazine 폴백', getFolderPopupConfig('hacked').domain === 'magazine']);
 checks.push(['domain=product → 제품상세 config(orderType product)', getFolderPopupConfig('product').orderType === 'product']);
-checks.push(['등록 도메인 3종(magazine/video/product)', Object.keys(FOLDER_POPUP_CONFIGS).length === 3]);
+checks.push(['domain=education → 교육 config(orderType education)', getFolderPopupConfig('education').orderType === 'education']);
+checks.push(['등록 도메인 4종(magazine/video/product/education)', Object.keys(FOLDER_POPUP_CONFIGS).length === 4]);
 
 // video/types
 const clip = newScene('clip');

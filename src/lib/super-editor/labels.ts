@@ -6,6 +6,7 @@ export const ORDER_TYPE_LABELS: Record<MediaOrderType, string> = {
   catalog:  '도록',
   magazine: '잡지',
   product:  '제품상세',
+  education: '한국어교육',
 };
 
 export function getOrderTypeLabel(type: string): string {
