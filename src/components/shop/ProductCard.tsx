@@ -8,13 +8,16 @@ import { RatingStars } from './RatingStars';
 interface Props {
   slug:    string;
   product: ProductRow;
+  /** URL 접두(기본 /site/{slug}/shop) — 한캔디처럼 자체 경로를 가진 상점용 */
+  basePath?: string;
 }
 
-export function ProductCard({ slug, product }: Props) {
+export function ProductCard({ slug, product, basePath }: Props) {
+  const base = basePath ?? `/site/${slug}/shop`;
   const rate = discountRate(product.price, product.original_price);
   return (
     <Link
-      href={`/site/${slug}/shop/products/${product.id}`}
+      href={`${base}/products/${product.id}`}
       className="group flex flex-col bg-white rounded-2xl border border-stone-100 hover:border-stone-300 hover:shadow-md overflow-hidden transition-all"
     >
       <div className="aspect-square bg-stone-50 overflow-hidden flex items-center justify-center">

@@ -324,6 +324,27 @@ export const CANDY_PRODUCTS: CandyProduct[] = [
   },
 ];
 
+/** 캔디별 대표 이미지(public 자산) — 홈/챗의 "담기"가 장바구니 썸네일로 쓴다 */
+export const CANDY_THUMBNAILS: Record<string, string> = {
+  'no1-green':  '/hancandy/maekmundong_lilyturf.jpg',
+  'no2-blue':   '/hancandy/2ho_scenario_morning.jpg',
+  'no3-yellow': '/hancandy/3ho_scenario_meat.jpg',
+};
+
+/**
+ * 범용 장바구니(store/shopCart) 항목으로 변환.
+ * productId 규칙 `hancandy-{candy.id}`는 seed(scripts/seed-hancandy.ts)가 만든
+ * products.id와 일치해야 주문 API의 서버 검증을 통과한다 — 한쪽만 바꾸지 말 것.
+ */
+export function candyToCartItem(p: CandyProduct) {
+  return {
+    productId:     `hancandy-${p.id}`,
+    name:          p.name,
+    price:         p.price,
+    thumbnailPath: CANDY_THUMBNAILS[p.id] ?? null,
+  };
+}
+
 export function getProduct(id: string): CandyProduct | undefined {
   return CANDY_PRODUCTS.find(p => p.id === id);
 }

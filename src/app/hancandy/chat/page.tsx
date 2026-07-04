@@ -4,8 +4,8 @@ import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { Send, RefreshCw, Bot, User, ShoppingCart } from 'lucide-react';
 import clsx from 'clsx';
-import { CANDY_PRODUCTS } from '@/lib/hancandy/products';
-import { useCandyCart } from '@/store/candyCart';
+import { CANDY_PRODUCTS, candyToCartItem } from '@/lib/hancandy/products';
+import { useShopCart } from '@/store/shopCart';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -26,7 +26,7 @@ export default function CandyChatPage() {
   const [input, setInput] = useState('');
   const [streaming, setStreaming] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
-  const addItem = useCandyCart(s => s.addItem);
+  const addItem = useShopCart((s) => s.addItem);
   const [addedId, setAddedId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -108,7 +108,7 @@ export default function CandyChatPage() {
   function handleAdd(id: string) {
     const p = CANDY_PRODUCTS.find(p => p.id === id);
     if (p) {
-      addItem(p);
+      addItem('hancandy', candyToCartItem(p));
       setAddedId(id);
       setTimeout(() => setAddedId(null), 1500);
     }

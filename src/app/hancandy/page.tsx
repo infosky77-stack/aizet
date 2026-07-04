@@ -2,8 +2,8 @@
 
 import Link from 'next/link';
 import { ArrowRight, Leaf, Shield, CheckCircle, Droplets, Flame } from 'lucide-react';
-import { CANDY_PRODUCTS, THEME_COLORS } from '@/lib/hancandy/products';
-import { useCandyCart } from '@/store/candyCart';
+import { CANDY_PRODUCTS, THEME_COLORS, candyToCartItem } from '@/lib/hancandy/products';
+import { useShopCart } from '@/store/shopCart';
 import { AdminModeButton } from '@/components/AdminModeButton';
 
 const BRAND_PILLARS = [
@@ -29,7 +29,7 @@ const QUICK_GUIDE = [
 ];
 
 export default function HancandyHome() {
-  const addItem = useCandyCart(s => s.addItem);
+  const addItem = useShopCart((s) => s.addItem);
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-10">
@@ -137,7 +137,7 @@ export default function HancandyHome() {
                         상세보기
                       </Link>
                       <button
-                        onClick={() => addItem(p)}
+                        onClick={() => addItem('hancandy', candyToCartItem(p))}
                         className={`text-xs font-bold px-3 py-2 rounded-xl text-white ${tc.button} transition-colors`}
                       >
                         담기

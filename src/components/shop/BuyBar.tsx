@@ -10,9 +10,12 @@ import { formatPrice } from '@/lib/shop/types';
 interface Props {
   slug: string;
   product: { id: string; name: string; price: number; thumbnail_path: string | null };
+  /** URL 접두(기본 /site/{slug}/shop) — 한캔디처럼 자체 경로를 가진 상점용 */
+  basePath?: string;
 }
 
-export function BuyBar({ slug, product }: Props) {
+export function BuyBar({ slug, product, basePath }: Props) {
+  const base    = basePath ?? `/site/${slug}/shop`;
   const router  = useRouter();
   const addItem = useShopCart((s) => s.addItem);
 
@@ -35,7 +38,7 @@ export function BuyBar({ slug, product }: Props) {
           <ShoppingCart size={15} /> 장바구니
         </button>
         <button
-          onClick={() => { addItem(slug, toCartItem()); router.push(`/site/${slug}/shop/cart`); }}
+          onClick={() => { addItem(slug, toCartItem()); router.push(`${base}/cart`); }}
           className="px-5 py-2.5 text-sm font-bold rounded-xl bg-red-500 hover:bg-red-600 text-white transition-colors"
         >
           바로구매

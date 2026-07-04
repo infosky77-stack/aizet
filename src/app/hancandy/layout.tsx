@@ -3,11 +3,12 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { ShoppingCart, Home, Package, MessageCircle, Leaf, ChevronLeft } from 'lucide-react';
-import { useCandyCart } from '@/store/candyCart';
+import { useCartItems } from '@/store/shopCart';
 
 export default function HancandyLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const itemCount = useCandyCart(s => s.itemCount());
+  // 범용 쇼핑몰 장바구니(slug 스코프) — candyCart 대체
+  const itemCount = useCartItems('hancandy').reduce((sum, i) => sum + i.qty, 0);
 
   const navLinks = [
     { href: '/hancandy', label: '홈', icon: Home, exact: true },
