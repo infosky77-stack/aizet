@@ -5,8 +5,21 @@
 // 서버 fallback)의 입력이 된다 — 잡지의 page_no+slot과 같은 역할의 구조화 스키마이므로
 // 여기에 자유 텍스트 형식을 되살리지 말 것.
 
+import type { Locale } from '../../i18n/types';
+
 export type SceneKind       = 'clip' | 'image' | 'text';
 export type SceneTransition = 'cut' | 'fade';
+
+// ── 자막 (6단계 다국어) — 영상 프레임에 번인하지 않는다 ──────────────────────
+// 언어별 별도 파일(SRT/VTT)로 내보내 유튜브에 언어별 자막으로 업로드하는 방식.
+// ko도 subtitles 맵의 한 언어다(제품 섹션 번역과 달리 "원문 필드"가 따로 없음).
+export interface SubtitleCue {
+  startSec: number;
+  endSec:   number;
+  text:     string;
+}
+
+export type VideoSubtitles = Partial<Record<Locale, SubtitleCue[]>>;
 
 export interface VideoScene {
   id:   string;
@@ -31,6 +44,8 @@ export interface VideoProjectSnapshot {
   /** BGM 자산 라벨 — 자산 모듈이 아직 없어 'none' 외 값은 현재 무시된다 */
   bgm: string;
   scenes: VideoScene[];
+  /** 언어별 자막 큐(선택) — 조작/직렬화는 video/buildSubtitleFile.ts가 담당 */
+  subtitles?: VideoSubtitles;
 }
 
 export const DEFAULT_SCENE_DURATION_SEC = 3;

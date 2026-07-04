@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Geist, Noto_Sans_KR } from 'next/font/google';
+import { Geist, Noto_Sans_KR, Noto_Sans_JP, Noto_Sans_SC } from 'next/font/google';
 import './globals.css';
 import { DesktopModeBanner } from '@/components/DesktopModeBanner';
 
@@ -13,6 +13,24 @@ const notoSansKR = Noto_Sans_KR({
   variable: '--font-noto-sans-kr',
   display: 'swap',
   preload: true,
+});
+
+// 다국어(ja/zh) 웹폰트 — CSS 변수만 심고 언어별 적용은 lib/i18n/fontStacks.ts가 담당.
+// preload:false — 해당 언어로 그린 텍스트가 있을 때만 unicode-range 슬라이스가
+// 다운로드되므로(브라우저 동작), ko 사용자 첫 로딩에는 비용이 없다.
+const notoSansJP = Noto_Sans_JP({
+  subsets: ['latin'],
+  weight: ['400', '700'],
+  variable: '--font-noto-sans-jp',
+  display: 'swap',
+  preload: false,
+});
+const notoSansSC = Noto_Sans_SC({
+  subsets: ['latin'],
+  weight: ['400', '700'],
+  variable: '--font-noto-sans-sc',
+  display: 'swap',
+  preload: false,
 });
 
 export const metadata: Metadata = {
@@ -31,7 +49,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="ko" className={`${geist.variable} ${notoSansKR.variable} h-full`}>
+    <html lang="ko" className={`${geist.variable} ${notoSansKR.variable} ${notoSansJP.variable} ${notoSansSC.variable} h-full`}>
       <body className="min-h-full bg-[#fafaf8] text-[#1a1a1a] antialiased">
         <DesktopModeBanner />
         {children}

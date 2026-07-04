@@ -10,6 +10,7 @@ import type { CSSProperties } from 'react';
 import { getProductTemplate } from '@/lib/super-editor/product/templates';
 import { detailThemeVars } from '@/lib/super-editor/product/htmlTheme';
 import { resolveSectionText, type ResolvedSectionText } from '@/lib/super-editor/product/i18n';
+import { LOCALE_FONT_STACKS } from '@/lib/i18n/fontStacks';
 import type { Locale } from '@/lib/i18n/types';
 import type {
   PublishedProductDetail, PublishedDetailSection,
@@ -26,7 +27,12 @@ export function ProductDetailSections({ detail, locale = 'ko' }: Props) {
   const vars = detailThemeVars(template) as CSSProperties;
 
   return (
-    <div style={{ ...vars, background: 'var(--pd-bg)' }} className="w-full">
+    // fontFamily: 접속 언어의 웹폰트 스택 — 시스템 폰트에 맡기지 않는다(fontStacks.ts)
+    <div
+      style={{ ...vars, background: 'var(--pd-bg)', fontFamily: LOCALE_FONT_STACKS[locale] }}
+      className="w-full"
+      lang={locale}
+    >
       <div
         className="mx-auto w-full max-w-[var(--pd-max-w)] flex flex-col"
         style={{ padding: 'var(--pd-pad-y) var(--pd-pad-x)', gap: 'var(--pd-gap)' }}

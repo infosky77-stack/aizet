@@ -12,10 +12,11 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ArrowLeft, ExternalLink, Files, Loader2, X } from 'lucide-react';
 import { ContentFileViewer } from '@/components/super-editor/ContentFileViewer';
 import { SceneListPanel } from '@/components/super-editor/SceneListPanel';
+import { SubtitlePanel } from '@/components/super-editor/SubtitlePanel';
 import { VideoRenderButton } from '@/components/super-editor/VideoRenderButton';
 import { useFileLedgerStore, useOrderedFileEntries } from '@/lib/super-editor/ledger/store';
 import { resolveDisplayUrl } from '@/lib/super-editor/ledger/selectors';
-import type { VideoProjectSnapshot, VideoScene } from '@/lib/super-editor/video/types';
+import type { VideoProjectSnapshot, VideoScene, VideoSubtitles } from '@/lib/super-editor/video/types';
 import { migrateVideoSnapshot, toLegacyFields } from '@/lib/super-editor/video/migrate';
 
 interface Props {
@@ -34,7 +35,10 @@ type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
 export function VideoContentTabs({
   orderId, title, isPaid, filesOpen, onFilesOpenChange, onBack, onOpenFullEditor,
 }: Props) {
-  const [project, setProject] = useState<VideoProjectSnapshot | null>(null);
+  // 스냅샷을 orderId와 묶어 저장 — 다른 콘텐츠로 바뀌면 파생값이 자연히 null(로딩)이
+  // 되므로 effect에서 동기 setState로 초기화할 필요가 없다(react-hooks 규칙 준수)
+  const [loaded, setLoaded] = useState<{ orderId: string; project: VideoProjectSnapshot } | null>(null);
+  const project = loaded?.orderId === orderId ? loaded.project : null;
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
   const entries = useOrderedFileEntries(orderId);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -49,14 +53,13 @@ export function VideoContentTabs({
   // 스냅샷 로드 + version 2 마이그레이션
   useEffect(() => {
     let cancelled = false;
-    setProject(null);
     fetch(`/api/admin/super-editor?orderId=${orderId}`)
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         if (cancelled || !data?.order) return;
         let raw: unknown = {};
         try { raw = JSON.parse(data.order.snapshot || '{}'); } catch { /* 빈 프로젝트로 */ }
-        setProject(migrateVideoSnapshot(raw, data.order.title || title));
+        setLoaded({ orderId, project: migrateVideoSnapshot(raw, data.order.title || title) });
       });
     return () => { cancelled = true; };
   }, [orderId, title]);
@@ -83,12 +86,20 @@ export function VideoContentTabs({
     if (res?.ok) setTimeout(() => setSaveStatus('idle'), 2000);
   }, [orderId, entries]);
 
-  function handleScenesChange(scenes: VideoScene[]) {
+  function patchProject(patch: Partial<VideoProjectSnapshot>) {
     if (!project) return;
-    const next = { ...project, scenes };
-    setProject(next);
+    const next = { ...project, ...patch };
+    setLoaded({ orderId, project: next });
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => { void persist(next); }, 1500);
+  }
+
+  function handleScenesChange(scenes: VideoScene[]) {
+    patchProject({ scenes });
+  }
+
+  function handleSubtitlesChange(subtitles: VideoSubtitles) {
+    patchProject({ subtitles });
   }
 
   // 언마운트 시 대기 중인 저장 타이머 정리(마지막 변경은 이미 state에 반영돼 다음 열람 때 저장됨)
@@ -130,12 +141,21 @@ export function VideoContentTabs({
             <Loader2 size={24} className="animate-spin text-stone-300" />
           </div>
         ) : (
-          <SceneListPanel
-            orderId={orderId}
-            scenes={project.scenes}
-            onChange={handleScenesChange}
-            locked={isPaid}
-          />
+          <>
+            <SceneListPanel
+              orderId={orderId}
+              scenes={project.scenes}
+              onChange={handleScenesChange}
+              locked={isPaid}
+            />
+            {/* 자막은 장면과 별개 산출물(번인 안 함) — 언어별 SRT/VTT로 내보낸다 */}
+            <SubtitlePanel
+              title={title}
+              project={project}
+              onChange={handleSubtitlesChange}
+              locked={isPaid}
+            />
+          </>
         )}
       </div>
 
