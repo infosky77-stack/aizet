@@ -22,4 +22,17 @@ export const ja: Partial<Record<MessageKey, string>> = {
   'shop.address':         '配送先住所',
   'shop.requestOptional': 'ご要望（任意）',
   'shop.detailPreparing': '詳細画像は準備中です',
+
+  'learn.series':       '3分韓国語',
+  'learn.episodeLabel': '第{n}話',
+  'learn.openEbook':    '電子ブックを新しいウィンドウで開く',
+  'learn.ebook':        '電子ブック',
+  'learn.videoPending': '動画はまだ準備中です',
+  'learn.aboutTitle':   'このレッスンで学ぶこと',
+  'learn.cardsHint':    'カードをタップすると拡大表示できます',
+  'learn.guideTitle':   '学習の進め方',
+  'learn.guideStep1':   '動画を見ながら声に出して読みましょう',
+  'learn.guideStep2':   '電子ブックを新しいウィンドウで開き、動画と並べて一文字ずつ復習しましょう',
+  'learn.guideStep3':   '下のカードをタップして拡大し、目で覚えましょう',
+  'learn.backToLearn':  'レッスン画面へ',
 };

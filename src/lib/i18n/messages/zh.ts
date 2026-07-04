@@ -22,4 +22,17 @@ export const zh: Partial<Record<MessageKey, string>> = {
   'shop.address':         '配送地址',
   'shop.requestOptional': '备注（可选）',
   'shop.detailPreparing': '详情图片准备中',
+
+  'learn.series':       '3分钟韩语',
+  'learn.episodeLabel': '第{n}课',
+  'learn.openEbook':    '在新窗口打开电子书',
+  'learn.ebook':        '电子书',
+  'learn.videoPending': '视频尚未准备好',
+  'learn.aboutTitle':   '本课学习内容',
+  'learn.cardsHint':    '点击卡片可放大查看',
+  'learn.guideTitle':   '学习方法',
+  'learn.guideStep1':   '边看视频边大声跟读',
+  'learn.guideStep2':   '在新窗口打开电子书，与视频并排逐字复习',
+  'learn.guideStep3':   '点击下方卡片放大记忆',
+  'learn.backToLearn':  '返回学习页面',
 };

@@ -28,6 +28,20 @@ export const ko = {
   'shop.address':         '배송 주소',
   'shop.requestOptional': '요청사항 (선택)',
   'shop.detailPreparing': '상세 이미지가 준비 중입니다',
+
+  // ── 학습 화면(공개) ───────────────────────────────────────────────────
+  'learn.series':       '3분 한국어',
+  'learn.episodeLabel': '제{n}편',
+  'learn.openEbook':    '이북 새창으로 보기',
+  'learn.ebook':        '이북',
+  'learn.videoPending': '영상이 아직 준비되지 않았습니다',
+  'learn.aboutTitle':   '이번 편에서 배우기',
+  'learn.cardsHint':    '카드를 누르면 크게 볼 수 있어요',
+  'learn.guideTitle':   '이렇게 공부하세요',
+  'learn.guideStep1':   '영상을 보며 소리 내어 따라 읽어요',
+  'learn.guideStep2':   '이북을 새창에 띄워 영상과 나란히 놓고 한 글자씩 복습해요',
+  'learn.guideStep3':   '아래 카드를 눌러 크게 보며 눈에 익혀요',
+  'learn.backToLearn':  '학습 화면으로',
 } as const;
 
 export type MessageKey = keyof typeof ko;

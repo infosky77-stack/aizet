@@ -1,16 +1,15 @@
 'use client';
 
-// 학습 화면 본체 — 영상 플레이어 + 이북 플립북을 나란히(데스크톱 2단 / 모바일 세로 스택).
-// 입력은 게시 계약(PublishedEducationEpisode)뿐 — 원장 개념이 없다(공개/비공개 경계).
-// 이북은 편집기와 같은 렌더러(EbookFlipbook)를 게시본→스냅샷 어댑터로 재사용한다.
+// 학습 화면 본체 — 유튜브식 1단 구성: 큰 영상(주인공) → 제목/이북 새창 단추/언어 선택 →
+// 설명 박스(LearnDescription). 이북은 이 화면에 겹치지 않고 별도 라우트(/ebook)를
+// 새 창으로 띄워 영상과 나란히 본다. 입력은 게시 계약(PublishedEducationEpisode)뿐 —
+// 원장 개념이 없다(공개/비공개 경계).
 
-import { GraduationCap } from 'lucide-react';
-import { EbookFlipbook } from '@/components/education/EbookFlipbook';
+import { GraduationCap, BookOpen } from 'lucide-react';
 import { LanguagePicker } from '@/components/i18n/LanguagePicker';
-import { buildEbookPages } from '@/lib/super-editor/education/ebookPages';
-import {
-  publishedToEbookInput, type PublishedEducationEpisode,
-} from '@/lib/super-editor/education/published';
+import { LearnDescription } from '@/components/education/LearnDescription';
+import { t } from '@/lib/i18n/messages';
+import type { PublishedEducationEpisode } from '@/lib/super-editor/education/published';
 import type { Locale } from '@/lib/i18n/types';
 
 interface Props {
@@ -20,50 +19,62 @@ interface Props {
 }
 
 export function LearnEpisodeView({ episode, locale }: Props) {
-  const { snapshot, illustrationUrls } = publishedToEbookInput(episode);
-  const { pages } = buildEbookPages(snapshot, locale);
-
   return (
     <div className="min-h-screen bg-[#fafaf8]">
-      {/* 헤더 */}
+      {/* 슬림 헤더 — 브랜드만(제목은 유튜브처럼 영상 아래) */}
       <header className="bg-white border-b border-stone-100">
-        <div className="mx-auto max-w-6xl px-4 py-4 flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-amber-600 flex items-center justify-center shrink-0">
-            <GraduationCap size={17} className="text-white" />
+        <div className="mx-auto max-w-5xl px-4 py-3 flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-lg bg-amber-600 flex items-center justify-center shrink-0">
+            <GraduationCap size={15} className="text-white" />
           </div>
-          <div className="flex-1 min-w-0">
-            <h1 className="font-bold text-stone-900 truncate">{episode.title}</h1>
-            <p className="text-xs text-stone-400">3분 한국어 · 제{episode.episodeNo}편</p>
-          </div>
-          <LanguagePicker initialLocale={locale} />
+          <p className="font-bold text-stone-900 text-sm">{t(locale, 'learn.series')}</p>
         </div>
       </header>
 
-      {/* 본문 — 데스크톱 2단(영상|이북), 모바일 세로 스택 */}
-      <main className="mx-auto max-w-6xl px-4 py-6 grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-        <section className="flex flex-col gap-3">
-          <h2 className="text-sm font-bold text-stone-700">영상으로 배우기</h2>
+      <main className="mx-auto max-w-5xl pb-12">
+        {/* 영상 히어로 — 컬럼 폭을 꽉 채움, 모바일은 좌우 여백 없이(유튜브식) */}
+        <div className="sm:px-4 sm:pt-5">
           {episode.videoUrl ? (
             <video
               src={episode.videoUrl}
               controls
               playsInline
               preload="metadata"
-              className="w-full aspect-video rounded-2xl bg-black shadow-sm"
+              className="w-full aspect-video bg-black sm:rounded-2xl sm:shadow-sm"
             />
           ) : (
-            <div className="w-full aspect-video rounded-2xl bg-stone-100 flex items-center justify-center">
-              <p className="text-sm text-stone-400">영상이 아직 준비되지 않았습니다</p>
+            <div className="w-full aspect-video bg-stone-100 sm:rounded-2xl flex items-center justify-center">
+              <p className="text-sm text-stone-400">{t(locale, 'learn.videoPending')}</p>
             </div>
           )}
-        </section>
+        </div>
 
-        <section className="flex flex-col gap-3 min-w-0">
-          <h2 className="text-sm font-bold text-stone-700">이북으로 배우기</h2>
-          <div className="rounded-2xl overflow-hidden border border-stone-100 flex flex-col">
-            <EbookFlipbook pages={pages} locale={locale} illustrationUrls={illustrationUrls} />
+        {/* 제목 + 이북 새창 단추 + 언어 선택 */}
+        <div className="px-4 pt-4 flex flex-col gap-4">
+          <div className="flex flex-wrap items-start gap-x-4 gap-y-3">
+            <div className="flex-1 min-w-52">
+              <h1 className="text-lg sm:text-xl font-bold text-stone-900 leading-snug">{episode.title}</h1>
+              <p className="text-xs text-stone-400 mt-1">
+                {t(locale, 'learn.series')} · {t(locale, 'learn.episodeLabel').replace('{n}', String(episode.episodeNo))}
+              </p>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <a
+                href={`/learn/korean/${episode.episodeNo}/ebook`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-600 text-white text-sm font-semibold hover:bg-amber-700 transition-colors shadow-sm"
+              >
+                <BookOpen size={16} />
+                {t(locale, 'learn.openEbook')}
+              </a>
+              <LanguagePicker initialLocale={locale} />
+            </div>
           </div>
-        </section>
+
+          {/* 설명 박스 — 글자 칩 + 카드 스트립 + 사용 안내 */}
+          <LearnDescription episode={episode} locale={locale} />
+        </div>
       </main>
     </div>
   );

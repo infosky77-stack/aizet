@@ -22,4 +22,17 @@ export const en: Partial<Record<MessageKey, string>> = {
   'shop.address':         'Shipping Address',
   'shop.requestOptional': 'Special Requests (optional)',
   'shop.detailPreparing': 'Detail images coming soon',
+
+  'learn.series':       '3-Minute Korean',
+  'learn.episodeLabel': 'Episode {n}',
+  'learn.openEbook':    'Open e-book in new window',
+  'learn.ebook':        'E-book',
+  'learn.videoPending': 'The video is not ready yet',
+  'learn.aboutTitle':   'What you learn in this episode',
+  'learn.cardsHint':    'Tap a card to see it up close',
+  'learn.guideTitle':   'How to study',
+  'learn.guideStep1':   'Watch the video and repeat out loud',
+  'learn.guideStep2':   'Open the e-book in a new window next to the video and review each letter',
+  'learn.guideStep3':   'Tap the cards below to study them up close',
+  'learn.backToLearn':  'Back to the lesson',
 };
