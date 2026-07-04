@@ -9,7 +9,8 @@ const checks: [string, boolean][] = [];
 checks.push(['domain=video → 영상 config(orderType video)', getFolderPopupConfig('video').orderType === 'video']);
 checks.push(['domain 누락 → magazine 폴백', getFolderPopupConfig(null).domain === 'magazine']);
 checks.push(['모르는 domain → magazine 폴백', getFolderPopupConfig('hacked').domain === 'magazine']);
-checks.push(['등록 도메인 2종(magazine/video)', Object.keys(FOLDER_POPUP_CONFIGS).length === 2]);
+checks.push(['domain=product → 제품상세 config(orderType product)', getFolderPopupConfig('product').orderType === 'product']);
+checks.push(['등록 도메인 3종(magazine/video/product)', Object.keys(FOLDER_POPUP_CONFIGS).length === 3]);
 
 // video/types
 const clip = newScene('clip');

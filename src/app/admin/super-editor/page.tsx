@@ -2,7 +2,7 @@
 
 import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Film, Printer, BookOpen, Plus, Clock, CheckCircle, Loader2, Trash2, FolderTree } from 'lucide-react';
+import { Film, Printer, BookOpen, Package, Plus, Clock, CheckCircle, Loader2, Trash2, FolderTree } from 'lucide-react';
 import { clsx } from 'clsx';
 
 type OrderType   = 'video' | 'print' | 'catalog';
@@ -109,6 +109,13 @@ function SuperEditorIndexContent() {
           >
             <Film size={15} />
             영상 폴더
+          </button>
+          <button
+            onClick={() => router.push('/admin/super-editor/folders?domain=product')}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-xl border border-stone-200 text-stone-600 hover:border-violet-300 hover:text-violet-700 transition-colors"
+          >
+            <Package size={15} />
+            제품상세 폴더
           </button>
           <button
             onClick={() => setShowForm(v => !v)}

@@ -34,8 +34,8 @@ export async function POST(req: NextRequest) {
   if (!session) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
   const { orderType, title, folderId } = await req.json();
-  if (orderType !== 'video' && orderType !== 'print' && orderType !== 'catalog' && orderType !== 'magazine') {
-    return Response.json({ error: 'orderType must be video, print, catalog, or magazine' }, { status: 400 });
+  if (orderType !== 'video' && orderType !== 'print' && orderType !== 'catalog' && orderType !== 'magazine' && orderType !== 'product') {
+    return Response.json({ error: 'orderType must be video, print, catalog, magazine, or product' }, { status: 400 });
   }
 
   if (folderId) {

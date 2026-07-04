@@ -8,12 +8,12 @@
 // lib/db/*는 서버 전용 db 싱글턴을 물고 있어 클라이언트 번들에 딸려 들어가면 안 되기 때문
 // (placements/types.ts와 같은 관례).
 
-export type PopupFolderDomain = 'magazine' | 'video';
+export type PopupFolderDomain = 'magazine' | 'video' | 'product';
 
 export interface FolderPopupConfig {
   domain:    PopupFolderDomain;
   /** 이 팝업에서 "콘텐츠 만들기"가 생성하는 media_orders.order_type */
-  orderType: 'magazine' | 'video';
+  orderType: 'magazine' | 'video' | 'product';
   /** 팝업 헤더 제목 */
   title: string;
   /** 팝업 헤더 설명 */
@@ -36,6 +36,13 @@ export const FOLDER_POPUP_CONFIGS: Record<PopupFolderDomain, FolderPopupConfig> 
     title: '영상 폴더',
     description: '폴더 안에 폴더를 만들어 영상 프로젝트를 원하는 만큼 깊게 구성하세요.',
     contentPlaceholder: '영상 제목 (예: 매장 홍보 영상)',
+  },
+  product: {
+    domain: 'product',
+    orderType: 'product',
+    title: '제품 상세페이지 폴더',
+    description: '폴더 안에 폴더를 만들어 제품별 상세페이지를 원하는 만큼 깊게 구성하세요.',
+    contentPlaceholder: '제품 이름 (예: 수제 딸기잼 500g)',
   },
 };
 
