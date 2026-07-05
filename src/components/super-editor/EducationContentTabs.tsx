@@ -19,6 +19,8 @@ import {
   type EducationSnapshot, type EducationUnit, type StudyLang, newEducationUnit, isAssemblySnapshot,
 } from '@/lib/super-editor/education/types';
 import { AssemblyContentEditor } from '@/components/super-editor/AssemblyContentEditor';
+import { addUnit, setEpisodeNo } from '@/lib/super-editor/education/assemblyDocStore';
+import { buildAssemblyUnit } from '@/lib/super-editor/education/assemblyCompose';
 import { resolveEducationSnapshot } from '@/lib/super-editor/education/preset';
 import { deriveEducationVideo } from '@/lib/super-editor/education/toVideoScenes';
 import { inflateEducationScenes } from '@/lib/super-editor/education/inflateEducationScenes';
@@ -273,7 +275,7 @@ export function EducationContentTabs({
             )}
 
             {isAssemblySnapshot(snapshot) ? (
-              <AssemblyContentEditor snapshot={snapshot} onChange={patchSnapshot} />
+              <AssemblyContentEditor snapshot={snapshot} onChange={patchSnapshot} isPaid={isPaid} />
             ) : (
             <>
             {snapshot.units.map((unit, i) => (
@@ -343,12 +345,24 @@ export function EducationContentTabs({
             ))}
 
             {!isPaid && (
-              <button
-                onClick={() => patchSnapshot({ units: [...snapshot.units, newEducationUnit()] })}
-                className="self-start flex items-center gap-1 text-xs font-semibold text-stone-500 hover:text-violet-700 px-3 py-2 rounded-xl hover:bg-violet-50 transition-colors"
-              >
-                <Plus size={13} /> 유닛 추가
-              </button>
+              <div className="flex items-center gap-2 flex-wrap">
+                <button
+                  onClick={() => patchSnapshot({ units: [...snapshot.units, newEducationUnit()] })}
+                  className="self-start flex items-center gap-1 text-xs font-semibold text-stone-500 hover:text-violet-700 px-3 py-2 rounded-xl hover:bg-violet-50 transition-colors"
+                >
+                  <Plus size={13} /> 유닛 추가
+                </button>
+                {/* 조립 회차(3·4·5편)로 전환 — assembly.units에 첫 유닛을 심으면 화면이 조립
+                    에디터로 바뀐다(비파괴: 기존 units는 보존, 조립 유닛을 다 지우면 복귀) */}
+                <button
+                  onClick={() => patchSnapshot(
+                    setEpisodeNo(addUnit(snapshot, buildAssemblyUnit('syllable', '')), 3),
+                  )}
+                  className="self-start flex items-center gap-1 text-xs font-semibold text-stone-500 hover:text-violet-700 px-3 py-2 rounded-xl hover:bg-violet-50 transition-colors"
+                >
+                  <Plus size={13} /> 조립 회차로 전환 (자모·단어·문장 조립)
+                </button>
+              </div>
             )}
             </>
             )}
