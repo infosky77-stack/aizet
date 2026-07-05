@@ -24,6 +24,7 @@ run "영상 자막 (SRT·VTT/초안/폰트스택)"         npx tsx tests/video-s
 run "한국어교육 (가드/프리셋/카드/이북/영상)"          npx tsx tests/education.test.ts
 run "조립 학습 (모션보간/음절분해/장면/투영)"          npx tsx tests/education-assembly.test.ts
 run "조립 입력 분해기 (partsFromResult/빌더)"          npx tsx src/lib/super-editor/education/assemblyCompose.test.ts
+run "조립 편집 상태 관리 (assemblyEditorStore)"   npx tsx src/lib/super-editor/education/assemblyEditorStore.test.ts
 run "클립 seek 캡처 정확도 (headless Chromium)" node tests/seek-capture-accuracy.test.mjs
 
 echo ""
