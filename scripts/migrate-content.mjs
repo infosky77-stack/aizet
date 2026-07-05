@@ -137,17 +137,50 @@ for (const m of src.prepare('SELECT * FROM menu_items').all()) {
   moved.menu_items += b.ins.menu_items.run(pick(m, COLS.menu_items)).changes;
 }
 
+// ── site_profile 채우기 — 각 사업장의 owner 회원 프로필을 복제(id='self' 1행) ─────
+// slug만 대표 사업장(회원의 sort_order 최소)에 원래 값, 나머지 사업장은 ''(공개 URL 유일성).
+// 나머지 5개(shop_name·phone·address·business_hours·site_config)는 전 사업장 복제.
+// 멱등: id='self' PK INSERT OR REPLACE(행수 1 유지, 최신 프로필 반영). 원본 users는 readonly.
+const allOwnerSites = reg.prepare(`
+  SELECT s.id, s.db_path, s.sort_order, sm.member_id FROM sites s
+  JOIN site_members sm ON sm.site_id = s.id WHERE sm.role = 'owner'
+`).all();
+const minSort = {}; // 회원별 대표(최소 sort_order) 판정용
+for (const s of allOwnerSites) minSort[s.member_id] = Math.min(minSort[s.member_id] ?? Infinity, s.sort_order);
+const findProfile = src.prepare('SELECT shop_name, phone, address, business_hours, slug, site_config, updated_at FROM users WHERE id=?');
+let movedProfiles = 0;
+for (const s of allOwnerSites) {
+  const u = findProfile.get(s.member_id);
+  if (!u) continue;
+  // 사업장 DB 핸들 — 콘텐츠 이전으로 이미 열린 것 재사용, 없으면(콘텐츠 0인 사업장) 새로 연다
+  let db;
+  if (bundles.has(s.db_path)) db = bundles.get(s.db_path).db;
+  else { db = bootstrapSite(siteAbsPath(s.db_path)); bundles.set(s.db_path, { db, ins: null }); }
+  const isRep = s.sort_order === minSort[s.member_id];
+  db.prepare(`
+    INSERT OR REPLACE INTO site_profile (id, shop_name, phone, address, business_hours, slug, site_config, updated_at)
+    VALUES ('self', @shop_name, @phone, @address, @business_hours, @slug, @site_config, @updated_at)
+  `).run({
+    shop_name: u.shop_name ?? '', phone: u.phone ?? '', address: u.address ?? '',
+    business_hours: u.business_hours ?? '', slug: isRep ? (u.slug ?? '') : '',
+    site_config: u.site_config ?? '', updated_at: u.updated_at ?? now,
+  });
+  movedProfiles++;
+}
+
 // ── 검증 출력 ────────────────────────────────────────────────────────────────
 console.log('── 콘텐츠 이전 결과(이번 실행 삽입 행수) ─────────────');
 console.log(`  media_orders ${moved.media_orders} · files ${moved.super_editor_files} · folders ${moved.super_editor_folders} · products ${moved.products} · menu_items ${moved.menu_items}`);
 console.log(`  선결1(order_id NULL 파일): 참조 ${moved1.referenced} + 미분류 ${moved1.unref} = ${moved1.referenced + moved1.unref} (skip ${moved1.skipped})`);
+console.log(`  site_profile 채움: ${movedProfiles}개 사업장`);
 
 // 사업장별 최종 행수(files 중 미분류=order_id NULL 별도 표기)
 console.log('\n사업장별 최종 행수:');
 for (const [dbPath, b] of bundles) {
   const c = (t) => b.db.prepare(`SELECT COUNT(*) n FROM ${t}`).get().n;
   const unclassified = b.db.prepare('SELECT COUNT(*) n FROM super_editor_files WHERE order_id IS NULL').get().n;
-  console.log(`  ${dbPath}: orders ${c('media_orders')} files ${c('super_editor_files')}(미분류 ${unclassified}) folders ${c('super_editor_folders')} products ${c('products')} menu ${c('menu_items')}`);
+  const prof = b.db.prepare("SELECT shop_name, slug FROM site_profile WHERE id='self'").get();
+  console.log(`  ${dbPath}: orders ${c('media_orders')} files ${c('super_editor_files')}(미분류 ${unclassified}) folders ${c('super_editor_folders')} products ${c('products')} menu ${c('menu_items')} | profile[shop="${prof?.shop_name ?? ''}" slug="${prof?.slug ?? ''}"]`);
 }
 
 // files↔orders JOIN 무결성(사업장 DB 안) — 첫 사업장
