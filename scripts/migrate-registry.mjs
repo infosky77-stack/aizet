@@ -174,13 +174,24 @@ const regMembers = reg.prepare('SELECT COUNT(*) n FROM members').get().n;
 const regSess = reg.prepare('SELECT COUNT(*) n FROM sessions').get().n;
 
 const comboCount = src.prepare('SELECT COUNT(*) n FROM (SELECT 1 FROM media_orders GROUP BY user_id, order_type)').get().n;
+const orderlessCount = src.prepare('SELECT COUNT(DISTINCT user_id) n FROM menu_items').get().n;
+// 예상 sites = 고유 (회원×업종) 조합 — order 콘텐츠 조합 ∪ orderless(menu_items, industry는 시드와
+// 같은 규칙: users.industry 빈값이면 'service'). 시드가 겹치면 skip하므로 합집합 distinct로 센다.
+const expectedSites = src.prepare(`
+  SELECT COUNT(*) n FROM (
+    SELECT user_id AS m, order_type AS ind FROM media_orders
+    UNION
+    SELECT mi.user_id, CASE WHEN TRIM(COALESCE(u.industry,'')) = '' THEN 'service' ELSE TRIM(u.industry) END
+      FROM menu_items mi JOIN users u ON u.id = mi.user_id
+  )
+`).get().n;
 const regSites = reg.prepare('SELECT COUNT(*) n FROM sites').get().n;
 const regLinks = reg.prepare('SELECT COUNT(*) n FROM site_members').get().n;
 
 console.log('── 이전 결과 ─────────────────────────────');
 console.log(`members : aizet.users ${srcUsers} → registry.members ${regMembers} ${srcUsers === regMembers ? '✅' : '⚠불일치'}`);
 console.log(`sessions: aizet.sessions ${srcSess} → registry.sessions ${regSess} ${srcSess === regSess ? '✅' : '⚠불일치'}`);
-console.log(`sites   : (회원×업종) 조합 ${comboCount} → registry.sites ${regSites} (이번 시드 ${seededSites}) ${comboCount === regSites ? '✅' : '⚠불일치'}`);
+console.log(`sites   : order 조합 ${comboCount} + orderless ${orderlessCount} → 예상(고유 회원×업종) ${expectedSites}, 실제 sites ${regSites} ${expectedSites === regSites ? '✅' : '⚠불일치'} (이번 시드 order ${seededSites}+orderless ${seededOrderless})`);
 console.log(`site_members(owner): ${regLinks}`);
 
 // 한 회원(infosky77) 사업장 목록 샘플(member_id JOIN sites, 업종별)
