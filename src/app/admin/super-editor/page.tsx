@@ -5,7 +5,9 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Film, Printer, BookOpen, Package, Plus, Clock, CheckCircle, Loader2, Trash2, FolderTree, GraduationCap } from 'lucide-react';
 import { clsx } from 'clsx';
 
-type OrderType   = 'video' | 'print' | 'catalog';
+// DB의 order_type은 media_orders에 문자열로 저장된다 — 이 평면 목록은 전 종류를 받으므로
+// education/product/magazine까지 포함해 편집 경로 분기(editHref)가 타입상 성립하게 한다.
+type OrderType   = 'video' | 'print' | 'catalog' | 'magazine' | 'product' | 'education';
 type OrderStatus = 'editing' | 'queued' | 'processing' | 'done' | 'failed';
 
 interface MediaOrder {
@@ -15,6 +17,15 @@ interface MediaOrder {
   is_paid:    number;
   status:     OrderStatus;
   updated_at: number;
+}
+
+// 주문 종류별 편집 진입 경로 — education/product는 폴더 라우트(contentId 딥링크)가
+// orderType으로 올바른 에디터(EducationContentTabs 등)를 렌더한다(정상 경로). 나머지
+// (video/print/catalog/magazine)는 기존 [orderId] 평면 에디터 그대로.
+function editHref(order: MediaOrder): string {
+  if (order.order_type === 'education') return `/admin/super-editor/folders?domain=education&contentId=${order.id}`;
+  if (order.order_type === 'product')   return `/admin/super-editor/folders?domain=product&contentId=${order.id}`;
+  return `/admin/super-editor/${order.id}`;
 }
 
 const STATUS_META: Record<OrderStatus, { label: string; color: string }> = {
@@ -60,7 +71,7 @@ function SuperEditorIndexContent() {
       });
       if (res.ok) {
         const { order } = await res.json();
-        router.push(`/admin/super-editor/${order.id}`);
+        router.push(editHref(order));
       }
     } finally {
       setCreating(false);
@@ -75,10 +86,12 @@ function SuperEditorIndexContent() {
     setDeleting(null);
   }
 
-  // 도록 모드: catalog 주문만 표시 / 일반 모드: 전체 표시
+  // 도록 모드: catalog 주문만 표시 / 일반 모드: 전체 표시(education 제외)
+  // education은 상단 "한국어교육 폴더" 버튼(folders?domain=education)으로만 접근 — 표시만
+  // 제외하며 데이터는 그대로다(삭제·이동 없음).
   const visibleOrders = isCatalogMode
     ? orders.filter(o => o.order_type === 'catalog')
-    : orders;
+    : orders.filter(o => o.order_type !== 'education');
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-8 flex flex-col gap-6">
@@ -255,7 +268,7 @@ function SuperEditorIndexContent() {
                 </div>
 
                 {/* 정보 */}
-                <div className="flex-1 min-w-0 cursor-pointer" onClick={() => router.push(`/admin/super-editor/${order.id}`)}>
+                <div className="flex-1 min-w-0 cursor-pointer" onClick={() => router.push(editHref(order))}>
                   <p className="font-semibold text-stone-800 text-sm truncate">{order.title}</p>
                   <div className="flex items-center gap-2 mt-0.5">
                     <span className={clsx('text-[11px] font-semibold px-2 py-0.5 rounded-full border', meta.color)}>
@@ -276,7 +289,7 @@ function SuperEditorIndexContent() {
                 <div className="flex items-center gap-2 shrink-0">
                   {order.status === 'editing' && (
                     <button
-                      onClick={() => router.push(`/admin/super-editor/${order.id}`)}
+                      onClick={() => router.push(editHref(order))}
                       className={clsx(
                         'px-3 py-1.5 text-xs font-semibold text-white rounded-lg transition-colors',
                         isCatalogMode
@@ -289,7 +302,7 @@ function SuperEditorIndexContent() {
                   )}
                   {order.status === 'done' && (
                     <button
-                      onClick={() => router.push(`/admin/super-editor/${order.id}`)}
+                      onClick={() => router.push(editHref(order))}
                       className="px-3 py-1.5 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors"
                     >
                       결과 보기
@@ -297,7 +310,7 @@ function SuperEditorIndexContent() {
                   )}
                   {order.status === 'failed' && (
                     <button
-                      onClick={() => router.push(`/admin/super-editor/${order.id}`)}
+                      onClick={() => router.push(editHref(order))}
                       className="px-3 py-1.5 text-xs font-semibold bg-red-100 hover:bg-red-200 text-red-600 rounded-lg transition-colors"
                     >
                       상세 보기
