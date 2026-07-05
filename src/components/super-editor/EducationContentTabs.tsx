@@ -16,8 +16,9 @@ import { EducationEbookButton } from '@/components/super-editor/EducationEbookBu
 import { VideoRenderButton } from '@/components/super-editor/VideoRenderButton';
 import { EducationPublishButton } from '@/components/super-editor/EducationPublishButton';
 import {
-  type EducationSnapshot, type EducationUnit, type StudyLang, newEducationUnit,
+  type EducationSnapshot, type EducationUnit, type StudyLang, newEducationUnit, isAssemblySnapshot,
 } from '@/lib/super-editor/education/types';
+import { AssemblyContentEditor } from '@/components/super-editor/AssemblyContentEditor';
 import { resolveEducationSnapshot } from '@/lib/super-editor/education/preset';
 import { deriveEducationVideo } from '@/lib/super-editor/education/toVideoScenes';
 import { inflateEducationScenes } from '@/lib/super-editor/education/inflateEducationScenes';
@@ -271,6 +272,10 @@ export function EducationContentTabs({
               </div>
             )}
 
+            {isAssemblySnapshot(snapshot) ? (
+              <AssemblyContentEditor snapshot={snapshot} onChange={patchSnapshot} />
+            ) : (
+            <>
             {snapshot.units.map((unit, i) => (
               <div key={unit.id} className="bg-white border border-stone-200 rounded-2xl p-4 flex flex-col gap-3">
                 <div className="flex items-center gap-3">
@@ -344,6 +349,8 @@ export function EducationContentTabs({
               >
                 <Plus size={13} /> 유닛 추가
               </button>
+            )}
+            </>
             )}
 
             <p className="flex items-center gap-1.5 text-[11px] text-stone-400">
