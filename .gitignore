@@ -54,6 +54,13 @@ next-env.d.ts
 /data/aizet.db
 /data/aizet.db-shm
 /data/aizet.db-wal
+
+# 명부·사업장 SQLite DB 및 백업 — 런타임 데이터라 커밋 금지(스키마는 소스, 데이터는 제외)
+/data/registry.db
+/data/registry.db-shm
+/data/registry.db-wal
+/data/members/
+/data/backups/
 /.preview-next/
 /data/learn-public/
 /data/incoming/
