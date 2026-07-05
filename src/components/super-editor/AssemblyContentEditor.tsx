@@ -19,9 +19,13 @@ import { renderAssemblyPreviewMp4 } from '@/lib/super-editor/education/assemblyP
 import { useOrderedFileEntries, useFileLedgerStore } from '@/lib/super-editor/ledger/store';
 import { resolveDisplayUrl } from '@/lib/super-editor/ledger/selectors';
 import type { FileEntry } from '@/lib/super-editor/ledger/types';
+import { LOCALE_NATIVE_LABELS, SUPPORTED_LOCALES } from '@/lib/i18n/types';
 import type {
-  AssemblyKind, AssemblyUnit, EducationSnapshot,
+  AssemblyKind, AssemblyUnit, EducationSnapshot, StudyLang,
 } from '@/lib/super-editor/education/types';
+
+// 학습자 모국어 목록(ko 제외) — 뜻 입력 언어(EducationContentTabs와 같은 관례)
+const STUDY_LANGS = SUPPORTED_LOCALES.filter((l): l is StudyLang => l !== 'ko');
 
 interface AssemblyContentEditorProps {
   snapshot: EducationSnapshot;
@@ -122,7 +126,7 @@ export function AssemblyContentEditor({ snapshot, onChange, isPaid = false, orde
           onKind={(k) => onChange(replaceUnit(snapshot, setKind(unit, k)))}
           onPart={(pi, pron) => onChange(replaceUnit(snapshot, updatePart(unit, pi, { pronunciation: pron })))}
           onRomanization={(v) => onChange(replaceUnit(snapshot, { ...unit, romanization: v }))}
-          onMeaningEn={(v) => onChange(replaceUnit(snapshot, setMeaning(unit, 'en', v)))}
+          onMeaning={(lang, v) => onChange(replaceUnit(snapshot, setMeaning(unit, lang, v)))}
           onImage={(ref) => onChange(replaceUnit(snapshot, setImageRef(unit, ref)))}
           onRemove={() => onChange(removeUnit(snapshot, unit.id))}
         />
@@ -174,18 +178,21 @@ interface AssemblyUnitCardProps {
   onKind: (kind: AssemblyKind) => void;
   onPart: (partIndex: number, pronunciation: string) => void;
   onRomanization: (value: string) => void;
-  onMeaningEn: (value: string) => void;
+  onMeaning: (lang: StudyLang, value: string) => void;
   onImage: (ref: string | null) => void;
   onRemove: () => void;
 }
 
 function AssemblyUnitCard({
-  index, unit, isPaid, imageEntries, onResult, onKind, onPart, onRomanization, onMeaningEn, onImage, onRemove,
+  index, unit, isPaid, imageEntries, onResult, onKind, onPart, onRomanization, onMeaning, onImage, onRemove,
 }: AssemblyUnitCardProps) {
   const active = KIND_OPTIONS.find((o) => o.value === unit.kind) ?? KIND_OPTIONS[0];
   const typed = unit.resultKo.trim().length > 0;
   const parts = unit.parts;
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [meaningOpen, setMeaningOpen] = useState(false);
+  // 뜻이 하나라도 입력돼 있으면 몇 개 채워졌는지 배지에 표시(접힌 상태 힌트)
+  const filledMeanings = STUDY_LANGS.filter((l) => unit.meaning[l].trim()).length;
   const linked = unit.imageRef ? imageEntries.find((e) => e.id === unit.imageRef) ?? null : null;
   const prompt = buildImagePrompt(unit);
 
@@ -237,14 +244,34 @@ function AssemblyUnitCard({
           className={`${inputCls} w-36`}
           aria-label="로마자"
         />
-        <input
-          value={unit.meaning.en} disabled={isPaid}
-          onChange={(e) => onMeaningEn(e.target.value)}
-          placeholder="뜻 (영어)"
-          className={`${inputCls} flex-1 min-w-40`}
-          aria-label="뜻(영어)"
-        />
+        {/* 5개국어 뜻은 기본 접힘 — 카드 밀도를 낮춘다. 토글은 로컬 UI 상태(저장 안 함) */}
+        <button
+          onClick={() => setMeaningOpen((v) => !v)}
+          className="flex items-center gap-1 text-xs font-semibold text-stone-500 hover:text-violet-700 px-2.5 py-1.5 rounded-lg border border-stone-200 hover:border-violet-300 transition-colors"
+        >
+          뜻 입력{filledMeanings > 0 ? ` (${filledMeanings})` : ''} {meaningOpen ? '▲' : '▼'}
+        </button>
       </div>
+
+      {/* 펼침 시에만 언어별 뜻 입력칸 — 동작은 기존과 동일(setMeaning → replaceUnit → onChange) */}
+      {meaningOpen && (
+        <div className="flex flex-col gap-1.5 pl-1">
+          {STUDY_LANGS.map((lang) => (
+            <label key={lang} className="flex items-center gap-2">
+              <span className="text-[11px] font-semibold text-stone-400 w-10 shrink-0 text-right">
+                {LOCALE_NATIVE_LABELS[lang]}
+              </span>
+              <input
+                value={unit.meaning[lang]} disabled={isPaid}
+                onChange={(e) => onMeaning(lang, e.target.value)}
+                placeholder={`뜻 (${LOCALE_NATIVE_LABELS[lang]})`}
+                className={`${inputCls} flex-1 min-w-0`}
+                aria-label={`뜻 (${LOCALE_NATIVE_LABELS[lang]})`}
+              />
+            </label>
+          ))}
+        </div>
+      )}
 
       {/* 자동분해 부품 표시 */}
       {!typed ? (
