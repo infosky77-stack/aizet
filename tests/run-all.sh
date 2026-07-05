@@ -30,6 +30,7 @@ run "조립 미리보기 배선 (assemblyPreviewWiring)"   npx tsx src/lib/super
 run "조립 이미지 프롬프트 템플릿 (buildImagePrompt)"   npx tsx src/lib/super-editor/education/imagePromptTemplate.test.ts
 run "테넌시 뼈대 (tenancy)"   npx tsx src/lib/tenancy/tenancy.test.ts
 run "명부 DB (registry)"   npx tsx src/lib/registry/registry.test.ts
+run "사업장 DB (siteDb)"   npx tsx src/lib/siteDb/siteDb.test.ts
 run "클립 seek 캡처 정확도 (headless Chromium)" node tests/seek-capture-accuracy.test.mjs
 
 echo ""
