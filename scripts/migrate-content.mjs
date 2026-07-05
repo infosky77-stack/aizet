@@ -97,15 +97,45 @@ for (const p of src.prepare('SELECT * FROM products').all()) {
   moved.products += b.ins.products.run(pick(p, COLS.products)).changes;
 }
 
+// ── 선결1: order_id NULL super_editor_files 귀속 ─────────────────────────────
+// 참조: media_orders.snapshot이 그 file id를 포함하면 그 order로(order_id 채워 정확 연결).
+// 미참조: 어느 snapshot에도 없으면 user_id의 대표 사업장(sort_order 최소)으로 order_id NULL(미분류).
+// 원본 f는 안 바꾸고, 사업장 DB에 넣을 때만 order_id를 보정한다(원본 readonly 유지).
+const moved1 = { referenced: 0, unref: 0, skipped: 0 };
+const nullFiles = src.prepare('SELECT * FROM super_editor_files WHERE order_id IS NULL').all();
+const allOrders = src.prepare('SELECT id, user_id, order_type, snapshot FROM media_orders').all();
+const findRepIndustry = reg.prepare(`
+  SELECT s.industry FROM sites s JOIN site_members sm ON sm.site_id = s.id
+  WHERE sm.member_id = ? AND sm.role = 'owner' ORDER BY s.sort_order LIMIT 1
+`);
+for (const f of nullFiles) {
+  // snapshot 문자열에 file id가 박혀 있으면 그 order가 이 파일을 쓰는 것(파싱 실패 없이 안전)
+  const refOrder = allOrders.find((o) => (o.snapshot || '').includes(f.id)) ?? null;
+  if (refOrder) {
+    const b = bundleFor(refOrder.user_id, refOrder.order_type);
+    if (!b) { moved1.skipped++; continue; }
+    const row = { ...pick(f, COLS.super_editor_files), order_id: refOrder.id }; // order_id 보정
+    moved1.referenced += b.ins.super_editor_files.run(row).changes;
+  } else {
+    const rep = findRepIndustry.get(f.user_id); // 미참조 → 대표 사업장(미분류)
+    if (!rep) { moved1.skipped++; continue; }
+    const b = bundleFor(f.user_id, rep.industry);
+    if (!b) { moved1.skipped++; continue; }
+    moved1.unref += b.ins.super_editor_files.run(pick(f, COLS.super_editor_files)).changes; // order_id NULL 유지
+  }
+}
+
 // ── 검증 출력 ────────────────────────────────────────────────────────────────
 console.log('── 콘텐츠 이전 결과(이번 실행 삽입 행수) ─────────────');
 console.log(`  media_orders ${moved.media_orders} · files ${moved.super_editor_files} · folders ${moved.super_editor_folders} · products ${moved.products}`);
+console.log(`  선결1(order_id NULL 파일): 참조 ${moved1.referenced} + 미분류 ${moved1.unref} = ${moved1.referenced + moved1.unref} (skip ${moved1.skipped})`);
 
-// 사업장별 최종 행수
+// 사업장별 최종 행수(files 중 미분류=order_id NULL 별도 표기)
 console.log('\n사업장별 최종 행수:');
 for (const [dbPath, b] of bundles) {
   const c = (t) => b.db.prepare(`SELECT COUNT(*) n FROM ${t}`).get().n;
-  console.log(`  ${dbPath}: orders ${c('media_orders')} files ${c('super_editor_files')} folders ${c('super_editor_folders')} products ${c('products')}`);
+  const unclassified = b.db.prepare('SELECT COUNT(*) n FROM super_editor_files WHERE order_id IS NULL').get().n;
+  console.log(`  ${dbPath}: orders ${c('media_orders')} files ${c('super_editor_files')}(미분류 ${unclassified}) folders ${c('super_editor_folders')} products ${c('products')}`);
 }
 
 // files↔orders JOIN 무결성(사업장 DB 안) — 첫 사업장
