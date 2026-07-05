@@ -14,6 +14,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { openRegistry } from '../src/lib/registry/registryDb.ts';
 import { encryptToken, decryptToken } from '../src/lib/registry/crypto.ts';
+import { newSiteId, sitePath } from '../src/lib/tenancy/types.ts';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -91,10 +92,55 @@ const migrateSessions = reg.transaction((rows) => {
 });
 migrateSessions(sessions);
 
-// ── [4] member_industries — 이번엔 채우지 않음 ───────────────────────────────
-// TODO(업종 DB 확정 후): media_orders를 (user_id, order_type)로 집계해 각 조합을
-//   member_industries 행으로 만들고, db_path = tenancy.industryDbPath(userId, industry)로
-//   채운다. title 채우기 정책·업종 DB 부트스트랩은 그 단계에서 결정.
+// ── [4] 사업장 명부(sites) + 소유 연결(site_members) 시드 ────────────────────
+// 현재 데이터는 "한 회원 = 한 사업장(업종당)"이라, 각 (회원 × 업종) 조합을 사업장 1개로
+// 시드한다. tenancy.newSiteId()로 siteId를 발급하고 sitePath로 db_path를 계산한다.
+//
+// ★멱등: siteId가 매번 랜덤이라 INSERT OR REPLACE로는 멱등이 안 된다. 대신 "이 회원의
+//   이 업종 사업장이 이미 site_members+sites에 있는지"를 확인해, 없을 때만 새로 만든다.
+//   (이 시드는 "회원×업종 조합당 사업장 1개"를 초기 1회 부여하는 용도 — 이후 추가 사업장은
+//    앱에서 생성하며, 재실행 시 기존 조합은 전부 건너뛴다.)
+const combos = src.prepare(`
+  SELECT user_id, order_type, MIN(created_at) first_created, MAX(updated_at) last_updated
+  FROM media_orders GROUP BY user_id, order_type ORDER BY user_id, order_type
+`).all();
+
+const findShopName = src.prepare('SELECT shop_name FROM users WHERE id=?');
+const existsSiteForMemberIndustry = reg.prepare(`
+  SELECT s.id FROM site_members sm JOIN sites s ON s.id = sm.site_id
+  WHERE sm.member_id = ? AND s.industry = ? LIMIT 1
+`);
+const insSite = reg.prepare(`
+  INSERT INTO sites (id, industry, title, db_path, status, sort_order, created_at, last_edited_at, last_backup_at, backup_location)
+  VALUES (@id, @industry, @title, @db_path, 'active', @sort_order, @created_at, @last_edited_at, NULL, NULL)
+`);
+const insOwnerLink = reg.prepare(`
+  INSERT OR IGNORE INTO site_members (site_id, member_id, role, added_at) VALUES (?, ?, 'owner', ?)
+`);
+
+const sortByMember = new Map(); // 회원별 sort_order 순번(0,1,2…)
+let seededSites = 0;
+const seedSites = reg.transaction((rows) => {
+  for (const c of rows) {
+    if (existsSiteForMemberIndustry.get(c.user_id, c.order_type)) continue; // 멱등: 이미 있으면 skip
+    const siteId = newSiteId();
+    const title = (findShopName.get(c.user_id)?.shop_name ?? '').trim(); // 없으면 빈값(업종 표시명은 앱에서)
+    const ord = sortByMember.get(c.user_id) ?? 0;
+    sortByMember.set(c.user_id, ord + 1);
+    insSite.run({
+      id: siteId,
+      industry: c.order_type,
+      title,
+      db_path: sitePath(c.user_id, siteId),
+      sort_order: ord,
+      created_at: c.first_created ?? now,
+      last_edited_at: c.last_updated ?? now,
+    });
+    insOwnerLink.run(siteId, c.user_id, now); // 소유자(owner) 1명. 공동관리자는 앱의 "회원 추가"에서
+    seededSites++;
+  }
+});
+seedSites(combos);
 
 // ── [검증·출력] ──────────────────────────────────────────────────────────────
 const srcUsers = src.prepare('SELECT COUNT(*) n FROM users').get().n;
@@ -102,9 +148,24 @@ const srcSess = src.prepare('SELECT COUNT(*) n FROM sessions').get().n;
 const regMembers = reg.prepare('SELECT COUNT(*) n FROM members').get().n;
 const regSess = reg.prepare('SELECT COUNT(*) n FROM sessions').get().n;
 
+const comboCount = src.prepare('SELECT COUNT(*) n FROM (SELECT 1 FROM media_orders GROUP BY user_id, order_type)').get().n;
+const regSites = reg.prepare('SELECT COUNT(*) n FROM sites').get().n;
+const regLinks = reg.prepare('SELECT COUNT(*) n FROM site_members').get().n;
+
 console.log('── 이전 결과 ─────────────────────────────');
 console.log(`members : aizet.users ${srcUsers} → registry.members ${regMembers} ${srcUsers === regMembers ? '✅' : '⚠불일치'}`);
 console.log(`sessions: aizet.sessions ${srcSess} → registry.sessions ${regSess} ${srcSess === regSess ? '✅' : '⚠불일치'}`);
+console.log(`sites   : (회원×업종) 조합 ${comboCount} → registry.sites ${regSites} (이번 시드 ${seededSites}) ${comboCount === regSites ? '✅' : '⚠불일치'}`);
+console.log(`site_members(owner): ${regLinks}`);
+
+// 한 회원(infosky77) 사업장 목록 샘플(member_id JOIN sites, 업종별)
+const mySub = '112873040654574135275';
+const myList = reg.prepare(`
+  SELECT s.industry, s.title, s.db_path FROM site_members sm
+  JOIN sites s ON s.id = sm.site_id WHERE sm.member_id=? ORDER BY s.sort_order
+`).all(mySub);
+console.log(`infosky77 사업장 ${myList.length}개:`);
+for (const s of myList) console.log(`  - industry=${s.industry} title="${s.title || '(빈)'}" db=${s.db_path}`);
 
 // 토큰 왕복 검증 — 실제 토큰이 있는 세션 1건(민감값은 길이만 출력)
 const s0 = sessions.find((s) => s.accessToken) ?? sessions[0];
