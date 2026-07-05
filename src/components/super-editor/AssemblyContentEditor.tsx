@@ -8,14 +8,15 @@
 // 뜻 이미지 부착은 "원장에서 선택 + 고정 템플릿 프롬프트 안내"(직접 생성·업로드) 방식.
 // 자동 생성 배선(회원 키·게이트)은 건드리지 않는다. 미리보기는 다음 조각.
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { buildAssemblyUnit } from '@/lib/super-editor/education/assemblyCompose';
 import {
   getUnits, addUnit, removeUnit, replaceUnit, setEpisodeNo, setTitle,
 } from '@/lib/super-editor/education/assemblyDocStore';
 import { setResult, setKind, updatePart, setMeaning, setImageRef } from '@/lib/super-editor/education/assemblyEditorStore';
 import { buildImagePrompt } from '@/lib/super-editor/education/imagePromptTemplate';
-import { useOrderedFileEntries } from '@/lib/super-editor/ledger/store';
+import { renderAssemblyPreviewMp4 } from '@/lib/super-editor/education/assemblyPreviewBrowser';
+import { useOrderedFileEntries, useFileLedgerStore } from '@/lib/super-editor/ledger/store';
 import { resolveDisplayUrl } from '@/lib/super-editor/ledger/selectors';
 import type { FileEntry } from '@/lib/super-editor/ledger/types';
 import type {
@@ -43,6 +44,36 @@ export function AssemblyContentEditor({ snapshot, onChange, isPaid = false, orde
   const units = getUnits(snapshot);
   // 원장 이미지 구독(읽기 전용) — 업로드는 "파일 관리" 몫, 여기선 선택만(EducationContentTabs와 동일)
   const imageEntries = useOrderedFileEntries(orderId).filter((e) => e.kind === 'image');
+
+  // ── 조립 영상 미리보기(로컬 WebCodecs 렌더, 저장 안 함) ──────────────────────
+  const [previewBusy, setPreviewBusy] = useState(false);
+  const [previewProgress, setPreviewProgress] = useState(0);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewError, setPreviewError] = useState<string | null>(null);
+  // blob URL 정리 — url이 바뀌거나 언마운트되면 이전 URL 해제(메모리 누수 방지)
+  useEffect(() => () => { if (previewUrl) URL.revokeObjectURL(previewUrl); }, [previewUrl]);
+
+  async function handlePreview() {
+    setPreviewBusy(true);
+    setPreviewProgress(0);
+    setPreviewError(null);
+    try {
+      // 원장 엔트리 record — 카드/영상 버튼과 동일하게 스토어에서 명령형으로 읽는다
+      const entries = useFileLedgerStore.getState().entries;
+      const result = await renderAssemblyPreviewMp4(snapshot, entries, {
+        // 배경 이미지가 연결됐을 때만 배경 합성(없으면 팔레트 배경으로 조립 자체는 렌더됨)
+        hasBackground: !!snapshot.backgroundRef,
+        onProgress: setPreviewProgress,
+      });
+      const url = URL.createObjectURL(new Blob([result.bytes as BlobPart], { type: 'video/mp4' }));
+      setPreviewUrl(url); // 이전 url은 위 effect cleanup이 해제
+    } catch (err) {
+      console.error('[조립 미리보기] 렌더 실패:', err);
+      setPreviewError(err instanceof Error ? err.message : '미리보기 생성에 실패했습니다');
+    } finally {
+      setPreviewBusy(false);
+    }
+  }
 
   return (
     <div className="flex flex-col gap-4">
@@ -109,6 +140,27 @@ export function AssemblyContentEditor({ snapshot, onChange, isPaid = false, orde
       <p className="text-[11px] text-stone-400">
         이 유닛들에서 조립 영상·카드·이북이 만들어집니다 — 뜻 그림·발음은 다음 단계에서 연결합니다
       </p>
+
+      {/* 조립 영상 미리보기 — 로컬 WebCodecs 렌더(서버 부담 0, 저장 안 함, 순수 확인용) */}
+      <div className="flex flex-col gap-2 bg-white border border-stone-200 rounded-2xl p-4">
+        <div className="flex items-center gap-3 flex-wrap">
+          <button
+            onClick={handlePreview}
+            disabled={previewBusy || units.length === 0}
+            className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-xl border border-violet-300 text-violet-700 bg-violet-50 hover:border-violet-400 transition-colors disabled:opacity-50"
+          >
+            {previewBusy ? `생성 중… ${Math.round(previewProgress * 100)}%` : '조립 영상 미리보기'}
+          </button>
+          <span className="text-[11px] text-stone-400">브라우저에서 바로 렌더합니다(저장 안 함)</span>
+        </div>
+        {previewError && (
+          <p className="text-[11px] text-red-500">{previewError}</p>
+        )}
+        {previewUrl && (
+          // eslint-disable-next-line jsx-a11y/media-has-caption
+          <video src={previewUrl} controls loop className="w-full max-w-2xl rounded-xl border border-stone-200 bg-black" />
+        )}
+      </div>
     </div>
   );
 }
