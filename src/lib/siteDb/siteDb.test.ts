@@ -9,8 +9,8 @@ const throws = (fn: () => unknown) => { try { fn(); return false; } catch { retu
 // ── 부트스트랩: 인메모리 DB에 전체 테이블 생성 ──────────────────────────────
 const db = bootstrapSite(':memory:');
 const tables = (db.prepare("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name").all() as { name: string }[]).map((r) => r.name);
-const expected = ['site_profile', 'media_orders', 'super_editor_files', 'super_editor_folders', 'magazine_placements', 'products', 'menu_items'];
-checks.push(['전체 테이블 생성(7종)', expected.every((t) => tables.includes(t))]);
+const expected = ['site_profile', 'media_orders', 'render_jobs', 'super_editor_files', 'super_editor_folders', 'magazine_placements', 'products', 'menu_items'];
+checks.push(['전체 테이블 생성(8종, render_jobs 포함)', expected.every((t) => tables.includes(t))]);
 
 // menu_items에 users FK 없음(사업장 DB엔 users 테이블 없음)
 const fkList = db.prepare('PRAGMA foreign_key_list(menu_items)').all();
@@ -33,6 +33,15 @@ const joined = db.prepare(`
   JOIN media_orders o ON o.id = f.order_id WHERE f.id='f1'`).get() as { orig_name: string; title: string; order_type: string };
 checks.push(['files ↔ orders order_id JOIN(같은 DB 안)', joined.orig_name === '원본.png'
   && joined.title === '3분 한국어' && joined.order_type === 'education']);
+
+// ── render_jobs ↔ media_orders order_id JOIN(같은 DB 안, FK 순서로 생성됨) ──
+db.prepare(`INSERT INTO render_jobs (id,order_id,job_type,status,priority,queued_at,output_uuid,output_type)
+  VALUES ('j1','o1','catalog','done',0,?, 'uuid-1','pdf')`).run(now);
+const jobJoin = db.prepare(`
+  SELECT j.status, j.output_type, o.title FROM render_jobs j
+  JOIN media_orders o ON o.id = j.order_id WHERE j.id='j1'`).get() as { status: string; output_type: string; title: string };
+checks.push(['render_jobs ↔ orders order_id JOIN(같은 DB 안)', jobJoin.status === 'done'
+  && jobJoin.output_type === 'pdf' && jobJoin.title === '3분 한국어']);
 
 // ── 멱등: 스키마 재적용해도 테이블·데이터 안 깨짐 ────────────────────────────
 checks.push(['스키마 재적용(SITE_SCHEMA) 멱등', !throws(() => { for (const ddl of SITE_SCHEMA) db.exec(ddl); })]);

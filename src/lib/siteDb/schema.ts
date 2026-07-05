@@ -41,6 +41,28 @@ CREATE TABLE IF NOT EXISTS media_orders (
   folder_id   TEXT
 )`;
 
+/**
+ * 렌더 작업/완료 산출물 이력 — order_id로 media_orders 참조(같은 DB 안이라 FK·CASCADE 유지).
+ * 완료 job은 output_uuid/output_path/output_type로 결과물(PDF 등)을 가리킨다(재생성 가능한
+ * 일시 데이터가 아니라 완료본 포인터라 보존한다). ★SITE_SCHEMA에서 media_orders 뒤에 둔다.
+ */
+export const CREATE_RENDER_JOBS = `
+CREATE TABLE IF NOT EXISTS render_jobs (
+  id          TEXT    PRIMARY KEY,
+  order_id    TEXT    NOT NULL REFERENCES media_orders(id) ON DELETE CASCADE,
+  job_type    TEXT    NOT NULL DEFAULT 'video',
+  worker_type TEXT    NOT NULL DEFAULT 'ubuntu_local',
+  status      TEXT    NOT NULL DEFAULT 'queued',
+  priority    INTEGER NOT NULL DEFAULT 0,
+  queued_at   INTEGER NOT NULL,
+  started_at  INTEGER,
+  done_at     INTEGER,
+  error_msg   TEXT,
+  output_uuid TEXT,
+  output_path TEXT,
+  output_type TEXT
+)`;
+
 /** 파일 원장 — order_id로 media_orders와 같은 DB 안에서 JOIN된다 */
 export const CREATE_SUPER_EDITOR_FILES = `
 CREATE TABLE IF NOT EXISTS super_editor_files (
@@ -126,6 +148,7 @@ CREATE TABLE IF NOT EXISTS menu_items (
 export const SITE_SCHEMA: readonly string[] = [
   CREATE_SITE_PROFILE,
   CREATE_MEDIA_ORDERS,
+  CREATE_RENDER_JOBS, // media_orders 뒤(FK 대상 먼저 생성)
   CREATE_SUPER_EDITOR_FILES,
   CREATE_SUPER_EDITOR_FOLDERS,
   CREATE_MAGAZINE_PLACEMENTS,

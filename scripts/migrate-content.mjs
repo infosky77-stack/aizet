@@ -49,6 +49,8 @@ const COLS = {
   products: ['id', 'user_id', 'name', 'price', 'original_price', 'category', 'status', 'thumbnail_path', 'detail_order_id', 'detail_image_path', 'sort_order', 'created_at', 'updated_at', 'description', 'thumbnail_ref', 'detail_json_path'],
   // menu_items는 id INTEGER AUTOINCREMENT — INSERT OR IGNORE로 원본 id를 그대로 넣어 보존(멱등)
   menu_items: ['id', 'user_id', 'name', 'price', 'sort_order', 'description'],
+  // render_jobs는 완료 산출물 포인터(order_id 귀속). PDF 파일(data/render-output/)은 이전 대상 아님 — 포인터만 옮김
+  render_jobs: ['id', 'order_id', 'job_type', 'worker_type', 'status', 'priority', 'queued_at', 'started_at', 'done_at', 'error_msg', 'output_uuid', 'output_path', 'output_type'],
 };
 const insertSql = (t) => `INSERT OR IGNORE INTO ${t} (${COLS[t].join(',')}) VALUES (${COLS[t].map((c) => '@' + c).join(',')})`;
 
@@ -69,7 +71,7 @@ function bundleFor(memberId, industry) {
 // named param에 SQL이 참조하는 키만 추리기(여분 키 있으면 better-sqlite3가 거부)
 const pick = (row, cols) => Object.fromEntries(cols.map((c) => [c, row[c] ?? null]));
 
-let moved = { media_orders: 0, super_editor_files: 0, super_editor_folders: 0, products: 0, menu_items: 0 };
+let moved = { media_orders: 0, super_editor_files: 0, super_editor_folders: 0, products: 0, menu_items: 0, render_jobs: 0 };
 
 // 1) media_orders — (user_id, order_type)로 사업장
 for (const o of src.prepare('SELECT * FROM media_orders').all()) {
@@ -97,6 +99,15 @@ for (const p of src.prepare('SELECT * FROM products').all()) {
   const b = bundleFor(p.user_id, 'product');
   if (!b) continue;
   moved.products += b.ins.products.run(pick(p, COLS.products)).changes;
+}
+// 5) render_jobs — order_id로 부모 order의 (user_id, order_type) 역조회 → 사업장(id 보존).
+//    PDF 파일(data/render-output/)은 이전 대상 아님 — render_jobs 포인터 행만 옮긴다.
+for (const j of src.prepare('SELECT * FROM render_jobs').all()) {
+  const o = src.prepare('SELECT user_id, order_type FROM media_orders WHERE id=?').get(j.order_id);
+  if (!o) continue;
+  const b = bundleFor(o.user_id, o.order_type);
+  if (!b) continue;
+  moved.render_jobs += b.ins.render_jobs.run(pick(j, COLS.render_jobs)).changes;
 }
 
 // ── 선결1: order_id NULL super_editor_files 귀속 ─────────────────────────────
@@ -170,7 +181,7 @@ for (const s of allOwnerSites) {
 
 // ── 검증 출력 ────────────────────────────────────────────────────────────────
 console.log('── 콘텐츠 이전 결과(이번 실행 삽입 행수) ─────────────');
-console.log(`  media_orders ${moved.media_orders} · files ${moved.super_editor_files} · folders ${moved.super_editor_folders} · products ${moved.products} · menu_items ${moved.menu_items}`);
+console.log(`  media_orders ${moved.media_orders} · files ${moved.super_editor_files} · folders ${moved.super_editor_folders} · products ${moved.products} · menu_items ${moved.menu_items} · render_jobs ${moved.render_jobs}`);
 console.log(`  선결1(order_id NULL 파일): 참조 ${moved1.referenced} + 미분류 ${moved1.unref} = ${moved1.referenced + moved1.unref} (skip ${moved1.skipped})`);
 console.log(`  site_profile 채움: ${movedProfiles}개 사업장`);
 
