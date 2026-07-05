@@ -35,6 +35,9 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 
+# 암호화 키 백업(대표님 수동 백업 후 삭제 대상) — git에 절대 커밋 금지
+/REGISTRY_ENC_KEY_BACKUP.txt
+
 # vercel
 .vercel
 
