@@ -26,6 +26,7 @@ run "조립 학습 (모션보간/음절분해/장면/투영)"          npx tsx t
 run "조립 입력 분해기 (partsFromResult/빌더)"          npx tsx src/lib/super-editor/education/assemblyCompose.test.ts
 run "조립 편집 상태 관리 (assemblyEditorStore)"   npx tsx src/lib/super-editor/education/assemblyEditorStore.test.ts
 run "조립 회차 문서 관리 (assemblyDocStore)"   npx tsx src/lib/super-editor/education/assemblyDocStore.test.ts
+run "조립 미리보기 배선 (assemblyPreviewWiring)"   npx tsx src/lib/super-editor/education/assemblyPreviewWiring.test.ts
 run "클립 seek 캡처 정확도 (headless Chromium)" node tests/seek-capture-accuracy.test.mjs
 
 echo ""
