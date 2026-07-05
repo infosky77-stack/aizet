@@ -7,6 +7,7 @@
 // IndustryKind는 기존 MediaOrderType을 그대로 재사용(값 일치 보장) — 타입만 가져오므로
 // 런타임에 DB 모듈(better-sqlite3)이 로드되지 않는다.
 
+import { randomBytes } from 'crypto';
 import type { MediaOrderType } from '../db/media-orders';
 
 /** 업종 종류 — 기존 media_orders.order_type과 동일 값(단일 소스 재사용) */
@@ -23,31 +24,42 @@ export const INDUSTRY_KINDS: readonly IndustryKind[] = [
 /** 공통 DB(명부+계정) — 당분간 기존 aizet.db를 그대로 재사용한다 */
 export const REGISTRY_DB_PATH = 'data/aizet.db';
 
-/** 명부가 가리키는 한 업종 DB의 참조(경로만, 파일 존재 여부와 무관) */
-export interface IndustryDbRef {
+/**
+ * 명부가 가리키는 한 "사업장 DB"의 참조(경로만, 파일 존재 여부와 무관).
+ * 사업장은 siteId로 식별하고, industry는 분류·그룹핑 축으로 함께 보관한다
+ * (같은 업종 사업장 여러 개 = 서로 다른 siteId, 같은 industry).
+ */
+export interface SiteDbRef {
   userId: string;
+  siteId: string;
   industry: IndustryKind;
   dbPath: string;
 }
 
-// userId는 파일 경로 한 조각이 되므로 경로 조작(구분자·상위이동·제어문자)을 원천 차단한다.
-const USER_ID_RE = /^[A-Za-z0-9_-]+$/;
+// userId·siteId는 파일 경로 한 조각이 되므로 경로 조작(구분자·상위이동·점·제어문자)을 원천 차단한다.
+const PATH_SEGMENT_RE = /^[A-Za-z0-9_-]+$/;
 
-function isIndustryKind(value: string): value is IndustryKind {
-  return (INDUSTRY_KINDS as readonly string[]).includes(value);
+/**
+ * 회원·사업장(siteId)으로 사업장 DB 경로 문자열을 만든다(순수 함수, 파일 생성 안 함).
+ * 규칙: `data/members/<userId>/<siteId>.db`. 빈 값·이상 문자는 throw.
+ * (업종은 파일명에서 빠진다 — 같은 업종 사업장 여러 개를 siteId로 구분하기 위함)
+ */
+export function sitePath(userId: string, siteId: string): string {
+  const uid = (userId ?? '').trim();
+  if (!uid || !PATH_SEGMENT_RE.test(uid)) {
+    throw new Error(`유효하지 않은 userId: ${JSON.stringify(userId)}`);
+  }
+  const sid = (siteId ?? '').trim();
+  if (!sid || !PATH_SEGMENT_RE.test(sid)) {
+    throw new Error(`유효하지 않은 siteId: ${JSON.stringify(siteId)}`);
+  }
+  return `data/members/${uid}/${sid}.db`;
 }
 
 /**
- * 회원·업종으로 업종 DB 경로 문자열을 만든다(순수 함수, 파일 생성 안 함).
- * 규칙: `data/members/<userId>/<industry>.db`. 빈 값·이상 문자는 throw.
+ * 전역 유니크·불변 사업장 식별자 발급. 형식은 `site-<hex>`라 경로 검증(PATH_SEGMENT_RE)을
+ * 통과한다. slug/순번이 아니라 불변 랜덤 id라 slug 변경·삭제에도 DB 파일 경로가 안 바뀐다.
  */
-export function industryDbPath(userId: string, industry: IndustryKind): string {
-  const uid = (userId ?? '').trim();
-  if (!uid || !USER_ID_RE.test(uid)) {
-    throw new Error(`유효하지 않은 userId: ${JSON.stringify(userId)}`);
-  }
-  if (!isIndustryKind(industry)) {
-    throw new Error(`유효하지 않은 industry: ${JSON.stringify(industry)}`);
-  }
-  return `data/members/${uid}/${industry}.db`;
+export function newSiteId(): string {
+  return `site-${randomBytes(9).toString('hex')}`;
 }
