@@ -142,6 +142,31 @@ const seedSites = reg.transaction((rows) => {
 });
 seedSites(combos);
 
+// ── order 없는 업종 시드(선결2) — menu_items 보유 회원의 서비스 업종 사업장 ─────
+// media_orders(order_type) 조합엔 없지만 menu_items 같은 order 없는 콘텐츠를 가진 회원은
+// sites에 안 잡힌다. industry는 users.industry(예: 'beauty')를 쓴다(sites.industry는 TEXT라 수용).
+// 멱등은 위와 동일(existsSiteForMemberIndustry). insSite·insOwnerLink 재사용.
+const findIndustry = src.prepare('SELECT industry FROM users WHERE id=?');
+const orderlessOwners = src.prepare('SELECT DISTINCT user_id FROM menu_items').all();
+let seededOrderless = 0;
+const seedOrderless = reg.transaction((rows) => {
+  for (const r of rows) {
+    const industry = (findIndustry.get(r.user_id)?.industry ?? '').trim() || 'service'; // 빈값이면 'service'
+    if (existsSiteForMemberIndustry.get(r.user_id, industry)) continue; // 멱등
+    const siteId = newSiteId();
+    const title = (findShopName.get(r.user_id)?.shop_name ?? '').trim();
+    const ord = sortByMember.get(r.user_id) ?? 0;
+    sortByMember.set(r.user_id, ord + 1);
+    insSite.run({
+      id: siteId, industry, title, db_path: sitePath(r.user_id, siteId),
+      sort_order: ord, created_at: now, last_edited_at: now,
+    });
+    insOwnerLink.run(siteId, r.user_id, now);
+    seededOrderless++;
+  }
+});
+seedOrderless(orderlessOwners);
+
 // ── [검증·출력] ──────────────────────────────────────────────────────────────
 const srcUsers = src.prepare('SELECT COUNT(*) n FROM users').get().n;
 const srcSess = src.prepare('SELECT COUNT(*) n FROM sessions').get().n;

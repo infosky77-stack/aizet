@@ -47,6 +47,8 @@ const COLS = {
   super_editor_files: ['id', 'user_id', 'filename', 'orig_name', 'file_type', 'mime_type', 'size_bytes', 'created_at', 'content_hash', 'sort_order', 'order_id'],
   super_editor_folders: ['id', 'user_id', 'parent_folder_id', 'title', 'domain', 'sort_order', 'created_at', 'updated_at'],
   products: ['id', 'user_id', 'name', 'price', 'original_price', 'category', 'status', 'thumbnail_path', 'detail_order_id', 'detail_image_path', 'sort_order', 'created_at', 'updated_at', 'description', 'thumbnail_ref', 'detail_json_path'],
+  // menu_items는 id INTEGER AUTOINCREMENT — INSERT OR IGNORE로 원본 id를 그대로 넣어 보존(멱등)
+  menu_items: ['id', 'user_id', 'name', 'price', 'sort_order', 'description'],
 };
 const insertSql = (t) => `INSERT OR IGNORE INTO ${t} (${COLS[t].join(',')}) VALUES (${COLS[t].map((c) => '@' + c).join(',')})`;
 
@@ -67,7 +69,7 @@ function bundleFor(memberId, industry) {
 // named param에 SQL이 참조하는 키만 추리기(여분 키 있으면 better-sqlite3가 거부)
 const pick = (row, cols) => Object.fromEntries(cols.map((c) => [c, row[c] ?? null]));
 
-let moved = { media_orders: 0, super_editor_files: 0, super_editor_folders: 0, products: 0 };
+let moved = { media_orders: 0, super_editor_files: 0, super_editor_folders: 0, products: 0, menu_items: 0 };
 
 // 1) media_orders — (user_id, order_type)로 사업장
 for (const o of src.prepare('SELECT * FROM media_orders').all()) {
@@ -125,9 +127,19 @@ for (const f of nullFiles) {
   }
 }
 
+// ── 선결2: order 없는 업종 콘텐츠 이전(menu_items) ──────────────────────────
+// user_id의 서비스 업종 사업장(users.industry로 역조회)으로. id 보존(INSERT OR IGNORE).
+const findUserIndustry = src.prepare('SELECT industry FROM users WHERE id=?');
+for (const m of src.prepare('SELECT * FROM menu_items').all()) {
+  const industry = (findUserIndustry.get(m.user_id)?.industry ?? '').trim() || 'service';
+  const b = bundleFor(m.user_id, industry);
+  if (!b) continue;
+  moved.menu_items += b.ins.menu_items.run(pick(m, COLS.menu_items)).changes;
+}
+
 // ── 검증 출력 ────────────────────────────────────────────────────────────────
 console.log('── 콘텐츠 이전 결과(이번 실행 삽입 행수) ─────────────');
-console.log(`  media_orders ${moved.media_orders} · files ${moved.super_editor_files} · folders ${moved.super_editor_folders} · products ${moved.products}`);
+console.log(`  media_orders ${moved.media_orders} · files ${moved.super_editor_files} · folders ${moved.super_editor_folders} · products ${moved.products} · menu_items ${moved.menu_items}`);
 console.log(`  선결1(order_id NULL 파일): 참조 ${moved1.referenced} + 미분류 ${moved1.unref} = ${moved1.referenced + moved1.unref} (skip ${moved1.skipped})`);
 
 // 사업장별 최종 행수(files 중 미분류=order_id NULL 별도 표기)
@@ -135,7 +147,7 @@ console.log('\n사업장별 최종 행수:');
 for (const [dbPath, b] of bundles) {
   const c = (t) => b.db.prepare(`SELECT COUNT(*) n FROM ${t}`).get().n;
   const unclassified = b.db.prepare('SELECT COUNT(*) n FROM super_editor_files WHERE order_id IS NULL').get().n;
-  console.log(`  ${dbPath}: orders ${c('media_orders')} files ${c('super_editor_files')}(미분류 ${unclassified}) folders ${c('super_editor_folders')} products ${c('products')}`);
+  console.log(`  ${dbPath}: orders ${c('media_orders')} files ${c('super_editor_files')}(미분류 ${unclassified}) folders ${c('super_editor_folders')} products ${c('products')} menu ${c('menu_items')}`);
 }
 
 // files↔orders JOIN 무결성(사업장 DB 안) — 첫 사업장
