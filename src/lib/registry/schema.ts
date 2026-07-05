@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS members (
   is_super_admin  INTEGER NOT NULL DEFAULT 0,
   drive_folder_id TEXT,
   status          TEXT    NOT NULL DEFAULT 'active',
+  regen_count     INTEGER NOT NULL DEFAULT 0,
   created_at      INTEGER NOT NULL,
   updated_at      INTEGER NOT NULL
 )`;
