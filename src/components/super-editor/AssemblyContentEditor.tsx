@@ -5,13 +5,19 @@
 // 모든 변경을 snapshot.assembly.units에 반영해 기존 디바운스 저장(onChange=patchSnapshot)에
 // 흘려보낸다. 상태 조작은 전부 assemblyDocStore/assemblyEditorStore(목록·필드)와
 // assemblyCompose(입력 분해)를 재사용한다 — 이 컴포넌트에 분해·편집·목록 로직은 없다.
-// 발음 편집·이미지 부착·미리보기는 다음 조각.
+// 뜻 이미지 부착은 "원장에서 선택 + 고정 템플릿 프롬프트 안내"(직접 생성·업로드) 방식.
+// 자동 생성 배선(회원 키·게이트)은 건드리지 않는다. 미리보기는 다음 조각.
 
+import { useState } from 'react';
 import { buildAssemblyUnit } from '@/lib/super-editor/education/assemblyCompose';
 import {
   getUnits, addUnit, removeUnit, replaceUnit, setEpisodeNo, setTitle,
 } from '@/lib/super-editor/education/assemblyDocStore';
-import { setResult, setKind, updatePart, setMeaning } from '@/lib/super-editor/education/assemblyEditorStore';
+import { setResult, setKind, updatePart, setMeaning, setImageRef } from '@/lib/super-editor/education/assemblyEditorStore';
+import { buildImagePrompt } from '@/lib/super-editor/education/imagePromptTemplate';
+import { useOrderedFileEntries } from '@/lib/super-editor/ledger/store';
+import { resolveDisplayUrl } from '@/lib/super-editor/ledger/selectors';
+import type { FileEntry } from '@/lib/super-editor/ledger/types';
 import type {
   AssemblyKind, AssemblyUnit, EducationSnapshot,
 } from '@/lib/super-editor/education/types';
@@ -21,6 +27,8 @@ interface AssemblyContentEditorProps {
   /** 기존 디바운스 저장에 물릴 콜백 — docStore/editorStore가 만든 새 스냅샷을 그대로 넘긴다 */
   onChange: (next: EducationSnapshot) => void;
   isPaid?: boolean;
+  /** 파일 원장 구독용(뜻 이미지 선택) — EducationContentTabs와 같은 훅을 쓴다 */
+  orderId: string;
 }
 
 const inputCls = 'text-sm border border-stone-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-violet-300 disabled:bg-stone-50';
@@ -31,8 +39,10 @@ const KIND_OPTIONS: { value: AssemblyKind; label: string; hint: string; placehol
   { value: 'sentence', label: '단어 → 문장', hint: '문장을 어절로 분해 (가방을 메요 → 가방을 · 메요)', placeholder: '가방을 메요' },
 ];
 
-export function AssemblyContentEditor({ snapshot, onChange, isPaid = false }: AssemblyContentEditorProps) {
+export function AssemblyContentEditor({ snapshot, onChange, isPaid = false, orderId }: AssemblyContentEditorProps) {
   const units = getUnits(snapshot);
+  // 원장 이미지 구독(읽기 전용) — 업로드는 "파일 관리" 몫, 여기선 선택만(EducationContentTabs와 동일)
+  const imageEntries = useOrderedFileEntries(orderId).filter((e) => e.kind === 'image');
 
   return (
     <div className="flex flex-col gap-4">
@@ -76,11 +86,13 @@ export function AssemblyContentEditor({ snapshot, onChange, isPaid = false }: As
           index={i}
           unit={unit}
           isPaid={isPaid}
+          imageEntries={imageEntries}
           onResult={(v) => onChange(replaceUnit(snapshot, setResult(unit, v)))}
           onKind={(k) => onChange(replaceUnit(snapshot, setKind(unit, k)))}
           onPart={(pi, pron) => onChange(replaceUnit(snapshot, updatePart(unit, pi, { pronunciation: pron })))}
           onRomanization={(v) => onChange(replaceUnit(snapshot, { ...unit, romanization: v }))}
           onMeaningEn={(v) => onChange(replaceUnit(snapshot, setMeaning(unit, 'en', v)))}
+          onImage={(ref) => onChange(replaceUnit(snapshot, setImageRef(unit, ref)))}
           onRemove={() => onChange(removeUnit(snapshot, unit.id))}
         />
       ))}
@@ -105,20 +117,25 @@ interface AssemblyUnitCardProps {
   index: number;
   unit: AssemblyUnit;
   isPaid: boolean;
+  imageEntries: FileEntry[];
   onResult: (value: string) => void;
   onKind: (kind: AssemblyKind) => void;
   onPart: (partIndex: number, pronunciation: string) => void;
   onRomanization: (value: string) => void;
   onMeaningEn: (value: string) => void;
+  onImage: (ref: string | null) => void;
   onRemove: () => void;
 }
 
 function AssemblyUnitCard({
-  index, unit, isPaid, onResult, onKind, onPart, onRomanization, onMeaningEn, onRemove,
+  index, unit, isPaid, imageEntries, onResult, onKind, onPart, onRomanization, onMeaningEn, onImage, onRemove,
 }: AssemblyUnitCardProps) {
   const active = KIND_OPTIONS.find((o) => o.value === unit.kind) ?? KIND_OPTIONS[0];
   const typed = unit.resultKo.trim().length > 0;
   const parts = unit.parts;
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const linked = unit.imageRef ? imageEntries.find((e) => e.id === unit.imageRef) ?? null : null;
+  const prompt = buildImagePrompt(unit);
 
   return (
     <div className="bg-white border border-stone-200 rounded-2xl p-4 flex flex-col gap-3">
@@ -207,6 +224,91 @@ function AssemblyUnitCard({
           <p className="text-[11px] text-stone-400">부품 아래 칸에서 발음 표기를 다듬을 수 있습니다</p>
         </div>
       )}
+
+      {/* 뜻 이미지 부착 — 원장에서 선택 + 고정 템플릿 프롬프트 안내(직접 생성·업로드) */}
+      <div className="flex flex-col gap-2 pt-1 border-t border-stone-100">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-xs font-semibold text-stone-500">뜻 이미지</span>
+          {linked ? (
+            <>
+              {/* 원장 blob URL이라 next/image 최적화 대상이 아님 — 일반 img 사용 */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={resolveDisplayUrl(linked)} alt={linked.origName} className="w-12 h-12 rounded-lg object-cover border border-stone-200" />
+              <span className="text-[11px] text-stone-400 truncate max-w-40">{linked.origName}</span>
+              {!isPaid && (
+                <button
+                  onClick={() => onImage(null)}
+                  className="text-[11px] font-semibold px-2.5 py-1 rounded-lg border border-stone-200 text-stone-500 hover:border-red-300 hover:text-red-500 transition-colors"
+                >
+                  해제
+                </button>
+              )}
+            </>
+          ) : unit.imageRef ? (
+            <span className="text-[11px] text-amber-600">연결된 이미지를 원장에서 찾지 못했습니다(파일 관리 확인)</span>
+          ) : (
+            <span className="text-[11px] text-stone-400">아직 연결 안 됨</span>
+          )}
+          {!isPaid && (
+            <button
+              onClick={() => setPickerOpen((v) => !v)}
+              className="text-[11px] font-semibold px-2.5 py-1 rounded-lg border border-stone-200 text-stone-600 hover:border-violet-300 hover:text-violet-700 transition-colors"
+            >
+              {pickerOpen ? '닫기' : linked ? '변경' : '뜻 이미지 연결'}
+            </button>
+          )}
+        </div>
+
+        {pickerOpen && !isPaid && (
+          <div className="flex flex-col gap-2 p-3 rounded-xl border border-violet-200 bg-violet-50/50">
+            {imageEntries.length === 0 ? (
+              <p className="text-[11px] text-stone-400 py-2 text-center">올려둔 이미지가 없습니다 — &ldquo;파일 관리&rdquo;에서 먼저 업로드하세요</p>
+            ) : (
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                {imageEntries.map((e) => (
+                  <button
+                    key={e.id}
+                    onClick={() => { onImage(e.id); setPickerOpen(false); }}
+                    className={`group bg-white border rounded-xl overflow-hidden text-left transition-colors ${
+                      unit.imageRef === e.id ? 'border-emerald-400' : 'border-stone-200 hover:border-violet-300'
+                    }`}
+                  >
+                    <div className="aspect-square bg-stone-100 flex items-center justify-center overflow-hidden">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={resolveDisplayUrl(e)} alt={e.origName} className="w-full h-full object-cover" />
+                    </div>
+                    <p className="px-2 py-1 text-[10px] font-medium text-stone-600 truncate group-hover:text-violet-700">{e.origName}</p>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* 생성 안내 — 이 프롬프트로 만들어 업로드 후 위에서 선택(자동 생성 아님) */}
+        {prompt && !isPaid && (
+          <div className="flex flex-col gap-1.5 p-3 rounded-xl border border-stone-200 bg-stone-50">
+            <p className="text-[11px] text-stone-700 leading-relaxed break-words">{prompt}</p>
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                onClick={() => { void navigator.clipboard?.writeText(prompt); }}
+                className="text-[11px] font-semibold px-2.5 py-1 rounded-lg border border-stone-200 text-stone-600 hover:border-violet-300 hover:text-violet-700 transition-colors"
+              >
+                프롬프트 복사
+              </button>
+              <a
+                href="https://aistudio.google.com" target="_blank" rel="noopener noreferrer"
+                className="text-[11px] font-semibold px-2.5 py-1 rounded-lg border border-stone-200 text-stone-600 hover:border-violet-300 hover:text-violet-700 transition-colors"
+              >
+                Google AI Studio 열기 ↗
+              </a>
+            </div>
+            <p className="text-[11px] text-stone-400">
+              이 프롬프트로 이미지를 만든 뒤, 파일 관리에 업로드하고 위에서 선택하세요. (직접 생성·업로드 방식)
+            </p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

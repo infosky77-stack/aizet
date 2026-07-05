@@ -275,7 +275,7 @@ export function EducationContentTabs({
             )}
 
             {isAssemblySnapshot(snapshot) ? (
-              <AssemblyContentEditor snapshot={snapshot} onChange={patchSnapshot} isPaid={isPaid} />
+              <AssemblyContentEditor snapshot={snapshot} onChange={patchSnapshot} isPaid={isPaid} orderId={orderId} />
             ) : (
             <>
             {snapshot.units.map((unit, i) => (
