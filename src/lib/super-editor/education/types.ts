@@ -34,6 +34,35 @@ export interface EducationUnit {
   voiceRef: string | null;
 }
 
+/** 조립 부품 — 자모(ㄱ·"그") / 글자(가·"가") / 단어(가방·"가방") 공용 */
+export interface AssemblyPart {
+  glyph: string;
+  /** 발음 표기(화면·자막용, 예: "그") */
+  pronunciation: string;
+}
+
+/** 조립 종류 — 3편(자모→글자) / 4편(글자→단어) / 5편(단어→문장) */
+export type AssemblyKind = 'syllable' | 'word' | 'sentence';
+
+/**
+ * 조립 유닛 — "부품들이 모여 결과가 되는" 한 장면의 스키마. 세 편이 같은 문법을 쓴다.
+ * 실사 이미지·음성은 기존 유닛과 동일하게 원장 참조(ledgerRef)로만 연결한다.
+ */
+export interface AssemblyUnit {
+  id: string;
+  kind: AssemblyKind;
+  parts: AssemblyPart[];
+  /** 조립 결과 원문 — '가' / '가방' / '가방을 메요' */
+  resultKo: string;
+  romanization: string;
+  /** 결과 뜻 번역 — StudyLang 전 언어(빈 문자열 허용, 표시 시 ko 폴백) */
+  meaning: Record<StudyLang, string>;
+  /** 뜻 실사 이미지 원장 참조 — null이면 미연결 */
+  imageRef: string | null;
+  /** 발음 음성 원장 참조 — null이면 미연결(오디오는 후속 단계) */
+  voiceRef: string | null;
+}
+
 export interface EducationSnapshot {
   version: 1;
   title: string;
@@ -45,6 +74,12 @@ export interface EducationSnapshot {
    * 없거나 해석 실패면 유닛 팔레트 배경 폴백. 옵션 필드라 version 1 유지(기존 데이터 호환).
    */
   backgroundRef?: string | null;
+  /**
+   * 조립 회차(3·4·5편) 전용 블록 — 있으면 조립 학습 회차다(backgroundRef와 같은
+   * "옵션 필드라 version 1 유지" 관례, 기존 게시본·1·2편 데이터와 호환).
+   * 카드·이북·게시는 assemblyToUnits 투영을 거쳐 기존 units 경로를 그대로 쓴다.
+   */
+  assembly?: { units: AssemblyUnit[] };
 }
 
 export function isEducationSnapshot(raw: unknown): raw is EducationSnapshot {
@@ -65,4 +100,23 @@ export function newEducationUnit(over: Partial<EducationUnit> = {}): EducationUn
     voiceRef: null,
     ...over,
   };
+}
+
+export function newAssemblyUnit(over: Partial<AssemblyUnit> = {}): AssemblyUnit {
+  return {
+    id: `asm-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
+    kind: 'syllable',
+    parts: [],
+    resultKo: '',
+    romanization: '',
+    meaning: { en: '', zh: '', ja: '', vi: '' },
+    imageRef: null,
+    voiceRef: null,
+    ...over,
+  };
+}
+
+/** 조립 회차인가 — assembly 유닛이 1개 이상이면 조립 학습 회차 */
+export function isAssemblySnapshot(snapshot: EducationSnapshot): boolean {
+  return (snapshot.assembly?.units.length ?? 0) > 0;
 }
