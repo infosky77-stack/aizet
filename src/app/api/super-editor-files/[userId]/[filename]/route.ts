@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { readFile } from 'fs/promises';
-import { existsSync } from 'fs';
-import path from 'path';
 import { getSessionFromRequest } from '@/lib/auth';
+import { resolveReadPath } from '@/lib/super-editor/filePaths';
+import { getSiteContext } from '@/lib/registry/siteContext';
 
 export const dynamic = 'force-dynamic';
 
@@ -36,8 +36,15 @@ export async function GET(
   const mime = MIME[ext];
   if (!mime) return new NextResponse(null, { status: 400 });
 
-  const filePath = path.join(process.cwd(), 'data', 'super-editor-files', userId, filename);
-  if (!existsSync(filePath)) return new NextResponse(null, { status: 404 });
+  // 선택적 ?siteId= — 있으면 소유 검증 후 new(siteId) 우선/old 폴백, 없으면 old만(기존과 100% 동일).
+  // 소유가 아니거나 없는 siteId면 siteId를 무시하고 old로 폴백한다(무중단 + 남의 siteId 격리 우회 방지).
+  let effectiveSiteId: string | null = req.nextUrl.searchParams.get('siteId');
+  if (effectiveSiteId && !getSiteContext(effectiveSiteId, session.sub)) {
+    effectiveSiteId = null;
+  }
+
+  const filePath = resolveReadPath(userId, effectiveSiteId, filename);
+  if (!filePath) return new NextResponse(null, { status: 404 });
 
   try {
     const buffer = await readFile(filePath);
