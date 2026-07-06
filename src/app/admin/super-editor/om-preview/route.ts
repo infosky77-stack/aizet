@@ -94,7 +94,8 @@ export async function GET(req: NextRequest): Promise<Response> {
           return `<li class="om-li"><a href="${docQ}">`
             + `${escapeHtml(d.title || '(제목 없음)')}</a> `
             + `<span class="om-caption">${escapeHtml(d.kind)}</span> `
-            + `<a href="${docQ}&format=pdf">PDF</a></li>`;
+            + `<a href="${docQ}&format=pdf">PDF</a> `
+            + `<a href="/admin/super-editor/om-edit${docQ}" target="_blank" rel="noopener">편집</a></li>`;
         }).join('')
       : `<li class="om-li"><em>아직 문서가 없습니다.</em></li>`;
 

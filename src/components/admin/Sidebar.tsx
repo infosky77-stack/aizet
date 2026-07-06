@@ -180,6 +180,10 @@ const SUPER_NAV: NavItem[] = [
   { href: '/admin/render-queue', label: '렌더 큐',          icon: ListVideo, exact: true },
 ];
 
+// 사이드바 없이 순수 전체화면으로 렌더할 경로들(편집기 등). startsWith로 판정하므로
+// 하위 경로까지 함께 커버된다. 새 전체화면 페이지는 이 배열에만 추가하면 된다.
+const FULLSCREEN_PATHS = ['/admin/super-editor/om-edit'];
+
 export function Sidebar() {
   const pathname  = usePathname();
   const { session, signOut } = useSession();
@@ -189,6 +193,9 @@ export function Sidebar() {
   useEffect(() => {
     setOpen(false);
   }, [pathname]);
+
+  // 전체화면 경로에서는 사이드바를 렌더하지 않는다(모든 hook 호출 뒤에서 early return).
+  if (FULLSCREEN_PATHS.some((p) => pathname.startsWith(p))) return null;
 
   const isSuperAdmin    = session?.isSuperAdmin    ?? false;
   const isImpersonating = session?.isImpersonating ?? false;
