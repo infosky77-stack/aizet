@@ -11,6 +11,11 @@ const TTL_MS = 15 * 60 * 1000; // 15분
 export interface MobileTokenEntry {
   orderId: string;
   userId:  string;
+  /**
+   * 이 업로드가 귀속될 홈페이지(사업장) id. 발급 시 소유 검증을 통과한 경우에만 각인된다.
+   * 없으면(옛 토큰·siteId 미전달) old(userDir)+싱글턴(aizet.db)로 저장 — 하위호환.
+   */
+  siteId?: string;
   exp:     number;
 }
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import {
   ArrowLeft, Save, CheckCircle, AlertCircle, Loader2,
   Film, Printer, BookOpen, Lock, CreditCard, Clock,
@@ -97,7 +97,11 @@ const COLOR_MODES  = ['color', 'mono', 'spot'];
 export default function SuperEditorPage() {
   const params  = useParams();
   const router  = useRouter();
+  const searchParams = useSearchParams();
   const orderId = params.orderId as string;
+  // 사업장 컨텍스트로 진입했으면 siteId 보유(인덱스→editHref가 ?siteId= 로 전달). QR 발급 시
+  // 이 값을 실어 보내 모바일 업로드가 그 사업장에 격리 저장되게 한다. 없으면 null → 안 붙임(하위호환).
+  const siteId = searchParams.get('siteId');
 
   const [order,        setOrder]        = useState<MediaOrder | null>(null);
   const [loading,      setLoading]      = useState(true);
@@ -249,7 +253,9 @@ export default function SuperEditorPage() {
       const res = await fetch('/api/admin/super-editor/mobile-token', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ orderId }),
+        // siteId가 있을 때만 실어 보낸다 — 서버가 소유 검증 후 토큰에 각인 → 모바일 업로드 격리 저장.
+        // 없으면 orderId만 보냄 → 서버가 siteId 없는 토큰 발급 → old 저장(하위호환).
+        body:    JSON.stringify(siteId ? { orderId, siteId } : { orderId }),
       });
       if (!res.ok) { setMobileNote('QR 생성 실패'); return; }
       const { qrDataUrl: url } = await res.json();

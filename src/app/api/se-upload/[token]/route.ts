@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { writeFile, mkdir } from 'fs/promises';
-import { existsSync } from 'fs';
-import path from 'path';
+import { writeFile, unlink } from 'fs/promises';
 import { randomUUID } from 'crypto';
+import type Database from 'better-sqlite3';
 import { validateToken, notifyChannel } from '@/lib/mobile-upload-store';
 import { insertFile } from '@/lib/db/super-editor-files';
+import { resolveWritePath } from '@/lib/super-editor/filePaths';
+import { getSiteContext } from '@/lib/registry/siteContext';
+import { bootstrapSite } from '@/lib/siteDb/siteDb';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -22,10 +24,6 @@ const EXT_MAP: Record<string, string> = {
 };
 
 const MAX_SIZE = 200 * 1024 * 1024; // 200 MB
-
-function userDir(userId: string): string {
-  return path.join(process.cwd(), 'data', 'super-editor-files', userId);
-}
 
 // GET — 토큰 유효성 확인 (모바일 페이지 진입 시 호출)
 export async function GET(
@@ -67,26 +65,49 @@ export async function POST(
   const fileType = MIME_TO_TYPE[mime] ?? 'image';
   const ext = EXT_MAP[mime] ?? (file.name.split('.').pop() ?? 'jpg');
   const filename = `${randomUUID()}.${ext}`;
-  const dir = userDir(entry.userId);
 
-  if (!existsSync(dir)) await mkdir(dir, { recursive: true });
-  const buffer = Buffer.from(await file.arrayBuffer());
-  await writeFile(path.join(dir, filename), buffer);
+  // 토큰에 siteId가 각인돼 있으면 PC 업로드와 동일 패턴으로 격리 저장한다(실물 new + 메타 siteDb,
+  // 3자 일치). 세션이 없는 모바일 업로드이므로 소유 검증은 세션 대신 토큰의 userId로 재확인한다
+  // (getSiteContext는 memberId 인자를 받는데, 여기선 발급 시 세션 소유자였던 entry.userId를 넘김).
+  // siteId가 없으면(옛 토큰) effSiteId=null → resolveWritePath가 old(userDir)에 쓰고 메타는 싱글턴.
+  const effSiteId: string | null = entry.siteId ?? null;
+  let siteHandle: Database.Database | null = null;
+  if (effSiteId) {
+    const ctx = getSiteContext(effSiteId, entry.userId);
+    if (!ctx) return NextResponse.json({ error: 'Forbidden: not site owner' }, { status: 403 });
+    siteHandle = bootstrapSite(ctx.dbPath);
+  }
 
-  const record = insertFile({
-    userId: entry.userId, filename, origName: file.name || filename, fileType, mimeType: mime,
-    sizeBytes: file.size, orderId: entry.orderId,
-  });
-  const url = `/api/super-editor-files/${entry.userId}/${filename}`;
+  try {
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const dest = resolveWritePath(entry.userId, effSiteId, filename); // siteId 있으면 new(sites/<siteId>/), 없으면 old
+    await writeFile(dest, buffer);
 
-  // SSE로 PC 편집 화면에 notify (공유 store 사용 → 같은 채널 Map)
-  notifyChannel(entry.orderId, {
-    type: 'file_uploaded',
-    url,
-    filename,
-    fileId: record.id,
-    fileType,
-  });
+    let record: ReturnType<typeof insertFile>;
+    try {
+      record = insertFile({
+        userId: entry.userId, filename, origName: file.name || filename, fileType, mimeType: mime,
+        sizeBytes: file.size, orderId: entry.orderId,
+      }, siteHandle ?? undefined);
+    } catch {
+      // 메타 삽입 실패 → 방금 new 경로에 쓴 실물만 롤백(old·기존 파일은 건드리지 않음)
+      if (effSiteId) { try { await unlink(dest); } catch { /* 롤백 실패는 무시 */ } }
+      return NextResponse.json({ error: 'save_failed' }, { status: 500 });
+    }
 
-  return NextResponse.json({ ok: true, url, filename });
+    const url = `/api/super-editor-files/${entry.userId}/${filename}`;
+
+    // SSE로 PC 편집 화면에 notify (공유 store 사용 → 같은 채널 Map)
+    notifyChannel(entry.orderId, {
+      type: 'file_uploaded',
+      url,
+      filename,
+      fileId: record.id,
+      fileType,
+    });
+
+    return NextResponse.json({ ok: true, url, filename });
+  } finally {
+    siteHandle?.close();
+  }
 }

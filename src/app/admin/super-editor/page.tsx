@@ -22,10 +22,13 @@ interface MediaOrder {
 // 주문 종류별 편집 진입 경로 — education/product는 폴더 라우트(contentId 딥링크)가
 // orderType으로 올바른 에디터(EducationContentTabs 등)를 렌더한다(정상 경로). 나머지
 // (video/print/catalog/magazine)는 기존 [orderId] 평면 에디터 그대로.
-function editHref(order: MediaOrder): string {
-  if (order.order_type === 'education') return `/admin/super-editor/folders?domain=education&contentId=${order.id}`;
-  if (order.order_type === 'product')   return `/admin/super-editor/folders?domain=product&contentId=${order.id}`;
-  return `/admin/super-editor/${order.id}`;
+// siteId(사업장)가 있으면 편집 경로에 ?siteId=/&siteId= 로 실어 보낸다(있을 때만) — 그래야
+// [orderId] 편집기의 QR 발급(fetchQr)까지 siteId가 도달한다. 없으면 붙이지 않음(하위호환).
+function editHref(order: MediaOrder, siteId?: string | null): string {
+  const site = siteId ? `siteId=${encodeURIComponent(siteId)}` : '';
+  if (order.order_type === 'education') return `/admin/super-editor/folders?domain=education&contentId=${order.id}${site ? `&${site}` : ''}`;
+  if (order.order_type === 'product')   return `/admin/super-editor/folders?domain=product&contentId=${order.id}${site ? `&${site}` : ''}`;
+  return `/admin/super-editor/${order.id}${site ? `?${site}` : ''}`;
 }
 
 const STATUS_META: Record<OrderStatus, { label: string; color: string }> = {
@@ -40,6 +43,9 @@ function SuperEditorIndexContent() {
   const router       = useRouter();
   const searchParams = useSearchParams();
   const isCatalogMode = searchParams.get('type') === 'catalog';
+  // 이 홈페이지(사업장) 컨텍스트로 진입했으면 siteId를 보유(/sites/[siteId]→?siteId=). 없으면 null.
+  // editHref로 그대로 흘려보내 [orderId] 편집기의 QR 발급까지 전달한다(있을 때만).
+  const siteId = searchParams.get('siteId');
 
   const [orders,   setOrders]   = useState<MediaOrder[]>([]);
   const [loading,  setLoading]  = useState(true);
@@ -71,7 +77,7 @@ function SuperEditorIndexContent() {
       });
       if (res.ok) {
         const { order } = await res.json();
-        router.push(editHref(order));
+        router.push(editHref(order, siteId));
       }
     } finally {
       setCreating(false);
@@ -268,7 +274,7 @@ function SuperEditorIndexContent() {
                 </div>
 
                 {/* 정보 */}
-                <div className="flex-1 min-w-0 cursor-pointer" onClick={() => router.push(editHref(order))}>
+                <div className="flex-1 min-w-0 cursor-pointer" onClick={() => router.push(editHref(order, siteId))}>
                   <p className="font-semibold text-stone-800 text-sm truncate">{order.title}</p>
                   <div className="flex items-center gap-2 mt-0.5">
                     <span className={clsx('text-[11px] font-semibold px-2 py-0.5 rounded-full border', meta.color)}>
@@ -289,7 +295,7 @@ function SuperEditorIndexContent() {
                 <div className="flex items-center gap-2 shrink-0">
                   {order.status === 'editing' && (
                     <button
-                      onClick={() => router.push(editHref(order))}
+                      onClick={() => router.push(editHref(order, siteId))}
                       className={clsx(
                         'px-3 py-1.5 text-xs font-semibold text-white rounded-lg transition-colors',
                         isCatalogMode
@@ -302,7 +308,7 @@ function SuperEditorIndexContent() {
                   )}
                   {order.status === 'done' && (
                     <button
-                      onClick={() => router.push(editHref(order))}
+                      onClick={() => router.push(editHref(order, siteId))}
                       className="px-3 py-1.5 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors"
                     >
                       결과 보기
@@ -310,7 +316,7 @@ function SuperEditorIndexContent() {
                   )}
                   {order.status === 'failed' && (
                     <button
-                      onClick={() => router.push(editHref(order))}
+                      onClick={() => router.push(editHref(order, siteId))}
                       className="px-3 py-1.5 text-xs font-semibold bg-red-100 hover:bg-red-200 text-red-600 rounded-lg transition-colors"
                     >
                       상세 보기
