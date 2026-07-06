@@ -6,7 +6,7 @@ import db from '@/lib/db';
 import { getSessionFromRequest } from '@/lib/auth';
 import { resolveWritePath } from '@/lib/super-editor/filePaths';
 import {
-  insertFile, listFiles, softDeleteFile, renameFile, reorderFiles,
+  insertFile, listFiles, softDeleteFile, listTrashedFiles, restoreFile, renameFile, reorderFiles,
   findExactDuplicate, listOrigNames, resolveAvailableName, FileType,
 } from '@/lib/db/super-editor-files';
 import { getValidAccessToken } from '@/lib/drive-auth';
@@ -82,6 +82,7 @@ export async function GET(req: NextRequest) {
   const type    = req.nextUrl.searchParams.get('type') as FileType | null;
   const orderId = req.nextUrl.searchParams.get('orderId');
   const siteId  = req.nextUrl.searchParams.get('siteId');
+  const trash   = req.nextUrl.searchParams.get('trash') === '1'; // 휴지통 목록(소프트 삭제된 것만)
 
   // siteId가 있으면 그 홈페이지 전용 siteDb에서 읽는다(읽기 전용 파일럿).
   // 소유자 검증은 getSiteContext가 수행 — 소유자 아님/없는 siteId면 null → 빈 목록으로 거부
@@ -91,14 +92,18 @@ export async function GET(req: NextRequest) {
     if (!ctx) return Response.json({ files: [] });
     const siteDb = bootstrapSite(ctx.dbPath);
     try {
-      const files = listFiles(session.sub, type ?? undefined, orderId ?? undefined, siteDb);
+      const files = trash
+        ? listTrashedFiles(session.sub, siteDb)
+        : listFiles(session.sub, type ?? undefined, orderId ?? undefined, siteDb);
       return Response.json({ files });
     } finally {
       siteDb.close();
     }
   }
 
-  const files = listFiles(session.sub, type ?? undefined, orderId ?? undefined);
+  const files = trash
+    ? listTrashedFiles(session.sub)
+    : listFiles(session.sub, type ?? undefined, orderId ?? undefined);
   return Response.json({ files });
 }
 
@@ -235,14 +240,33 @@ export async function POST(req: NextRequest) {
   }
 }
 
+// PATCH { restore: fileId }[&siteId=] → 휴지통에서 복구(deleted_at NULL로, 실물 무접촉)
 // PATCH { fileId, name }        → 이름 변경 (충돌 시 서버가 자동으로 "(1)" 접미사)
 // PATCH { order: string[] }     → 순서 변경 (앞에 있는 id가 먼저 표시됨)
 export async function PATCH(req: NextRequest) {
   const session = getSessionFromRequest(req);
   if (!session) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const body = await req.json().catch(() => null) as { fileId?: string; name?: string; order?: string[] } | null;
+  const body = await req.json().catch(() => null) as { fileId?: string; name?: string; order?: string[]; restore?: string } | null;
   if (!body) return Response.json({ error: 'Invalid body' }, { status: 400 });
+
+  // 복구(휴지통에서 꺼내기) — siteId 있으면 그 siteDb 레코드만, 없으면 싱글턴. 실물은 안 건드림.
+  if (body.restore) {
+    const effSiteId = req.nextUrl.searchParams.get('siteId') || null;
+    let siteHandle: Database.Database | null = null;
+    if (effSiteId) {
+      const ctx = getSiteContext(effSiteId, session.sub);
+      if (!ctx) return Response.json({ error: 'Forbidden: not site owner' }, { status: 403 });
+      siteHandle = bootstrapSite(ctx.dbPath);
+    }
+    try {
+      const ok = restoreFile(body.restore, session.sub, siteHandle ?? undefined);
+      if (!ok) return Response.json({ error: 'Not found' }, { status: 404 });
+      return Response.json({ ok: true });
+    } finally {
+      siteHandle?.close();
+    }
+  }
 
   if (Array.isArray(body.order)) {
     reorderFiles(session.sub, body.order);

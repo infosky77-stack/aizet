@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   ArrowLeft, Upload, Image, Film, Music, Trash2, Loader2,
-  HardDrive, X, Download, FileQuestion,
+  HardDrive, X, Download, FileQuestion, RotateCcw,
 } from 'lucide-react';
 import { clsx } from 'clsx';
 
@@ -63,12 +63,23 @@ function SuperEditorFilesContent() {
   const [driveFiles,  setDriveFiles]  = useState<DriveFile[]>([]);
   const [driveLoading, setDriveLoading] = useState(false);
   const [importing,   setImporting]   = useState<string | null>(null);
+  const [showTrash,   setShowTrash]   = useState(false); // 휴지통(소프트 삭제된 것) 보기 토글
+  const [restoring,   setRestoring]   = useState<string | null>(null);
   const fileInputRef  = useRef<HTMLInputElement>(null);
+
+  // siteId·trash 쿼리를 안전하게 조합(URLSearchParams가 인코딩 처리). 둘 다 없으면 빈 쿼리.
+  function filesUrl(extra?: Record<string, string>) {
+    const params = new URLSearchParams();
+    if (siteId) params.set('siteId', siteId);
+    if (extra) for (const [k, v] of Object.entries(extra)) params.set(k, v);
+    const qs = params.toString();
+    return `/api/admin/super-editor/files${qs ? `?${qs}` : ''}`;
+  }
 
   async function fetchFiles() {
     setLoading(true);
-    // siteId 보유 시 그 사업장 siteDb 목록을 읽는다(활성만). 없으면 기존 싱글턴 목록.
-    const res = await fetch(`/api/admin/super-editor/files${siteId ? `?siteId=${encodeURIComponent(siteId)}` : ''}`);
+    // showTrash면 휴지통 목록(?trash=1), 아니면 활성 목록. siteId 보유 시 그 사업장 siteDb에서.
+    const res = await fetch(filesUrl(showTrash ? { trash: '1' } : undefined));
     if (res.ok) {
       const data = await res.json();
       setFiles(data.files ?? []);
@@ -76,7 +87,7 @@ function SuperEditorFilesContent() {
     setLoading(false);
   }
 
-  useEffect(() => { fetchFiles(); }, []);
+  useEffect(() => { fetchFiles(); }, [showTrash]);
 
   const displayed = activeTab === 'all'
     ? files
@@ -120,6 +131,18 @@ function SuperEditorFilesContent() {
     await fetch(`/api/admin/super-editor/files?fileId=${id}${siteId ? `&siteId=${encodeURIComponent(siteId)}` : ''}`, { method: 'DELETE' });
     setFiles(prev => prev.filter(f => f.id !== id));
     setDeleting(null);
+  }
+
+  // 휴지통에서 복구 — deleted_at을 NULL로(서버). 성공 시 휴지통 목록에서 제거(활성으로 되살아남). 실물 무접촉.
+  async function handleRestore(id: string) {
+    setRestoring(id);
+    const res = await fetch(filesUrl(), {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ restore: id }),
+    });
+    if (res.ok) setFiles(prev => prev.filter(f => f.id !== id));
+    setRestoring(null);
   }
 
   async function openDrive() {
@@ -166,6 +189,16 @@ function SuperEditorFilesContent() {
           <h1 className="text-xl font-bold text-stone-800">파일 관리자</h1>
           <p className="text-sm text-stone-400 mt-0.5">업로드한 소재를 관리하고 편집에 활용하세요</p>
         </div>
+        <button
+          onClick={() => setShowTrash(v => !v)}
+          className={clsx(
+            'flex items-center gap-2 px-4 py-2 border text-sm font-semibold rounded-xl transition-colors',
+            showTrash ? 'border-violet-300 bg-violet-50 text-violet-700' : 'border-stone-200 hover:bg-stone-50 text-stone-600',
+          )}
+        >
+          <Trash2 size={14} />
+          {showTrash ? '파일 보기' : '휴지통'}
+        </button>
         <button
           onClick={openDrive}
           className="flex items-center gap-2 px-4 py-2 border border-stone-200 hover:bg-stone-50 text-stone-600 text-sm font-semibold rounded-xl transition-colors"
@@ -267,16 +300,29 @@ function SuperEditorFilesContent() {
                 ) : (
                   <FileIcon type={file.file_type} className="text-stone-300" />
                 )}
-                {/* 삭제 버튼 오버레이 */}
-                <button
-                  onClick={() => handleDelete(file.id)}
-                  disabled={deleting === file.id}
-                  className="absolute top-1 right-1 p-1.5 bg-white/80 hover:bg-red-50 hover:text-red-500 text-stone-400 rounded-lg opacity-0 group-hover:opacity-100 transition-all"
-                >
-                  {deleting === file.id
-                    ? <Loader2 size={12} className="animate-spin" />
-                    : <Trash2 size={12} />}
-                </button>
+                {/* 오버레이: 휴지통 모드면 복구 버튼, 아니면 삭제 버튼 */}
+                {showTrash ? (
+                  <button
+                    onClick={() => handleRestore(file.id)}
+                    disabled={restoring === file.id}
+                    className="absolute top-1 right-1 flex items-center gap-1 px-2 py-1 bg-white/90 hover:bg-violet-50 hover:text-violet-600 text-stone-500 text-[11px] font-semibold rounded-lg opacity-0 group-hover:opacity-100 transition-all"
+                  >
+                    {restoring === file.id
+                      ? <Loader2 size={12} className="animate-spin" />
+                      : <RotateCcw size={12} />}
+                    복구
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => handleDelete(file.id)}
+                    disabled={deleting === file.id}
+                    className="absolute top-1 right-1 p-1.5 bg-white/80 hover:bg-red-50 hover:text-red-500 text-stone-400 rounded-lg opacity-0 group-hover:opacity-100 transition-all"
+                  >
+                    {deleting === file.id
+                      ? <Loader2 size={12} className="animate-spin" />
+                      : <Trash2 size={12} />}
+                  </button>
+                )}
               </div>
               {/* 파일 정보 */}
               <div className="px-2.5 py-2">

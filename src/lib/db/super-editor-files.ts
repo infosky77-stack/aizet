@@ -141,3 +141,24 @@ export function softDeleteFile(id: string, userId: string, dbHandle: Database.Da
   ).run(Date.now(), id, userId);
   return result.changes > 0;
 }
+
+/**
+ * 휴지통 목록 — 소프트 삭제된 파일(deleted_at IS NOT NULL)만 반환한다(listFiles의 반대).
+ * 최근 삭제 먼저(deleted_at 내림차순). 실물 무접촉, 메타 조회만.
+ */
+export function listTrashedFiles(userId: string, dbHandle: Database.Database = db): SuperEditorFile[] {
+  return dbHandle.prepare<[string], SuperEditorFile>(
+    'SELECT * FROM super_editor_files WHERE user_id=? AND deleted_at IS NOT NULL ORDER BY deleted_at DESC'
+  ).all(userId) as SuperEditorFile[];
+}
+
+/**
+ * 복구 — deleted_at을 NULL로 되돌려 활성 목록으로 되살린다(휴지통에서 꺼내기). 실물은 건드리지 않는다.
+ * 소유자(userId) 검증 포함. 대상이 없거나(없는 id·타인) 이미 활성이면 false.
+ */
+export function restoreFile(id: string, userId: string, dbHandle: Database.Database = db): boolean {
+  const result = dbHandle.prepare(
+    'UPDATE super_editor_files SET deleted_at=NULL WHERE id=? AND user_id=? AND deleted_at IS NOT NULL'
+  ).run(id, userId);
+  return result.changes > 0;
+}
