@@ -10,6 +10,8 @@ import {
 } from '@/lib/db/super-editor-files';
 import { getValidAccessToken } from '@/lib/drive-auth';
 import { ensureAizetFolder, listDriveFiles } from '@/lib/drive-folder';
+import { getSiteContext } from '@/lib/registry/siteContext';
+import { bootstrapSite } from '@/lib/siteDb/siteDb';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -81,6 +83,23 @@ export async function GET(req: NextRequest) {
 
   const type    = req.nextUrl.searchParams.get('type') as FileType | null;
   const orderId = req.nextUrl.searchParams.get('orderId');
+  const siteId  = req.nextUrl.searchParams.get('siteId');
+
+  // siteId가 있으면 그 홈페이지 전용 siteDb에서 읽는다(읽기 전용 파일럿).
+  // 소유자 검증은 getSiteContext가 수행 — 소유자 아님/없는 siteId면 null → 빈 목록으로 거부
+  // (에러로 터뜨리지 않음). siteId가 없으면 기존과 100% 동일하게 싱글턴(aizet.db)에서 읽는다.
+  if (siteId) {
+    const ctx = getSiteContext(siteId, session.sub);
+    if (!ctx) return Response.json({ files: [] });
+    const siteDb = bootstrapSite(ctx.dbPath);
+    try {
+      const files = listFiles(session.sub, type ?? undefined, orderId ?? undefined, siteDb);
+      return Response.json({ files });
+    } finally {
+      siteDb.close();
+    }
+  }
+
   const files = listFiles(session.sub, type ?? undefined, orderId ?? undefined);
   return Response.json({ files });
 }
