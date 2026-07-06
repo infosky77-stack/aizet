@@ -1,12 +1,14 @@
 import { NextRequest } from 'next/server';
 import { writeFile, unlink } from 'fs/promises';
+import { existsSync } from 'fs';
+import path from 'path';
 import { randomUUID, createHash } from 'crypto';
 import type Database from 'better-sqlite3';
 import db from '@/lib/db';
 import { getSessionFromRequest } from '@/lib/auth';
-import { resolveWritePath } from '@/lib/super-editor/filePaths';
+import { resolveWritePath, siteDir } from '@/lib/super-editor/filePaths';
 import {
-  insertFile, listFiles, softDeleteFile, listTrashedFiles, restoreFile, renameFile, reorderFiles,
+  insertFile, listFiles, softDeleteFile, listTrashedFiles, restoreFile, deleteFile, getFile, renameFile, reorderFiles,
   findExactDuplicate, listOrigNames, resolveAvailableName, FileType,
 } from '@/lib/db/super-editor-files';
 import { getValidAccessToken } from '@/lib/drive-auth';
@@ -284,17 +286,18 @@ export async function PATCH(req: NextRequest) {
   return Response.json({ error: 'fileId+name or order required' }, { status: 400 });
 }
 
-// DELETE /api/admin/super-editor/files?fileId=xxx[&siteId=...]
-// 소프트 삭제(휴지통) — 실물은 지우지 않고 deleted_at 표시만. 물리 삭제는 나중 "휴지통 비우기"에서만.
+// DELETE /api/admin/super-editor/files?fileId=xxx[&siteId=...]        → 소프트 삭제(휴지통, 실물 무접촉)
+// DELETE /api/admin/super-editor/files?fileId=xxx&purge=1[&siteId=...] → 휴지통 비우기(물리삭제, new 실물만)
 export async function DELETE(req: NextRequest) {
   const session = getSessionFromRequest(req);
   if (!session) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
   const fileId = req.nextUrl.searchParams.get('fileId');
   if (!fileId) return Response.json({ error: 'fileId required' }, { status: 400 });
+  const purge = req.nextUrl.searchParams.get('purge') === '1'; // 물리삭제(영구) — 회원이 명시적으로만
 
-  // siteId(선택적) — 있으면 소유 검증 후 그 siteDb 레코드만 소프트 삭제. 없으면 싱글턴(aizet.db).
-  // 소유 아님/없는 siteId면 403 거부(남의/다른 사업장 레코드는 절대 안 건드림).
+  // siteId(선택적) — 있으면 소유 검증 후 그 siteDb 레코드만. 없으면 싱글턴(aizet.db).
+  // 소유 아님/없는 siteId면 403 거부(남의/다른 사업장 레코드·경로는 절대 안 건드림).
   const effSiteId = req.nextUrl.searchParams.get('siteId') || null;
   let siteHandle: Database.Database | null = null;
   if (effSiteId) {
@@ -304,8 +307,33 @@ export async function DELETE(req: NextRequest) {
   }
 
   try {
-    // softDeleteFile은 WHERE id=? AND user_id=? AND deleted_at IS NULL — 소유 이중검증 + 실물 무접촉.
-    // 대상이 없으면(없는 fileId·타인·이미 삭제됨) 404. 실물 파일은 하나도 건드리지 않는다.
+    if (purge) {
+      // ── 휴지통 비우기(물리삭제) — 3중 안전 ──────────────────────────────────
+      // 1) 대상 확정: 그 siteDb(또는 싱글턴) 레코드 + 소유자 + deleted_at IS NOT NULL(휴지통에 있는 것만).
+      const record = getFile(fileId, siteHandle ?? undefined);
+      if (!record || record.user_id !== session.sub) return Response.json({ error: 'Not found' }, { status: 404 });
+      if (record.deleted_at == null) return Response.json({ error: 'not_in_trash' }, { status: 409 }); // 활성은 거부
+
+      // 2) 물리 경로: siteId 있을 때만 new(sites/<siteId>/) 실물을 계산·삭제한다.
+      //    old(userDir) 원본은 경로 계산조차 하지 않는다 — 최후 안전망으로 보존.
+      if (effSiteId) {
+        const target = path.join(siteDir(effSiteId), record.filename);
+        if (existsSync(target)) {
+          // 3) 삭제 순서: 실물 unlink(new만) 성공 후에만 메타 하드삭제. 실패 시 메타 유지(재시도 가능).
+          try {
+            await unlink(target);
+          } catch {
+            return Response.json({ error: 'purge_failed' }, { status: 500 });
+          }
+        }
+      }
+      // new 실물 삭제 완료(또는 old만 존재해 실물은 보존) → 메타 레코드 완전 삭제
+      deleteFile(fileId, session.sub, siteHandle ?? undefined);
+      return Response.json({ ok: true, purged: true });
+    }
+
+    // ── 소프트 삭제(휴지통 넣기) — 실물 무접촉, deleted_at 표시만 ──────────────
+    // softDeleteFile은 WHERE id=? AND user_id=? AND deleted_at IS NULL — 소유 이중검증.
     const ok = softDeleteFile(fileId, session.sub, siteHandle ?? undefined);
     if (!ok) return Response.json({ error: 'Not found' }, { status: 404 });
     return Response.json({ ok: true });

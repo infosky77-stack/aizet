@@ -65,6 +65,7 @@ function SuperEditorFilesContent() {
   const [importing,   setImporting]   = useState<string | null>(null);
   const [showTrash,   setShowTrash]   = useState(false); // 휴지통(소프트 삭제된 것) 보기 토글
   const [restoring,   setRestoring]   = useState<string | null>(null);
+  const [purging,     setPurging]     = useState<string | null>(null);
   const fileInputRef  = useRef<HTMLInputElement>(null);
 
   // siteId·trash 쿼리를 안전하게 조합(URLSearchParams가 인코딩 처리). 둘 다 없으면 빈 쿼리.
@@ -143,6 +144,15 @@ function SuperEditorFilesContent() {
     });
     if (res.ok) setFiles(prev => prev.filter(f => f.id !== id));
     setRestoring(null);
+  }
+
+  // 영구삭제(휴지통 비우기) — 되돌릴 수 없음. 재확인 후 물리삭제(서버가 new 실물만 지움, old 원본 보존).
+  async function handlePurge(id: string) {
+    if (!confirm('이 파일을 영구히 삭제합니다.\n되돌릴 수 없습니다. 계속하시겠습니까?')) return;
+    setPurging(id);
+    const res = await fetch(filesUrl({ fileId: id, purge: '1' }), { method: 'DELETE' });
+    if (res.ok) setFiles(prev => prev.filter(f => f.id !== id));
+    setPurging(null);
   }
 
   async function openDrive() {
@@ -302,16 +312,29 @@ function SuperEditorFilesContent() {
                 )}
                 {/* 오버레이: 휴지통 모드면 복구 버튼, 아니면 삭제 버튼 */}
                 {showTrash ? (
-                  <button
-                    onClick={() => handleRestore(file.id)}
-                    disabled={restoring === file.id}
-                    className="absolute top-1 right-1 flex items-center gap-1 px-2 py-1 bg-white/90 hover:bg-violet-50 hover:text-violet-600 text-stone-500 text-[11px] font-semibold rounded-lg opacity-0 group-hover:opacity-100 transition-all"
-                  >
-                    {restoring === file.id
-                      ? <Loader2 size={12} className="animate-spin" />
-                      : <RotateCcw size={12} />}
-                    복구
-                  </button>
+                  <div className="absolute top-1 right-1 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                    <button
+                      onClick={() => handleRestore(file.id)}
+                      disabled={restoring === file.id || purging === file.id}
+                      className="flex items-center gap-1 px-2 py-1 bg-white/90 hover:bg-violet-50 hover:text-violet-600 text-stone-500 text-[11px] font-semibold rounded-lg"
+                    >
+                      {restoring === file.id
+                        ? <Loader2 size={12} className="animate-spin" />
+                        : <RotateCcw size={12} />}
+                      복구
+                    </button>
+                    <button
+                      onClick={() => handlePurge(file.id)}
+                      disabled={purging === file.id || restoring === file.id}
+                      title="영구삭제(되돌릴 수 없음)"
+                      className="flex items-center gap-1 px-2 py-1 bg-white/90 hover:bg-red-50 hover:text-red-600 text-stone-500 text-[11px] font-semibold rounded-lg"
+                    >
+                      {purging === file.id
+                        ? <Loader2 size={12} className="animate-spin" />
+                        : <Trash2 size={12} />}
+                      영구삭제
+                    </button>
+                  </div>
                 ) : (
                   <button
                     onClick={() => handleDelete(file.id)}
