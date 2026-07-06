@@ -33,6 +33,7 @@ run "명부 DB (registry)"   npx tsx src/lib/registry/registry.test.ts
 run "사업장 DB (siteDb)"   npx tsx src/lib/siteDb/siteDb.test.ts
 run "Object Model 저장소·조립 (documents/blocks/tree)"   npx tsx src/lib/super-editor/object-model/store.test.ts
 run "Object Model 웹 HTML 렌더러 (renderHtml)"   npx tsx src/lib/super-editor/object-model/renderers/html.test.ts
+run "Object Model Press PDF 렌더러 (renderPdf)"   npx tsx src/lib/super-editor/object-model/renderers/pdf.test.ts
 run "클립 seek 캡처 정확도 (headless Chromium)" node tests/seek-capture-accuracy.test.mjs
 
 echo ""

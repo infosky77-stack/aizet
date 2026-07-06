@@ -15,14 +15,22 @@ import { listDocuments } from '@/lib/super-editor/object-model/store';
 import { loadDocumentTree } from '@/lib/super-editor/object-model/model';
 import { seedCatalogDemo } from '@/lib/super-editor/object-model/seed';
 import { renderHtml } from '@/lib/super-editor/object-model/renderers/html';
+import { renderPdf } from '@/lib/super-editor/object-model/renderers/pdf';
 import { wrapHtmlPage } from '@/lib/super-editor/object-model/renderers/pageShell';
 import { escapeHtml } from '@/lib/super-editor/object-model/renderers/escape';
 
+// fs로 폰트를 읽는 renderPdf가 동작하려면 Node 런타임이어야 한다(Edge 금지).
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 function html(body: string, status = 200): Response {
   return new Response(body, { status, headers: { 'content-type': 'text/html; charset=utf-8' } });
+}
+
+/** 다운로드 파일명용 안전 문자열 — 경로/제어/특수문자를 '_'로, 비면 'document'. (UTF-8 원제목은 filename*로 별도 전달) */
+function safeFileName(title: string): string {
+  const cleaned = (title || '').replace(/[\\/:*?"<>| -]/g, '_').trim();
+  return cleaned || 'document';
 }
 
 /** 안내 문구를 최소 페이지 셸로 감싼 응답 */
@@ -41,7 +49,8 @@ export async function GET(req: NextRequest): Promise<Response> {
   const ctx = getSiteContext(siteId, session.sub);
   if (!ctx) return notice('이 사이트에 대한 권한이 없습니다.', 403);
 
-  const seed  = req.nextUrl.searchParams.get('seed');
+  const seed   = req.nextUrl.searchParams.get('seed');
+  const format = req.nextUrl.searchParams.get('format') || 'html'; // 기본 html, 'pdf'면 PDF 분기
   let documentId = req.nextUrl.searchParams.get('documentId');
 
   const handle = bootstrapSite(ctx.dbPath);
@@ -54,6 +63,23 @@ export async function GET(req: NextRequest): Promise<Response> {
     // 렌더 대상이 정해졌으면 그 문서를 렌더
     if (documentId) {
       const tree = loadDocumentTree(handle, documentId);
+
+      // PDF 분기 — 문서 못 찾으면 HTML 안내 대신 간단한 404 텍스트
+      if (format === 'pdf') {
+        if (!tree) return new Response('문서를 찾을 수 없습니다.', { status: 404, headers: { 'content-type': 'text/plain; charset=utf-8' } });
+        const bytes = await renderPdf(tree);
+        const safeTitle = safeFileName(tree.document.title);           // 한글 보존(filename*)
+        const asciiFallback = safeTitle.replace(/[^\x20-\x7E]/g, '') || 'document'; // ASCII 폴백(filename=)
+        return new Response(Buffer.from(bytes), {
+          status: 200,
+          headers: {
+            'content-type': 'application/pdf',
+            'content-disposition':
+              `inline; filename="${asciiFallback}.pdf"; filename*=UTF-8''${encodeURIComponent(safeTitle)}.pdf`,
+          },
+        });
+      }
+
       if (!tree) return notice('문서를 찾을 수 없습니다.', 404);
       const fragment = renderHtml(tree);
       return html(wrapHtmlPage(fragment, { lang: tree.document.lang, title: tree.document.title }));
@@ -63,11 +89,13 @@ export async function GET(req: NextRequest): Promise<Response> {
     const enc  = encodeURIComponent(siteId);
     const docs = listDocuments(handle);
     const rows = docs.length
-      ? docs.map((d) =>
-          `<li class="om-li"><a href="?siteId=${enc}&documentId=${encodeURIComponent(d.id)}">`
-          + `${escapeHtml(d.title || '(제목 없음)')}</a> `
-          + `<span class="om-caption">${escapeHtml(d.kind)}</span></li>`,
-        ).join('')
+      ? docs.map((d) => {
+          const docQ = `?siteId=${enc}&documentId=${encodeURIComponent(d.id)}`;
+          return `<li class="om-li"><a href="${docQ}">`
+            + `${escapeHtml(d.title || '(제목 없음)')}</a> `
+            + `<span class="om-caption">${escapeHtml(d.kind)}</span> `
+            + `<a href="${docQ}&format=pdf">PDF</a></li>`;
+        }).join('')
       : `<li class="om-li"><em>아직 문서가 없습니다.</em></li>`;
 
     const frag =
