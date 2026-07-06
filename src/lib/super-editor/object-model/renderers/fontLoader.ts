@@ -7,10 +7,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-// 조사에서 확인한 실제 자산 경로(Regular 단일). subset:false로 임베드하므로 원본 그대로 읽는다.
-const FONT_REL_PATH = path.join('public', 'fonts', 'NotoSansKR.ttf');
+// NanumGothic Regular — 인쇄물용 정규 웨이트(NotoSansKR은 Thin뿐이라 인쇄물이 얇게 보임).
+// subset:true로 임베드하므로 사용 글리프만 남지만, 로더는 원본 폰트 바이트를 그대로 읽는다.
+const FONT_REL_PATH = path.join('public', 'fonts', 'NanumGothic.ttf');
 
-/** public/fonts/NotoSansKR.ttf 를 읽어 Uint8Array로 반환. 없으면 경로를 포함해 throw. */
+/** public/fonts/NanumGothic.ttf 를 읽어 Uint8Array로 반환. 없으면 경로를 포함해 throw. */
 export function loadKoreanFontBytes(): Uint8Array {
   const abs = path.join(process.cwd(), FONT_REL_PATH);
   if (!fs.existsSync(abs)) {
