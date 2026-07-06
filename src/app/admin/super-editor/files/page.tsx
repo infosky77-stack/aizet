@@ -67,7 +67,8 @@ function SuperEditorFilesContent() {
 
   async function fetchFiles() {
     setLoading(true);
-    const res = await fetch('/api/admin/super-editor/files');
+    // siteId 보유 시 그 사업장 siteDb 목록을 읽는다(활성만). 없으면 기존 싱글턴 목록.
+    const res = await fetch(`/api/admin/super-editor/files${siteId ? `?siteId=${encodeURIComponent(siteId)}` : ''}`);
     if (res.ok) {
       const data = await res.json();
       setFiles(data.files ?? []);
@@ -115,7 +116,8 @@ function SuperEditorFilesContent() {
   async function handleDelete(id: string) {
     if (!confirm('파일을 삭제하시겠습니까?')) return;
     setDeleting(id);
-    await fetch(`/api/admin/super-editor/files?fileId=${id}`, { method: 'DELETE' });
+    // siteId 보유 시 그 사업장 siteDb 레코드를 소프트 삭제(휴지통). 없으면 싱글턴. 실물은 안 지움.
+    await fetch(`/api/admin/super-editor/files?fileId=${id}${siteId ? `&siteId=${encodeURIComponent(siteId)}` : ''}`, { method: 'DELETE' });
     setFiles(prev => prev.filter(f => f.id !== id));
     setDeleting(null);
   }

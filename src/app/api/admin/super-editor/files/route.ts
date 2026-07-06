@@ -1,14 +1,12 @@
 import { NextRequest } from 'next/server';
 import { writeFile, unlink } from 'fs/promises';
-import { existsSync } from 'fs';
-import path from 'path';
 import { randomUUID, createHash } from 'crypto';
 import type Database from 'better-sqlite3';
 import db from '@/lib/db';
 import { getSessionFromRequest } from '@/lib/auth';
 import { resolveWritePath } from '@/lib/super-editor/filePaths';
 import {
-  insertFile, listFiles, deleteFile, getFile, renameFile, reorderFiles,
+  insertFile, listFiles, softDeleteFile, renameFile, reorderFiles,
   findExactDuplicate, listOrigNames, resolveAvailableName, FileType,
 } from '@/lib/db/super-editor-files';
 import { getValidAccessToken } from '@/lib/drive-auth';
@@ -34,10 +32,6 @@ const EXT_MAP: Record<string, string> = {
 };
 
 const MAX_SIZE = 200 * 1024 * 1024; // 200 MB
-
-function userDir(userId: string): string {
-  return path.join(process.cwd(), 'data', 'super-editor-files', userId);
-}
 
 function sha256(buffer: Buffer): string {
   return createHash('sha256').update(buffer).digest('hex');
@@ -266,7 +260,8 @@ export async function PATCH(req: NextRequest) {
   return Response.json({ error: 'fileId+name or order required' }, { status: 400 });
 }
 
-// DELETE /api/admin/super-editor/files?fileId=xxx
+// DELETE /api/admin/super-editor/files?fileId=xxx[&siteId=...]
+// 소프트 삭제(휴지통) — 실물은 지우지 않고 deleted_at 표시만. 물리 삭제는 나중 "휴지통 비우기"에서만.
 export async function DELETE(req: NextRequest) {
   const session = getSessionFromRequest(req);
   if (!session) return Response.json({ error: 'Unauthorized' }, { status: 401 });
@@ -274,14 +269,23 @@ export async function DELETE(req: NextRequest) {
   const fileId = req.nextUrl.searchParams.get('fileId');
   if (!fileId) return Response.json({ error: 'fileId required' }, { status: 400 });
 
-  const record = getFile(fileId);
-  if (!record || record.user_id !== session.sub) {
-    return Response.json({ error: 'Not found' }, { status: 404 });
+  // siteId(선택적) — 있으면 소유 검증 후 그 siteDb 레코드만 소프트 삭제. 없으면 싱글턴(aizet.db).
+  // 소유 아님/없는 siteId면 403 거부(남의/다른 사업장 레코드는 절대 안 건드림).
+  const effSiteId = req.nextUrl.searchParams.get('siteId') || null;
+  let siteHandle: Database.Database | null = null;
+  if (effSiteId) {
+    const ctx = getSiteContext(effSiteId, session.sub);
+    if (!ctx) return Response.json({ error: 'Forbidden: not site owner' }, { status: 403 });
+    siteHandle = bootstrapSite(ctx.dbPath);
   }
 
-  const filePath = path.join(userDir(session.sub), record.filename);
-  if (existsSync(filePath)) await unlink(filePath);
-
-  deleteFile(fileId, session.sub);
-  return Response.json({ ok: true });
+  try {
+    // softDeleteFile은 WHERE id=? AND user_id=? AND deleted_at IS NULL — 소유 이중검증 + 실물 무접촉.
+    // 대상이 없으면(없는 fileId·타인·이미 삭제됨) 404. 실물 파일은 하나도 건드리지 않는다.
+    const ok = softDeleteFile(fileId, session.sub, siteHandle ?? undefined);
+    if (!ok) return Response.json({ error: 'Not found' }, { status: 404 });
+    return Response.json({ ok: true });
+  } finally {
+    siteHandle?.close();
+  }
 }
