@@ -5,6 +5,8 @@ import {
   updateSnapshot, deleteMediaOrder,
 } from '@/lib/db/media-orders';
 import { getFolder } from '@/lib/db/order-folders';
+import { getSiteContext } from '@/lib/registry/siteContext';
+import { bootstrapSite } from '@/lib/siteDb/siteDb';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -22,6 +24,23 @@ export async function GET(req: NextRequest) {
       return Response.json({ error: 'Not found' }, { status: 404 });
     }
     return Response.json({ order });
+  }
+
+  const siteId = req.nextUrl.searchParams.get('siteId');
+
+  // siteId가 있으면 그 홈페이지 전용 siteDb에서 목록을 읽는다(읽기 전용, 2단계 파일관리자 GET과 동일 패턴).
+  // 소유자 검증은 getSiteContext가 수행 — 소유자 아님/없는 siteId면 null → 빈 목록으로 거부
+  // (에러로 터뜨리지 않음). siteId가 없으면 기존과 100% 동일하게 싱글턴(aizet.db)에서 읽는다.
+  if (siteId) {
+    const ctx = getSiteContext(siteId, session.sub);
+    if (!ctx) return Response.json({ orders: [] });
+    const siteDb = bootstrapSite(ctx.dbPath);
+    try {
+      const orders = listMediaOrders(session.sub, siteDb);
+      return Response.json({ orders });
+    } finally {
+      siteDb.close();
+    }
   }
 
   const orders = listMediaOrders(session.sub);
