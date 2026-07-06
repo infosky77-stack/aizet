@@ -1,9 +1,12 @@
 import { NextRequest } from 'next/server';
-import { writeFile, mkdir, unlink } from 'fs/promises';
+import { writeFile, unlink } from 'fs/promises';
 import { existsSync } from 'fs';
 import path from 'path';
 import { randomUUID, createHash } from 'crypto';
+import type Database from 'better-sqlite3';
+import db from '@/lib/db';
 import { getSessionFromRequest } from '@/lib/auth';
+import { resolveWritePath } from '@/lib/super-editor/filePaths';
 import {
   insertFile, listFiles, deleteFile, getFile, renameFile, reorderFiles,
   findExactDuplicate, listOrigNames, resolveAvailableName, FileType,
@@ -47,11 +50,12 @@ function sha256(buffer: Buffer): string {
 // orderId가 null이면(독립 파일 관리자 페이지) "주문 미지정 파일들끼리"만 비교 — 다른 주문 폴더와는 무관.
 function judgeNameConflict(
   userId: string, desiredName: string, contentHash: string, orderId: string | null,
+  dbHandle: Database.Database = db,
 ): { outcome: 'duplicate'; existing: ReturnType<typeof findExactDuplicate> } | { outcome: 'created' | 'renamed'; finalName: string } {
-  const exact = findExactDuplicate(userId, desiredName, contentHash, orderId);
+  const exact = findExactDuplicate(userId, desiredName, contentHash, orderId, dbHandle);
   if (exact) return { outcome: 'duplicate', existing: exact };
 
-  const existingNames = listOrigNames(userId, orderId);
+  const existingNames = listOrigNames(userId, orderId, undefined, dbHandle);
   const finalName = resolveAvailableName(existingNames, desiredName);
   return { outcome: finalName === desiredName ? 'created' : 'renamed', finalName };
 }
@@ -110,7 +114,19 @@ export async function POST(req: NextRequest) {
   const session = getSessionFromRequest(req);
   if (!session) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const contentType = req.headers.get('content-type') ?? '';
+  // siteId(선택적 ?siteId=) — 있으면 소유 검증 후 실물 경로와 메타 핸들을 이 하나의 값(effSiteId)에서
+  // 파생한다(실물·메타·중복판정 3자 일치). 소유 아님/없는 siteId면 403 명시 거부(엉뚱한 곳에 실물·메타
+  // 안 씀). siteId 없으면 effSiteId=null·siteHandle=null → old(userDir)+싱글턴(aizet.db)로 기존과 동일.
+  const effSiteId: string | null = req.nextUrl.searchParams.get('siteId') || null;
+  let siteHandle: Database.Database | null = null;
+  if (effSiteId) {
+    const ctx = getSiteContext(effSiteId, session.sub);
+    if (!ctx) return Response.json({ error: 'Forbidden: not site owner' }, { status: 403 });
+    siteHandle = bootstrapSite(ctx.dbPath);
+  }
+
+  try {
+    const contentType = req.headers.get('content-type') ?? '';
 
   if (contentType.includes('application/json')) {
     // Drive 가져오기
@@ -149,21 +165,27 @@ export async function POST(req: NextRequest) {
 
     const buffer = Buffer.from(await dlRes.arrayBuffer());
     const contentHash = sha256(buffer);
-    const judged = judgeNameConflict(session.sub, driveName, contentHash, orderId ?? null);
+    const judged = judgeNameConflict(session.sub, driveName, contentHash, orderId ?? null, siteHandle ?? undefined);
     if (judged.outcome === 'duplicate') {
       return Response.json({ file: judged.existing, outcome: 'duplicate' });
     }
 
     const ext = EXT_MAP[driveMime] ?? 'bin';
     const filename = `${randomUUID()}.${ext}`;
-    const dir = userDir(session.sub);
-    if (!existsSync(dir)) await mkdir(dir, { recursive: true });
-    await writeFile(path.join(dir, filename), buffer);
+    const dest = resolveWritePath(session.sub, effSiteId, filename); // siteId 있으면 new(sites/<siteId>/), 없으면 old
+    await writeFile(dest, buffer);
 
-    const record = insertFile({
-      userId: session.sub, filename, origName: judged.finalName, fileType, mimeType: driveMime,
-      sizeBytes: parseInt(driveSize ?? '0', 10) || buffer.byteLength, contentHash, orderId,
-    });
+    let record: ReturnType<typeof insertFile>;
+    try {
+      record = insertFile({
+        userId: session.sub, filename, origName: judged.finalName, fileType, mimeType: driveMime,
+        sizeBytes: parseInt(driveSize ?? '0', 10) || buffer.byteLength, contentHash, orderId,
+      }, siteHandle ?? undefined);
+    } catch {
+      // 메타 삽입 실패 → 방금 new 경로에 쓴 실물만 롤백(old·기존 파일은 건드리지 않음)
+      if (effSiteId) { try { await unlink(dest); } catch { /* 롤백 실패는 무시 */ } }
+      return Response.json({ error: 'save_failed' }, { status: 500 });
+    }
     return Response.json(
       { file: record, outcome: judged.outcome, originalName: judged.outcome === 'renamed' ? driveName : undefined },
       { status: 201 },
@@ -188,7 +210,7 @@ export async function POST(req: NextRequest) {
 
   const buffer = Buffer.from(await file.arrayBuffer());
   const contentHash = sha256(buffer);
-  const judged = judgeNameConflict(session.sub, file.name, contentHash, orderId ?? null);
+  const judged = judgeNameConflict(session.sub, file.name, contentHash, orderId ?? null, siteHandle ?? undefined);
   if (judged.outcome === 'duplicate') {
     // 이름·내용 완전 동일 — 디스크에 새로 쓰지 않고 기존 레코드를 그대로 반환
     return Response.json({ file: judged.existing, outcome: 'duplicate' });
@@ -196,18 +218,27 @@ export async function POST(req: NextRequest) {
 
   const ext = EXT_MAP[mime] ?? 'bin';
   const filename = `${randomUUID()}.${ext}`;
-  const dir = userDir(session.sub);
-  if (!existsSync(dir)) await mkdir(dir, { recursive: true });
-  await writeFile(path.join(dir, filename), buffer);
+  const dest = resolveWritePath(session.sub, effSiteId, filename); // siteId 있으면 new(sites/<siteId>/), 없으면 old
+  await writeFile(dest, buffer);
 
-  const record = insertFile({
-    userId: session.sub, filename, origName: judged.finalName, fileType, mimeType: mime,
-    sizeBytes: file.size, contentHash, orderId,
-  });
+  let record: ReturnType<typeof insertFile>;
+  try {
+    record = insertFile({
+      userId: session.sub, filename, origName: judged.finalName, fileType, mimeType: mime,
+      sizeBytes: file.size, contentHash, orderId,
+    }, siteHandle ?? undefined);
+  } catch {
+    // 메타 삽입 실패 → 방금 new 경로에 쓴 실물만 롤백(old·기존 파일은 건드리지 않음)
+    if (effSiteId) { try { await unlink(dest); } catch { /* 롤백 실패는 무시 */ } }
+    return Response.json({ error: 'save_failed' }, { status: 500 });
+  }
   return Response.json(
     { file: record, outcome: judged.outcome, originalName: judged.outcome === 'renamed' ? file.name : undefined },
     { status: 201 },
   );
+  } finally {
+    siteHandle?.close();
+  }
 }
 
 // PATCH { fileId, name }        → 이름 변경 (충돌 시 서버가 자동으로 "(1)" 접미사)
