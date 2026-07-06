@@ -87,7 +87,8 @@ function SuperEditorFilesContent() {
     for (const file of Array.from(fileList)) {
       const fd = new FormData();
       fd.append('file', file);
-      const res = await fetch('/api/admin/super-editor/files', { method: 'POST', body: fd });
+      // siteId 보유 시 업로드도 그 사업장 new 경로에 저장(서버가 소비). 없으면 기존 old 저장.
+      const res = await fetch(`/api/admin/super-editor/files${siteId ? `?siteId=${encodeURIComponent(siteId)}` : ''}`, { method: 'POST', body: fd });
       if (res.ok) {
         const data = await res.json();
         uploaded.push(data.file);
@@ -132,7 +133,8 @@ function SuperEditorFilesContent() {
 
   async function importFromDrive(df: DriveFile) {
     setImporting(df.id);
-    const res = await fetch('/api/admin/super-editor/files', {
+    // siteId 보유 시 Drive 가져오기도 그 사업장 new 경로에 저장(서버가 소비). 없으면 기존 old 저장.
+    const res = await fetch(`/api/admin/super-editor/files${siteId ? `?siteId=${encodeURIComponent(siteId)}` : ''}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
