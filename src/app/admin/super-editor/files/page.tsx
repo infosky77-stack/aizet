@@ -1,7 +1,7 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useCallback, useEffect, useRef, useState, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   ArrowLeft, Upload, Image, Film, Music, Trash2, Loader2,
   HardDrive, X, Download, FileQuestion,
@@ -47,8 +47,12 @@ function FileIcon({ type, className }: { type: FileType; className?: string }) {
   return <Music size={32} className={className} />;
 }
 
-export default function SuperEditorFilesPage() {
+function SuperEditorFilesContent() {
   const router = useRouter();
+  // 파일관리자는 ?siteId= 로 진입한다(없으면 옛 방식). 서빙 URL에 이 siteId를 실어 보내면
+  // 서빙 라우트가 new(sites/<siteId>/) 우선·old 폴백으로 처리한다. siteId 없으면 안 붙임(하위호환).
+  const searchParams = useSearchParams();
+  const siteId = searchParams.get('siteId');
   const [files,       setFiles]       = useState<SEFile[]>([]);
   const [activeTab,   setActiveTab]   = useState<FileType | 'all'>('all');
   const [loading,     setLoading]     = useState(true);
@@ -250,7 +254,9 @@ export default function SuperEditorFilesPage() {
                 {file.file_type === 'image' ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
-                    src={`/api/super-editor-files/${file.user_id}/${file.filename}`}
+                    src={siteId
+                      ? `/api/super-editor-files/${file.user_id}/${file.filename}?siteId=${encodeURIComponent(siteId)}`
+                      : `/api/super-editor-files/${file.user_id}/${file.filename}`}
                     alt={file.orig_name}
                     className="w-full h-full object-cover"
                   />
@@ -348,5 +354,14 @@ export default function SuperEditorFilesPage() {
         </div>
       )}
     </div>
+  );
+}
+
+// useSearchParams(?siteId=)를 쓰므로 Suspense 경계로 감싼다(슈퍼에디터 index page와 동일 패턴).
+export default function SuperEditorFilesPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-sm text-stone-400">불러오는 중…</div>}>
+      <SuperEditorFilesContent />
+    </Suspense>
   );
 }
