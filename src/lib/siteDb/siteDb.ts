@@ -26,6 +26,12 @@ export function bootstrapSite(dbPath: string): Database.Database {
   const db = new Database(resolved);
   if (!inMemory) db.pragma('journal_mode = WAL');
   for (const ddl of SITE_SCHEMA) db.exec(ddl);
+  // 기존 siteDb 멱등 컬럼 보정 — CREATE TABLE IF NOT EXISTS는 기존 테이블에 컬럼을 붙이지 못하므로,
+  // 소프트 삭제(휴지통)용 deleted_at을 없으면 ALTER로 추가한다(신규 siteDb는 CREATE 정의에 이미 포함).
+  {
+    const cols = (db.pragma('table_info(super_editor_files)') as Array<{ name: string }>).map(c => c.name);
+    if (!cols.includes('deleted_at')) db.exec('ALTER TABLE super_editor_files ADD COLUMN deleted_at INTEGER');
+  }
   return db;
 }
 

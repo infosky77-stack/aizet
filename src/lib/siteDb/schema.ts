@@ -76,7 +76,8 @@ CREATE TABLE IF NOT EXISTS super_editor_files (
   created_at   INTEGER NOT NULL,
   content_hash TEXT    NOT NULL DEFAULT '',
   sort_order   INTEGER,
-  order_id     TEXT
+  order_id     TEXT,
+  deleted_at   INTEGER
 )`;
 
 /** 폴더 트리(parent self-FK는 같은 DB 안이라 유지) */

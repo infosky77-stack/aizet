@@ -281,6 +281,8 @@ db.exec(`
     ['sort_order',   'INTEGER'],
     // order_id: NULL = 주문 미지정(구 데이터, 독립 파일 관리자 페이지 업로드) — 그대로 둬서 하위호환
     ['order_id',     'TEXT'],
+    // deleted_at: NULL = 활성, 값(ms) = 소프트 삭제(휴지통) 표시 시각 — 실물·메타 보존, 목록에서 제외
+    ['deleted_at',   'INTEGER'],
   ];
   for (const [col, def] of toAdd) {
     if (!existing.includes(col)) {

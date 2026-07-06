@@ -16,6 +16,8 @@ export interface SuperEditorFile {
   sort_order:    number;
   order_id:      string | null;
   created_at:    number;
+  /** NULL/undefined = 활성, 값(ms) = 소프트 삭제(휴지통) 표시 시각 */
+  deleted_at?:   number | null;
 }
 
 export interface InsertFileParams {
@@ -52,7 +54,8 @@ export function getFile(id: string, dbHandle: Database.Database = db): SuperEdit
 
 // orderId 생략 시 전체(독립 파일 관리자 페이지용, 기존 동작 그대로) — 주면 그 주문 파일만
 export function listFiles(userId: string, fileType?: FileType, orderId?: string, dbHandle: Database.Database = db): SuperEditorFile[] {
-  const conditions = ['user_id=?'];
+  // deleted_at IS NULL: 소프트 삭제(휴지통) 표시된 파일은 목록에서 제외 — 활성 파일만 반환
+  const conditions = ['user_id=?', 'deleted_at IS NULL'];
   const args: (string)[] = [userId];
   if (fileType) { conditions.push('file_type=?'); args.push(fileType); }
   if (orderId)  { conditions.push('order_id=?');  args.push(orderId); }
@@ -124,5 +127,17 @@ export function deleteFile(id: string, userId: string, dbHandle: Database.Databa
   const result = dbHandle.prepare(
     'DELETE FROM super_editor_files WHERE id=? AND user_id=?'
   ).run(id, userId);
+  return result.changes > 0;
+}
+
+/**
+ * 소프트 삭제(휴지통) — 실물·메타를 지우지 않고 deleted_at을 현재시각으로 표시만 한다.
+ * 표시되면 listFiles(활성 목록)에서 제외되며, 실제 물리 삭제는 나중에 "휴지통 비우기"에서만 한다.
+ * 실물 파일은 건드리지 않는다. 이미 삭제 표시됐거나 소유자가 아니면 false.
+ */
+export function softDeleteFile(id: string, userId: string, dbHandle: Database.Database = db): boolean {
+  const result = dbHandle.prepare(
+    'UPDATE super_editor_files SET deleted_at=? WHERE id=? AND user_id=? AND deleted_at IS NULL'
+  ).run(Date.now(), id, userId);
   return result.changes > 0;
 }
