@@ -145,6 +145,41 @@ CREATE TABLE IF NOT EXISTS menu_items (
   description TEXT    NOT NULL DEFAULT ''
 )`;
 
+/**
+ * AIZET Object Model — 문서(documents) + 블록 트리(blocks). 모든 렌더러가 소비할
+ * 구조화 콘텐츠의 표준 저장소(사업장 전용). blocks는 parent_id self-참조로 트리를 이루고,
+ * 형제 그룹((document_id, parent_id)) 안에서 position 정수로 순서를 매긴다(밀집 재인덱싱).
+ * data는 kind별 의미 JSON을 문자열로 보관한다(앱에서 파싱).
+ */
+export const CREATE_DOCUMENTS = `
+CREATE TABLE IF NOT EXISTS documents (
+  id         TEXT    PRIMARY KEY,
+  kind       TEXT    NOT NULL,
+  title      TEXT    NOT NULL DEFAULT '',
+  lang       TEXT    NOT NULL DEFAULT 'ko',
+  status     TEXT    NOT NULL DEFAULT 'draft',
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+)`;
+
+export const CREATE_BLOCKS = `
+CREATE TABLE IF NOT EXISTS blocks (
+  id          TEXT    PRIMARY KEY,
+  document_id TEXT    NOT NULL,
+  parent_id   TEXT,
+  kind        TEXT    NOT NULL,
+  position    INTEGER NOT NULL,
+  data        TEXT    NOT NULL DEFAULT '{}',
+  created_at  INTEGER NOT NULL,
+  updated_at  INTEGER NOT NULL
+)`;
+
+export const CREATE_IDX_BLOCKS_DOCUMENT =
+  `CREATE INDEX IF NOT EXISTS idx_blocks_document ON blocks(document_id)`;
+
+export const CREATE_IDX_BLOCKS_SIBLINGS =
+  `CREATE INDEX IF NOT EXISTS idx_blocks_siblings ON blocks(document_id, parent_id, position)`;
+
 /** 부트스트랩 시 실행할 DDL 목록(전부 IF NOT EXISTS라 멱등) */
 export const SITE_SCHEMA: readonly string[] = [
   CREATE_SITE_PROFILE,
@@ -155,4 +190,8 @@ export const SITE_SCHEMA: readonly string[] = [
   CREATE_MAGAZINE_PLACEMENTS,
   CREATE_PRODUCTS,
   CREATE_MENU_ITEMS,
+  CREATE_DOCUMENTS,
+  CREATE_BLOCKS,            // documents 뒤(문서 먼저)
+  CREATE_IDX_BLOCKS_DOCUMENT,
+  CREATE_IDX_BLOCKS_SIBLINGS,
 ];
