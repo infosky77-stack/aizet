@@ -6,8 +6,8 @@
 // 오른쪽: 저장된 tree를 순수 renderHtml로 그려 iframe srcDoc에 표시(서버 왕복 없이 클라이언트 렌더).
 // 서버 진실 원천 원칙: 저장 응답으로 받은 tree로 state를 교체한다. store/renderers 로직은 재사용만.
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Save, Loader2, AlertCircle, Pencil, Eye } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Save, Loader2, AlertCircle, Pencil, Eye, ImagePlus } from 'lucide-react';
 import { clsx } from 'clsx';
 import { renderHtml } from '@/lib/super-editor/object-model/renderers/html';
 import { wrapHtmlPage } from '@/lib/super-editor/object-model/renderers/pageShell';
@@ -45,6 +45,8 @@ export function DocumentEditor({ siteId, documentId }: Props) {
   const [saving, setSaving]   = useState(false);
   const [error, setError]     = useState<string | null>(null);
   const [mobileView, setMobileView] = useState<'edit' | 'preview'>('edit');
+  const [uploadingImg, setUploadingImg] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // ── 초기 로드 ────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -96,6 +98,40 @@ export function DocumentEditor({ siteId, documentId }: Props) {
     }
   }, [dirty, edits, tree, siteId, documentId]);
 
+  // ── 이미지 추가: 파일들 순차 업로드(기존 files 라우트 재사용) → filename 수집 →
+  //    om-document POST로 image 블록 일괄 추가 → 응답 tree로 교체(서버 진실 원천) ─────
+  const addImages = useCallback(async (fileList: FileList) => {
+    if (fileList.length === 0) return;
+    setUploadingImg(true); setError(null);
+    try {
+      // 1) 각 파일을 기존 업로드 라우트로 순차 업로드(FormData, ?siteId=). 저장된 filename 수집.
+      const filenames: string[] = [];
+      for (const file of Array.from(fileList)) {
+        const fd = new FormData();
+        fd.append('file', file);
+        const res = await fetch(`/api/admin/super-editor/files?siteId=${encodeURIComponent(siteId)}`, { method: 'POST', body: fd });
+        if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error || `업로드 실패 (${res.status})`); }
+        const { file: rec } = await res.json() as { file: { filename: string } };
+        if (rec?.filename) filenames.push(rec.filename);
+      }
+      if (filenames.length === 0) throw new Error('업로드된 이미지가 없습니다.');
+
+      // 2) filename 배열로 image 블록 일괄 추가(서버가 src 조립). 갱신된 tree 반환.
+      const res = await fetch('/api/admin/super-editor/om-document', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ siteId, documentId, images: filenames.map((filename) => ({ filename })) }),
+      });
+      if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error || `이미지 추가 실패 (${res.status})`); }
+      const { tree: t } = await res.json() as { tree: DocumentTree };
+      setTree(t); setEdits(collectEdits(t)); setDirty(new Set());
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setUploadingImg(false);
+    }
+  }, [siteId, documentId]);
+
   // ── 오른쪽 미리보기 HTML(순수 renderHtml + wrapHtmlPage, 클라이언트 렌더) ──
   const previewHtml = useMemo(() => {
     if (!tree) return '';
@@ -140,19 +176,43 @@ export function DocumentEditor({ siteId, documentId }: Props) {
       )}>
         <div className="flex items-center justify-between px-4 py-3 border-b border-stone-100 shrink-0">
           <h2 className="text-sm font-bold text-stone-700 truncate">{tree.document.title || '(제목 없음)'}</h2>
-          <button
-            onClick={save}
-            disabled={saving || dirty.size === 0}
-            className={clsx(
-              'flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors',
-              dirty.size === 0 || saving
-                ? 'bg-stone-100 text-stone-400 cursor-not-allowed'
-                : 'bg-violet-600 text-white hover:bg-violet-700',
-            )}
-          >
-            {saving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
-            {saving ? '저장 중' : dirty.size > 0 ? `변경사항 저장 (${dirty.size})` : '저장됨'}
-          </button>
+          <div className="flex items-center gap-2 shrink-0">
+            {/* 이미지 추가: 숨김 input 트리거 → 여러 장 업로드 → image 블록 자동 추가 */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={(e) => { if (e.target.files?.length) addImages(e.target.files); e.target.value = ''; }}
+            />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploadingImg || saving}
+              className={clsx(
+                'flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors',
+                uploadingImg || saving
+                  ? 'bg-stone-100 text-stone-400 cursor-not-allowed'
+                  : 'bg-stone-100 text-stone-600 hover:bg-stone-200',
+              )}
+            >
+              {uploadingImg ? <Loader2 size={13} className="animate-spin" /> : <ImagePlus size={13} />}
+              {uploadingImg ? '추가 중' : '이미지 추가'}
+            </button>
+            <button
+              onClick={save}
+              disabled={saving || dirty.size === 0}
+              className={clsx(
+                'flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors',
+                dirty.size === 0 || saving
+                  ? 'bg-stone-100 text-stone-400 cursor-not-allowed'
+                  : 'bg-violet-600 text-white hover:bg-violet-700',
+              )}
+            >
+              {saving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
+              {saving ? '저장 중' : dirty.size > 0 ? `변경사항 저장 (${dirty.size})` : '저장됨'}
+            </button>
+          </div>
         </div>
 
         {error && (

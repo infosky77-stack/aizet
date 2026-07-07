@@ -9,7 +9,7 @@ import { NextRequest } from 'next/server';
 import { getSessionFromRequest } from '@/lib/auth';
 import { getSiteContext } from '@/lib/registry/siteContext';
 import { bootstrapSite } from '@/lib/siteDb/siteDb';
-import { getBlock, updateBlock } from '@/lib/super-editor/object-model/store';
+import { getBlock, updateBlock, createBlock } from '@/lib/super-editor/object-model/store';
 import { loadDocumentTree } from '@/lib/super-editor/object-model/model';
 import type { BlockData, BlockKind } from '@/lib/super-editor/object-model/types';
 
@@ -62,6 +62,68 @@ export async function GET(req: NextRequest): Promise<Response> {
   try {
     const tree = loadDocumentTree(handle, documentId);
     if (!tree) return json({ error: 'Document not found' }, 404);
+    return json({ tree });
+  } finally {
+    handle.close();
+  }
+}
+
+// POST /api/admin/super-editor/om-document  { siteId, documentId, images: [{ filename, alt?, caption? }, ...] }
+//
+// 업로드로 이미 저장된 이미지 파일명 배열을 받아, 각 파일의 서빙 URL(src)을 "서버가" 조립해
+// image 블록으로 문서 맨 끝에 순서대로 추가한다(createBlock, position 자동 부여). 클라이언트는
+// userId/서빙경로를 몰라도 되고 filename만 넘긴다(session.sub를 서버가 URL에 각인 → 격리 유지).
+// 갱신된 tree(JSON)를 반환 → 미리보기는 클라이언트가 renderHtml로 그린다.
+export async function POST(req: NextRequest): Promise<Response> {
+  const session = getSessionFromRequest(req);
+  if (!session) return json({ error: 'Unauthorized' }, 401);
+
+  const body = await req.json().catch(() => null) as
+    { siteId?: string; documentId?: string; images?: unknown } | null;
+  if (!body || !body.siteId || !body.documentId) {
+    return json({ error: 'siteId and documentId required' }, 400);
+  }
+  if (!Array.isArray(body.images) || body.images.length === 0) {
+    return json({ error: 'images (non-empty array) required' }, 400);
+  }
+
+  // 파일명 검증 — 저장 파일명은 randomUUID().<ext> 형태. 화이트리스트로 경로조작('..','/','\\') 원천 차단.
+  const items: { filename: string; alt: string; caption: string }[] = [];
+  for (const raw of body.images) {
+    if (raw === null || typeof raw !== 'object') return json({ error: 'invalid image item' }, 400);
+    const it = raw as Record<string, unknown>;
+    const filename = typeof it.filename === 'string' ? it.filename : '';
+    if (!filename || !/^[A-Za-z0-9._-]+$/.test(filename)) {
+      return json({ error: 'invalid filename' }, 400);
+    }
+    items.push({
+      filename,
+      alt:     typeof it.alt === 'string' ? it.alt : '',
+      caption: typeof it.caption === 'string' ? it.caption : '',
+    });
+  }
+
+  const ctx = getSiteContext(body.siteId, session.sub);
+  if (!ctx) return json({ error: 'Forbidden: not site owner' }, 403);
+
+  const handle = bootstrapSite(ctx.dbPath);
+  try {
+    // 없는 문서에 orphan 블록을 붙이지 않도록 존재 확인
+    if (!loadDocumentTree(handle, body.documentId)) return json({ error: 'Document not found' }, 404);
+
+    // 서빙 URL을 서버가 조립 — userId는 세션에서 취득(클라 전달 아님). files 서빙 라우트 규칙 재사용.
+    const uid = encodeURIComponent(session.sub);
+    const sid = encodeURIComponent(body.siteId);
+    for (const it of items) {
+      const src = `/api/super-editor-files/${uid}/${encodeURIComponent(it.filename)}?siteId=${sid}`;
+      createBlock(handle, {
+        documentId: body.documentId,
+        parentId:   null,
+        kind:       'image',
+        data:       { src, alt: it.alt, caption: it.caption },
+      });
+    }
+    const tree = loadDocumentTree(handle, body.documentId);
     return json({ tree });
   } finally {
     handle.close();
