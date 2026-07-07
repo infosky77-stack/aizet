@@ -21,6 +21,9 @@ interface Props {
   documentId: string;
 }
 
+// 이미지 업로드 동시 실행 최대치(청크 방식) — 서버·네트워크 부담과 속도의 절충.
+const UPLOAD_CONCURRENCY = 4;
+
 /** tree의 편집 대상 블록(최상위 + list 자식 list_item)의 data를 blockId→data 맵으로 수집. */
 function collectEdits(tree: DocumentTree): Record<string, BlockData> {
   const map: Record<string, BlockData> = {};
@@ -46,6 +49,7 @@ export function DocumentEditor({ siteId, documentId }: Props) {
   const [error, setError]     = useState<string | null>(null);
   const [mobileView, setMobileView] = useState<'edit' | 'preview'>('edit');
   const [uploadingImg, setUploadingImg] = useState(false);
+  const [imgProgress, setImgProgress] = useState<{ done: number; total: number } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // ── 초기 로드 ────────────────────────────────────────────────────────────
@@ -98,23 +102,41 @@ export function DocumentEditor({ siteId, documentId }: Props) {
     }
   }, [dirty, edits, tree, siteId, documentId]);
 
-  // ── 이미지 추가: 파일들 순차 업로드(기존 files 라우트 재사용) → filename 수집 →
-  //    om-document POST로 image 블록 일괄 추가 → 응답 tree로 교체(서버 진실 원천) ─────
+  // ── 이미지 추가: 파일들 적정 병렬 업로드(청크 4개씩, 선택 순서 유지, 부분 성공 허용) →
+  //    filename 수집 → om-document POST로 image 블록 일괄 추가 → 응답 tree로 교체 ─────
   const addImages = useCallback(async (fileList: FileList) => {
-    if (fileList.length === 0) return;
+    const files = Array.from(fileList);
+    if (files.length === 0) return;
     setUploadingImg(true); setError(null);
+    setImgProgress({ done: 0, total: files.length });
     try {
-      // 1) 각 파일을 기존 업로드 라우트로 순차 업로드(FormData, ?siteId=). 저장된 filename 수집.
-      const filenames: string[] = [];
-      for (const file of Array.from(fileList)) {
-        const fd = new FormData();
-        fd.append('file', file);
-        const res = await fetch(`/api/admin/super-editor/files?siteId=${encodeURIComponent(siteId)}`, { method: 'POST', body: fd });
-        if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error || `업로드 실패 (${res.status})`); }
-        const { file: rec } = await res.json() as { file: { filename: string } };
-        if (rec?.filename) filenames.push(rec.filename);
+      // 1) 청크(동시 UPLOAD_CONCURRENCY개)로 업로드. 결과를 "인덱스 위치"에 담아 선택 순서를 보존
+      //    (병렬 완료 순서가 뒤섞여도 최종 배열은 사용자가 고른 순서 그대로).
+      const uploaded: (string | null)[] = new Array(files.length).fill(null);
+      let done = 0;
+      for (let start = 0; start < files.length; start += UPLOAD_CONCURRENCY) {
+        const chunk = files.slice(start, start + UPLOAD_CONCURRENCY);
+        await Promise.all(chunk.map(async (file, j) => {
+          const idx = start + j;
+          try {
+            const fd = new FormData();
+            fd.append('file', file);
+            const res = await fetch(`/api/admin/super-editor/files?siteId=${encodeURIComponent(siteId)}`, { method: 'POST', body: fd });
+            if (!res.ok) throw new Error(String(res.status));
+            const { file: rec } = await res.json() as { file: { filename: string } };
+            if (rec?.filename) uploaded[idx] = rec.filename; // idx 위치 = 선택 순서
+          } catch {
+            // 개별 파일 실패는 건너뛴다(null 유지) — 전체 중단하지 않음(부분 성공 허용)
+          } finally {
+            done += 1;
+            setImgProgress({ done, total: files.length });
+          }
+        }));
       }
-      if (filenames.length === 0) throw new Error('업로드된 이미지가 없습니다.');
+
+      const filenames = uploaded.filter((f): f is string => !!f); // 성공분만, 선택 순서 유지
+      const failed = files.length - filenames.length;
+      if (filenames.length === 0) throw new Error('이미지 업로드에 모두 실패했습니다.');
 
       // 2) filename 배열로 image 블록 일괄 추가(서버가 src 조립). 갱신된 tree 반환.
       const res = await fetch('/api/admin/super-editor/om-document', {
@@ -125,10 +147,13 @@ export function DocumentEditor({ siteId, documentId }: Props) {
       if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error || `이미지 추가 실패 (${res.status})`); }
       const { tree: t } = await res.json() as { tree: DocumentTree };
       setTree(t); setEdits(collectEdits(t)); setDirty(new Set());
+      // 일부 실패했지만 나머지는 추가됨 → 실패 개수만 안내(전체 성공이면 에러 없음)
+      if (failed > 0) setError(`${failed}개 업로드 실패(나머지 ${filenames.length}개는 추가됨)`);
     } catch (e) {
       setError((e as Error).message);
     } finally {
       setUploadingImg(false);
+      setImgProgress(null);
     }
   }, [siteId, documentId]);
 
@@ -197,7 +222,9 @@ export function DocumentEditor({ siteId, documentId }: Props) {
               )}
             >
               {uploadingImg ? <Loader2 size={13} className="animate-spin" /> : <ImagePlus size={13} />}
-              {uploadingImg ? '추가 중' : '이미지 추가'}
+              {uploadingImg
+                ? (imgProgress ? `업로드 ${imgProgress.done}/${imgProgress.total}` : '추가 중')
+                : '이미지 추가'}
             </button>
             <button
               onClick={save}

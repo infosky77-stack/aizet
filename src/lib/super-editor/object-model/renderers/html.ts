@@ -36,7 +36,7 @@ function renderBlock(node: BlockNode): string {
         ? `<figcaption class="om-caption">${escapeHtml(d.caption)}</figcaption>`
         : '';
       return `<figure class="om-figure">`
-        + `<img class="om-img" src="${escapeHtml(d.src ?? '')}" alt="${escapeHtml(d.alt ?? '')}">`
+        + `<img class="om-img" src="${escapeHtml(d.src ?? '')}" alt="${escapeHtml(d.alt ?? '')}" loading="lazy" decoding="async">`
         + `${caption}</figure>`;
     }
     case 'list': {
