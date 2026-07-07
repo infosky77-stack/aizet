@@ -7,7 +7,7 @@
 // 서버 진실 원천 원칙: 저장 응답으로 받은 tree로 state를 교체한다. store/renderers 로직은 재사용만.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Save, Loader2, AlertCircle, Pencil, Eye, ImagePlus } from 'lucide-react';
+import { Save, Loader2, AlertCircle, Pencil, Eye, ImagePlus, Trash2 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { renderHtml } from '@/lib/super-editor/object-model/renderers/html';
 import { wrapHtmlPage } from '@/lib/super-editor/object-model/renderers/pageShell';
@@ -50,6 +50,9 @@ export function DocumentEditor({ siteId, documentId }: Props) {
   const [mobileView, setMobileView] = useState<'edit' | 'preview'>('edit');
   const [uploadingImg, setUploadingImg] = useState(false);
   const [imgProgress, setImgProgress] = useState<{ done: number; total: number } | null>(null);
+  // 이미지 다중선택 삭제: 선택된 image 블록 id 집합 + 일괄 삭제 진행 여부(dirty 추적용 Set과 별개)
+  const [selectedImageIds, setSelectedImageIds] = useState<Set<string>>(new Set());
+  const [deleting, setDeleting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // ── 초기 로드 ────────────────────────────────────────────────────────────
@@ -63,7 +66,7 @@ export function DocumentEditor({ siteId, documentId }: Props) {
         if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error || `로드 실패 (${res.status})`); }
         const { tree: t } = await res.json() as { tree: DocumentTree };
         if (!alive) return;
-        setTree(t); setEdits(collectEdits(t)); setDirty(new Set());
+        setTree(t); setEdits(collectEdits(t)); setDirty(new Set()); setSelectedImageIds(new Set());
       } catch (e) {
         if (alive) setError((e as Error).message);
       } finally {
@@ -157,6 +160,54 @@ export function DocumentEditor({ siteId, documentId }: Props) {
     }
   }, [siteId, documentId]);
 
+  // ── 이미지 다중선택 삭제 ───────────────────────────────────────────────────
+  // 문서의 image 블록 id 목록(전체 선택 대상). 선택 상태·전체선택 판정의 기준.
+  const imageIds = useMemo(
+    () => (tree ? tree.blocks.filter((b) => b.kind === 'image').map((b) => b.id) : []),
+    [tree],
+  );
+  const allSelected = imageIds.length > 0 && imageIds.every((id) => selectedImageIds.has(id));
+
+  // 개별 체크박스 토글
+  const toggleSelect = useCallback((blockId: string) => {
+    setSelectedImageIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(blockId)) next.delete(blockId); else next.add(blockId);
+      return next;
+    });
+  }, []);
+
+  // 전체 선택/해제 — 전부 선택돼 있으면 비우고, 아니면 모든 image 블록을 한 번에 선택
+  const toggleSelectAll = useCallback(() => {
+    setSelectedImageIds((prev) =>
+      imageIds.length > 0 && imageIds.every((id) => prev.has(id)) ? new Set() : new Set(imageIds),
+    );
+  }, [imageIds]);
+
+  // 선택 삭제: 선택된 blockIds를 한 번에 DELETE(문서에서 블록만 제거, 실물 파일 무접촉) → 응답 tree로 교체
+  const deleteSelected = useCallback(async () => {
+    const ids = [...selectedImageIds];
+    if (ids.length === 0) return;
+    if (!window.confirm(
+      `선택한 ${ids.length}개 이미지를 이 문서에서 뺍니다.\n\n(원본 파일은 그대로 남으며, 언제든 다시 넣을 수 있습니다.)\n계속할까요?`,
+    )) return;
+    setDeleting(true); setError(null);
+    try {
+      const res = await fetch('/api/admin/super-editor/om-document', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ siteId, documentId, blockIds: ids }),
+      });
+      if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error || `삭제 실패 (${res.status})`); }
+      const { tree: t } = await res.json() as { tree: DocumentTree };
+      setTree(t); setEdits(collectEdits(t)); setDirty(new Set()); setSelectedImageIds(new Set());
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setDeleting(false);
+    }
+  }, [selectedImageIds, siteId, documentId]);
+
   // ── 오른쪽 미리보기 HTML(순수 renderHtml + wrapHtmlPage, 클라이언트 렌더) ──
   const previewHtml = useMemo(() => {
     if (!tree) return '';
@@ -242,6 +293,30 @@ export function DocumentEditor({ siteId, documentId }: Props) {
           </div>
         </div>
 
+        {/* 이미지 다중선택 삭제 툴바 — image 블록이 있을 때만 노출 */}
+        {imageIds.length > 0 && (
+          <div className="flex items-center justify-between gap-2 px-4 py-2 border-b border-stone-100 shrink-0">
+            <label className="flex items-center gap-1.5 text-xs text-stone-500 cursor-pointer select-none">
+              <input type="checkbox" checked={allSelected} onChange={toggleSelectAll} className="accent-violet-600" />
+              전체 선택 ({imageIds.length})
+            </label>
+            <button
+              onClick={deleteSelected}
+              disabled={selectedImageIds.size === 0 || deleting}
+              className={clsx(
+                'flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-lg transition-colors',
+                selectedImageIds.size === 0 || deleting
+                  ? 'text-stone-300 cursor-not-allowed'
+                  : 'text-red-600 hover:bg-red-50',
+              )}
+            >
+              {deleting ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
+              {deleting ? '삭제 중' : `선택 삭제 (${selectedImageIds.size})`}
+              {!deleting && <span className="font-normal text-stone-400">· 문서에서 빼기</span>}
+            </button>
+          </div>
+        )}
+
         {error && (
           <div className="flex items-center gap-1.5 px-4 py-2 text-xs text-red-600 bg-red-50 border-b border-red-100 shrink-0">
             <AlertCircle size={13} /> {error}
@@ -250,7 +325,14 @@ export function DocumentEditor({ siteId, documentId }: Props) {
 
         <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
           {tree.blocks.map((b) => (
-            <BlockEditor key={b.id} node={b} edits={edits} onField={patchField} />
+            <BlockEditor
+              key={b.id}
+              node={b}
+              edits={edits}
+              onField={patchField}
+              selected={selectedImageIds.has(b.id)}
+              onToggleSelect={toggleSelect}
+            />
           ))}
         </div>
       </div>
@@ -275,8 +357,14 @@ function labelCls() {
 }
 
 function BlockEditor({
-  node, edits, onField,
-}: { node: BlockNode; edits: Record<string, BlockData>; onField: (id: string, patch: Partial<BlockData>) => void }) {
+  node, edits, onField, selected, onToggleSelect,
+}: {
+  node: BlockNode;
+  edits: Record<string, BlockData>;
+  onField: (id: string, patch: Partial<BlockData>) => void;
+  selected: boolean;                       // image 블록에서만 의미(다중선택 삭제)
+  onToggleSelect: (id: string) => void;
+}) {
   const data = edits[node.id];
 
   switch (node.kind) {
@@ -301,8 +389,22 @@ function BlockEditor({
     case 'image': {
       const d = data as ImageData;
       return (
-        <div className="flex flex-col gap-1.5 p-2.5 rounded-lg bg-stone-50 border border-stone-100">
-          <span className={labelCls()}>이미지</span>
+        <div className={clsx(
+          'flex flex-col gap-1.5 p-2.5 rounded-lg border',
+          selected ? 'bg-violet-50 border-violet-200' : 'bg-stone-50 border-stone-100',
+        )}>
+          <div className="flex items-center justify-between">
+            <span className={labelCls()}>이미지</span>
+            <label className="flex items-center gap-1 text-[11px] text-stone-400 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={selected}
+                onChange={() => onToggleSelect(node.id)}
+                className="accent-violet-600"
+              />
+              선택
+            </label>
+          </div>
           <span className="text-[11px] text-stone-400 truncate">src: {d?.src || '(없음)'}</span>
           <input className={fieldCls()} placeholder="대체 텍스트(alt)" value={d?.alt ?? ''} onChange={(e) => onField(node.id, { alt: e.target.value })} />
           <input className={fieldCls()} placeholder="캡션" value={d?.caption ?? ''} onChange={(e) => onField(node.id, { caption: e.target.value })} />

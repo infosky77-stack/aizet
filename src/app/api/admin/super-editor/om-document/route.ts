@@ -9,7 +9,7 @@ import { NextRequest } from 'next/server';
 import { getSessionFromRequest } from '@/lib/auth';
 import { getSiteContext } from '@/lib/registry/siteContext';
 import { bootstrapSite } from '@/lib/siteDb/siteDb';
-import { getBlock, updateBlock, createBlock } from '@/lib/super-editor/object-model/store';
+import { getBlock, updateBlock, createBlock, deleteBlock } from '@/lib/super-editor/object-model/store';
 import { loadDocumentTree } from '@/lib/super-editor/object-model/model';
 import type { BlockData, BlockKind } from '@/lib/super-editor/object-model/types';
 
@@ -159,6 +159,59 @@ export async function PATCH(req: NextRequest): Promise<Response> {
     const tree = loadDocumentTree(handle, body.documentId);
     if (!tree) return json({ error: 'Document not found' }, 404);
     return json({ tree });
+  } finally {
+    handle.close();
+  }
+}
+
+// DELETE /api/admin/super-editor/om-document  (body JSON) { siteId, documentId, blockIds: string[] }
+//
+// 문서에서 블록을 "여러 개 한 번에 제거"한다(윈도우 탐색기식 다중선택 삭제).
+// store.deleteBlock: 블록당 서브트리 삭제 + 형제 position 재인덱싱 포함. 전체를 한 트랜잭션으로 원자화.
+// 실물 파일(super-editor-files)은 절대 건드리지 않는다 — 완전 삭제는 파일 관리자 휴지통의 별도 기능.
+// 각 blockId가 그 문서에 속하는지 확인해 다른 문서/사업장 블록은 건너뛴다(선택분만 안전 삭제).
+// 하위호환: 단일 blockId가 와도 [blockId] 배열로 감싸 처리한다. 갱신된 tree와 deletedCount 반환.
+export async function DELETE(req: NextRequest): Promise<Response> {
+  const session = getSessionFromRequest(req);
+  if (!session) return json({ error: 'Unauthorized' }, 401);
+
+  const body = await req.json().catch(() => null) as
+    { siteId?: string; documentId?: string; blockIds?: unknown; blockId?: unknown } | null;
+  const siteId     = body?.siteId ?? null;
+  const documentId = body?.documentId ?? null;
+  // 다중(blockIds) 우선, 단일(blockId)은 하위호환으로 배열로 흡수. 문자열 아닌/빈 값은 걸러낸다.
+  const rawIds = Array.isArray(body?.blockIds)
+    ? body!.blockIds
+    : (typeof body?.blockId === 'string' ? [body.blockId] : []);
+  const blockIds = (rawIds as unknown[]).filter((v): v is string => typeof v === 'string' && v.length > 0);
+
+  if (!siteId || !documentId) {
+    return json({ error: 'siteId, documentId required' }, 400);
+  }
+  if (blockIds.length === 0) {
+    return json({ error: 'blockIds (non-empty array) required' }, 400);
+  }
+
+  const ctx = getSiteContext(siteId, session.sub);
+  if (!ctx) return json({ error: 'Forbidden: not site owner' }, 403);
+
+  const handle = bootstrapSite(ctx.dbPath);
+  try {
+    // 한 트랜잭션에서: 각 blockId가 그 문서에 속하는지 확인 후 삭제(안 속하는 id는 건너뜀).
+    // 실물 파일은 무접촉 — 문서에서 블록만 제거.
+    let deletedCount = 0;
+    const tx = handle.transaction(() => {
+      for (const blockId of blockIds) {
+        const block = getBlock(handle, blockId);
+        if (!block || block.document_id !== documentId) continue; // 다른 문서/사업장 블록 차단
+        deleteBlock(handle, blockId);
+        deletedCount += 1;
+      }
+    });
+    tx();
+    const tree = loadDocumentTree(handle, documentId);
+    if (!tree) return json({ error: 'Document not found' }, 404);
+    return json({ tree, deletedCount });
   } finally {
     handle.close();
   }
