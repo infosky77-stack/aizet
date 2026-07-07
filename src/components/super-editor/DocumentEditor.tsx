@@ -3,14 +3,14 @@
 // AIZET Object Model — 도록용 2분할 편집 화면(1차: 블록 텍스트 수정 + 저장 + 실시간 미리보기).
 //
 // 왼쪽: 최상위 블록을 kind별 입력으로 편집(로컬 state). "변경사항 저장"으로 수정된 블록만 순차 PATCH.
-// 오른쪽: 저장된 tree를 순수 renderHtml로 그려 iframe srcDoc에 표시(서버 왕복 없이 클라이언트 렌더).
+// 오른쪽: 저장된 tree를 DocumentPreview(React 실시간 렌더)로 표시 — tree 변경 시 바뀐 블록만
+// 갱신되어 변경 없는 이미지는 재요청되지 않는다(기존 iframe 전체 리로드 방식의 재다운 문제 해소).
 // 서버 진실 원천 원칙: 저장 응답으로 받은 tree로 state를 교체한다. store/renderers 로직은 재사용만.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Save, Loader2, AlertCircle, Pencil, Eye, ImagePlus, Trash2 } from 'lucide-react';
 import { clsx } from 'clsx';
-import { renderHtml } from '@/lib/super-editor/object-model/renderers/html';
-import { wrapHtmlPage } from '@/lib/super-editor/object-model/renderers/pageShell';
+import { DocumentPreview } from './DocumentPreview';
 import type {
   DocumentTree, BlockNode, BlockData,
   HeadingData, ParagraphData, ImageData, ListItemData,
@@ -208,12 +208,6 @@ export function DocumentEditor({ siteId, documentId }: Props) {
     }
   }, [selectedImageIds, siteId, documentId]);
 
-  // ── 오른쪽 미리보기 HTML(순수 renderHtml + wrapHtmlPage, 클라이언트 렌더) ──
-  const previewHtml = useMemo(() => {
-    if (!tree) return '';
-    return wrapHtmlPage(renderHtml(tree), { lang: tree.document.lang, title: tree.document.title });
-  }, [tree]);
-
   if (loading) {
     return <div className="flex items-center justify-center h-full"><Loader2 size={28} className="animate-spin text-stone-300" /></div>;
   }
@@ -342,7 +336,7 @@ export function DocumentEditor({ siteId, documentId }: Props) {
         'flex-1 bg-stone-50 overflow-hidden',
         mobileView === 'preview' ? 'block' : 'hidden lg:block',
       )}>
-        <iframe title="미리보기" srcDoc={previewHtml} className="w-full h-full border-0" />
+        <DocumentPreview tree={tree} />
       </div>
     </div>
   );
